@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Form Editor Iconography Chooser</title>
+	<style>
+		*, *::before, *::after { box-sizing: border-box; }
+		body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #FDFCFA; color: #3D3229; }
+
+		/* --- Header --- */
+		.header { display: flex; align-items: stretch; background: #264653; border-bottom: 3px solid #E76F51; }
+		.header-badge { background: #E76F51; color: #fff; padding: 0.6rem 1rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem; }
+		.header-badge svg { width: 14px; height: 14px; fill: #fff; flex-shrink: 0; }
+		.header-title { padding: 0.6rem 1rem; color: #FAEDCD; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; }
+		.header-sub { margin-left: auto; padding: 0.6rem 1rem; color: #D4A373; font-size: 0.75rem; display: flex; align-items: center; }
+
+		/* --- Controls --- */
+		.controls { display: flex; align-items: center; gap: 16px; padding: 16px 24px; background: #F5F0E8; border-bottom: 1px solid #E8E3DA; flex-wrap: wrap; }
+		.control-group { display: flex; align-items: center; gap: 6px; }
+		.control-group label { font-size: 12px; font-weight: 600; color: #8A7F72; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+		.control-group input[type="range"] { width: 120px; accent-color: #9E6B47; }
+		.control-group input[type="color"] { width: 32px; height: 24px; border: 1px solid #D4CFC6; border-radius: 3px; padding: 0; cursor: pointer; }
+		.control-group select { padding: 4px 8px; border: 1px solid #D4CFC6; border-radius: 4px; font-size: 13px; color: #3D3229; background: #FFF; }
+		.size-display { font-size: 13px; font-weight: 600; color: #3D3229; min-width: 36px; text-align: center; }
+
+		/* --- Content --- */
+		.content { padding: 24px; }
+
+		/* --- Category Section --- */
+		.category { margin-bottom: 32px; }
+		.category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #E8E3DA; }
+		.category-name { font-size: 18px; font-weight: 700; color: #3D3229; }
+		.category-desc { font-size: 12px; color: #8A7F72; }
+		.category-count { font-size: 11px; color: #9E6B47; background: #F5F0E8; border: 1px solid #E8E3DA; border-radius: 10px; padding: 1px 8px; font-weight: 600; }
+
+		/* --- Icon Grid --- */
+		.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+		.icon-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 12px 12px; border: 2px solid #E8E3DA; border-radius: 8px; background: #FFF; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s; }
+		.icon-card:hover { border-color: #C5BFAE; box-shadow: 0 2px 8px rgba(61, 50, 41, 0.08); }
+		.icon-card.selected { border-color: #9E6B47; background: #FBF6F0; box-shadow: 0 0 0 3px rgba(158, 107, 71, 0.15); }
+		.icon-card .icon-preview { display: flex; align-items: center; justify-content: center; min-height: 48px; }
+		.icon-card .icon-preview-bg { display: flex; align-items: center; justify-content: center; background: #FDFCFA; border: 1px solid #F0ECE4; border-radius: 6px; padding: 8px; }
+		.icon-card .icon-name { font-size: 11px; font-weight: 600; color: #3D3229; text-align: center; }
+		.icon-card .icon-sizes { display: flex; gap: 6px; align-items: flex-end; margin-top: 2px; }
+		.icon-card .icon-sizes .sz { opacity: 0.4; }
+
+		/* --- Selection Panel --- */
+		.selection-panel { position: sticky; bottom: 0; left: 0; right: 0; background: #FFF; border-top: 2px solid #E8E3DA; padding: 12px 24px; display: none; z-index: 10; box-shadow: 0 -4px 16px rgba(61, 50, 41, 0.08); }
+		.selection-panel.visible { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+		.selection-summary { display: flex; align-items: center; gap: 16px; flex: 1; flex-wrap: wrap; }
+		.selection-item { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #F5F0E8; border: 1px solid #E8E3DA; border-radius: 6px; font-size: 12px; font-weight: 500; }
+		.selection-item .sel-label { font-weight: 700; color: #9E6B47; }
+		.selection-item .sel-variant { color: #3D3229; }
+		.btn-clear { padding: 6px 14px; border: 1px solid #C5BFAE; border-radius: 4px; background: #F5F0E8; font-size: 12px; font-weight: 600; color: #3D3229; cursor: pointer; }
+		.btn-clear:hover { background: #E8E3DA; }
+
+		/* --- Dark bg option --- */
+		.icon-card .icon-preview-bg.dark-bg { background: #3D3229; border-color: #5A4E42; }
+	</style>
+</head>
+<body>
+	<div class="header">
+		<div class="header-badge">
+			<svg viewBox="0 0 16 16"><polygon points="8,1 10,6 16,6 11,9.5 13,15 8,11.5 3,15 5,9.5 0,6 6,6"/></svg>
+			Pict Example
+		</div>
+		<div class="header-title">Iconography Chooser</div>
+		<div class="header-sub">pict-section-formeditor</div>
+	</div>
+
+	<div class="controls" id="Controls">
+		<div class="control-group">
+			<label>Preview Size</label>
+			<input type="range" id="SizeSlider" min="12" max="64" value="32" step="1" oninput="onSizeChange(this.value)">
+			<span class="size-display" id="SizeDisplay">32px</span>
+		</div>
+		<div class="control-group">
+			<label>Stroke</label>
+			<input type="range" id="StrokeSlider" min="0.5" max="3.5" value="1.8" step="0.1" oninput="onStrokeChange(this.value)">
+			<span class="size-display" id="StrokeDisplay">1.8</span>
+		</div>
+		<div class="control-group">
+			<label>Primary</label>
+			<input type="color" id="ColorPrimary" value="#3D3229" oninput="onColorChange()">
+		</div>
+		<div class="control-group">
+			<label>Accent</label>
+			<input type="color" id="ColorAccent" value="#9E6B47" oninput="onColorChange()">
+		</div>
+		<div class="control-group">
+			<label>Muted</label>
+			<input type="color" id="ColorMuted" value="#B0A89E" oninput="onColorChange()">
+		</div>
+		<div class="control-group">
+			<label>Fill</label>
+			<input type="color" id="ColorFill" value="#F5F0E8" oninput="onColorChange()">
+		</div>
+		<div class="control-group">
+			<label>Background</label>
+			<select id="BgMode" onchange="onBgChange()">
+				<option value="light">Light</option>
+				<option value="dark">Dark</option>
+			</select>
+		</div>
+	</div>
+
+	<div class="content" id="Content"></div>
+
+	<div class="selection-panel" id="SelectionPanel">
+		<div class="selection-summary" id="SelectionSummary"></div>
+		<button class="btn-clear" onclick="clearSelections()">Clear All</button>
+	</div>
+
+	<script>
+	// ============================================================
+	// Inline the icon factory functions from the provider
+	// ============================================================
+	function _svg(pSize, pInner)
+	{
+		return '<svg xmlns="http://www.w3.org/2000/svg" width="' + pSize + '" height="' + pSize + '" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + pInner + '</svg>';
+	}
+
+	var Icons = {
+		Section: {
+			Default: function(s, c, w) { return _svg(s, '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="14 2 14 8 20 8" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Layers: function(s, c, w) { return _svg(s, '<rect x="6" y="6" width="14" height="14" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M4 16V6a2 2 0 012-2h10" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Clipboard: function(s, c, w) { return _svg(s, '<rect x="5" y="4" width="14" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="9" y="2" width="6" height="4" rx="1" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><line x1="9" y1="11" x2="15" y2="11" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="9" y1="15" x2="13" y2="15" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Layout: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="3" y1="9" x2="21" y2="9" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="3" y1="15" x2="21" y2="15" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Book: function(s, c, w) { return _svg(s, '<path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Window: function(s, c, w) { return _svg(s, '<rect x="2" y="3" width="20" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="2" y1="8" x2="22" y2="8" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="5.5" cy="5.5" r="0.8" fill="'+c.Accent+'"/><circle cx="8.5" cy="5.5" r="0.8" fill="'+c.Accent+'"/>'); },
+			FileText: function(s, c, w) { return _svg(s, '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="14 2 14 8 20 8" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="8" y1="13" x2="16" y2="13" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="8" y1="17" x2="14" y2="17" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Columns: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="12" y1="3" x2="12" y2="21" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Bookmark: function(s, c, w) { return _svg(s, '<path d="M5 3a2 2 0 012-2h10a2 2 0 012 2v18l-7-4-7 4V3z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="9" y1="7" x2="15" y2="7" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+			Shield: function(s, c, w) { return _svg(s, '<path d="M12 2l8 4v6c0 5.25-3.5 8.25-8 10-4.5-1.75-8-4.75-8-10V6l8-4z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="9" y1="11" x2="15" y2="11" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); }
+		},
+		Group: {
+			Default: function(s, c, w) { return _svg(s, '<path d="M2 6a2 2 0 012-2h5l2 2h9a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Panel: function(s, c, w) { return _svg(s, '<rect x="2" y="4" width="20" height="16" rx="3" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="2" y1="9" x2="22" y2="9" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+			Stack: function(s, c, w) { return _svg(s, '<rect x="4" y="2" width="16" height="6" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="4" y="10" width="16" height="6" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="4" y="18" width="16" height="4" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Grid: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="8" height="8" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Box: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="12" cy="12" r="1.5" fill="'+c.Accent+'"/>'); },
+			Package: function(s, c, w) { return _svg(s, '<path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="12" y1="12" x2="12" y2="22" stroke="'+c.Muted+'" stroke-width="'+w+'"/><polyline points="2 7 12 12 22 7" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Bracket: function(s, c, w) { return _svg(s, '<path d="M8 3H6a2 2 0 00-2 2v4.5a1.5 1.5 0 01-1.5 1.5 1.5 1.5 0 011.5 1.5V17a2 2 0 002 2h2" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/><path d="M16 3h2a2 2 0 012 2v4.5a1.5 1.5 0 001.5 1.5 1.5 1.5 0 00-1.5 1.5V17a2 2 0 01-2 2h-2" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/>'); },
+			Tab: function(s, c, w) { return _svg(s, '<rect x="2" y="7" width="20" height="14" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="3" y="3" width="8" height="5" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><line x1="13" y1="5" x2="17" y2="5" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Sidebar: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="9" y1="3" x2="9" y2="21" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="13" y1="8" x2="17" y2="8" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="13" y1="12" x2="17" y2="12" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Puzzle: function(s, c, w) { return _svg(s, '<path d="M4 7h3a2 2 0 100-4h0a2 2 0 100 4h3v3a2 2 0 104 0V7h3a2 2 0 012 2v3a2 2 0 10 0 4v3a2 2 0 01-2 2h-3a2 2 0 100-4H10a2 2 0 100 4H7a2 2 0 01-2-2v-3a2 2 0 100-4V9a2 2 0 01-1-2z" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); }
+		},
+		Row: {
+			Default: function(s, c, w) { return _svg(s, '<line x1="3" y1="8" x2="21" y2="8" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="3" y1="12" x2="21" y2="12" stroke="'+c.Accent+'" stroke-width="'+w+'"/><line x1="3" y1="16" x2="21" y2="16" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Stripe: function(s, c, w) { return _svg(s, '<rect x="2" y="8" width="20" height="8" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Columns: function(s, c, w) { return _svg(s, '<rect x="2" y="6" width="5.5" height="12" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="9.25" y="6" width="5.5" height="12" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="16.5" y="6" width="5.5" height="12" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			ArrowRight: function(s, c, w) { return _svg(s, '<line x1="3" y1="12" x2="21" y2="12" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="17 8 21 12 17 16" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+			Divider: function(s, c, w) { return _svg(s, '<line x1="2" y1="12" x2="8" y2="12" stroke="'+c.Muted+'" stroke-width="'+w+'"/><circle cx="12" cy="12" r="1.2" fill="'+c.Primary+'"/><line x1="16" y1="12" x2="22" y2="12" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Layer: function(s, c, w) { return _svg(s, '<polygon points="12 2 22 8.5 12 15 2 8.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="2 15.5 12 22 22 15.5" stroke="'+c.Muted+'" stroke-width="'+w+'" fill="none"/>'); },
+			Grip: function(s, c, w) { return _svg(s, '<circle cx="8" cy="6" r="1.3" fill="'+c.Primary+'"/><circle cx="16" cy="6" r="1.3" fill="'+c.Primary+'"/><circle cx="8" cy="12" r="1.3" fill="'+c.Primary+'"/><circle cx="16" cy="12" r="1.3" fill="'+c.Primary+'"/><circle cx="8" cy="18" r="1.3" fill="'+c.Primary+'"/><circle cx="16" cy="18" r="1.3" fill="'+c.Primary+'"/>'); },
+			Table: function(s, c, w) { return _svg(s, '<rect x="2" y="4" width="20" height="16" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="2" y1="10" x2="22" y2="10" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="2" y1="16" x2="22" y2="16" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="9" y1="4" x2="9" y2="20" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Split: function(s, c, w) { return _svg(s, '<rect x="2" y="6" width="9" height="12" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="13" y="6" width="9" height="12" rx="1.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+			Slider: function(s, c, w) { return _svg(s, '<line x1="3" y1="12" x2="21" y2="12" stroke="'+c.Muted+'" stroke-width="'+w+'"/><circle cx="9" cy="12" r="3" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); }
+		},
+		Input: {
+			Default: function(s, c, w) { return _svg(s, '<rect x="3" y="6" width="18" height="12" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="7" y1="10" x2="7" y2="14" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+			Checkbox: function(s, c, w) { return _svg(s, '<rect x="4" y="4" width="16" height="16" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="8 12 11 15 16 9" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+			Toggle: function(s, c, w) { return _svg(s, '<rect x="2" y="7" width="20" height="10" rx="5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="16" cy="12" r="3.5" fill="'+c.Accent+'"/>'); },
+			Dropdown: function(s, c, w) { return _svg(s, '<rect x="3" y="6" width="18" height="12" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="15 10 18 13 15 16" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+			TextArea: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="7" y1="8" x2="17" y2="8" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="7" y1="12" x2="17" y2="12" stroke="'+c.Muted+'" stroke-width="'+w+'"/><line x1="7" y1="16" x2="13" y2="16" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+			Number: function(s, c, w) { return _svg(s, '<rect x="3" y="6" width="18" height="12" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><text x="8" y="15.5" font-size="9" font-family="sans-serif" fill="'+c.Primary+'">#</text><polyline points="16 10 18 8 20 10" stroke="'+c.Muted+'" stroke-width="1.2" fill="none"/><polyline points="16 14 18 16 20 14" stroke="'+c.Muted+'" stroke-width="1.2" fill="none"/>'); },
+			Radio: function(s, c, w) { return _svg(s, '<circle cx="12" cy="12" r="8" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="12" cy="12" r="3.5" fill="'+c.Accent+'"/>'); },
+			Calendar: function(s, c, w) { return _svg(s, '<rect x="3" y="4" width="18" height="17" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="3" y1="10" x2="21" y2="10" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="8" y1="2" x2="8" y2="6" stroke="'+c.Accent+'" stroke-width="'+w+'"/><line x1="16" y1="2" x2="16" y2="6" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+			Lock: function(s, c, w) { return _svg(s, '<rect x="5" y="11" width="14" height="10" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M8 11V7a4 4 0 018 0v4" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/><circle cx="12" cy="16" r="1.2" fill="'+c.Primary+'"/>'); },
+			Search: function(s, c, w) { return _svg(s, '<circle cx="10.5" cy="10.5" r="6.5" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); }
+		}
+	};
+
+	var InputTypeIcons = {
+		TextArea: Icons.Input.TextArea,
+		Markdown: function(s, c, w) { return _svg(s, '<rect x="2" y="4" width="20" height="16" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M6 15V9l3 3.5L12 9v6" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/><polyline points="16 12 18 15 20 12" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+		HTML: function(s, c, w) { return _svg(s, '<polyline points="8 7 3 12 8 17" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/><polyline points="16 7 21 12 16 17" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/><line x1="14" y1="4" x2="10" y2="20" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+		Option: function(s, c, w) { return _svg(s, '<rect x="3" y="6" width="18" height="12" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><polyline points="9 10 12 14 15 10" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+		Boolean: Icons.Input.Toggle,
+		Color: function(s, c, w) { return _svg(s, '<circle cx="12" cy="12" r="9" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="12" cy="8" r="2.5" fill="'+c.Accent+'"/><circle cx="8.5" cy="14" r="2.5" fill="#6B7F5A"/><circle cx="15.5" cy="14" r="2.5" fill="#5A6B7F"/>'); },
+		DisplayOnly: function(s, c, w) { return _svg(s, '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/><circle cx="12" cy="12" r="3" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); },
+		ReadOnly: function(s, c, w) { return _svg(s, '<rect x="5" y="11" width="14" height="10" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M8 11V7a4 4 0 018 0v4" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+		PreciseNumberReadOnly: function(s, c, w) { return _svg(s, '<rect x="3" y="5" width="18" height="14" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><text x="7" y="16" font-size="10" font-family="sans-serif" fill="'+c.Accent+'">.00</text>'); },
+		Hidden: function(s, c, w) { return _svg(s, '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" stroke="'+c.Muted+'" stroke-width="'+w+'" fill="none"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" stroke="'+c.Muted+'" stroke-width="'+w+'" fill="none"/><line x1="1" y1="1" x2="23" y2="23" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+		Chart: function(s, c, w) { return _svg(s, '<rect x="3" y="12" width="4" height="9" rx="1" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="10" y="6" width="4" height="15" rx="1" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><rect x="17" y="3" width="4" height="18" rx="1" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/>'); },
+		Link: function(s, c, w) { return _svg(s, '<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="'+c.Primary+'" stroke-width="'+w+'" fill="none"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/>'); },
+		TabSectionSelector: function(s, c, w) { return _svg(s, '<rect x="2" y="8" width="20" height="13" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="3" y="3" width="6" height="6" rx="1" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><rect x="10" y="3" width="6" height="6" rx="1" fill="none" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+		TabGroupSelector: function(s, c, w) { return _svg(s, '<rect x="2" y="8" width="20" height="13" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><rect x="3" y="3" width="5" height="6" rx="1" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><rect x="9" y="3" width="5" height="6" rx="1" fill="none" stroke="'+c.Muted+'" stroke-width="'+w+'"/><rect x="15" y="3" width="5" height="6" rx="1" fill="none" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+		Templated: function(s, c, w) { return _svg(s, '<rect x="3" y="3" width="18" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><path d="M8 12h3a1.5 1.5 0 100-3 1.5 1.5 0 100 3h3" stroke="'+c.Accent+'" stroke-width="'+w+'" fill="none"/><line x1="8" y1="16" x2="16" y2="16" stroke="'+c.Muted+'" stroke-width="'+w+'"/>'); },
+		TemplatedEntityLookup: function(s, c, w) { return _svg(s, '<rect x="2" y="3" width="14" height="18" rx="2" fill="'+c.Fill+'" stroke="'+c.Primary+'" stroke-width="'+w+'"/><circle cx="17" cy="15" r="4" fill="'+c.Fill+'" stroke="'+c.Accent+'" stroke-width="'+w+'"/><line x1="20" y1="18" x2="22" y2="20" stroke="'+c.Accent+'" stroke-width="'+w+'"/>'); }
+	};
+
+	// ============================================================
+	// State
+	// ============================================================
+	var currentSize = 32;
+	var currentStroke = 1.8;
+	var currentColors = { Primary: '#3D3229', Accent: '#9E6B47', Muted: '#B0A89E', Fill: '#F5F0E8' };
+	var darkBg = false;
+	var selections = { Section: null, Group: null, Row: null, Input: null };
+
+	var categoryDescriptions = {
+		Section: 'Page / document metaphor. The largest structural container in a form.',
+		Group: 'Folder / panel metaphor. A logical container within a section.',
+		Row: 'Horizontal bar / layer metaphor. A row of inputs within a group.',
+		Input: 'Field / data entry metaphor. The smallest unit of user interaction.'
+	};
+
+	// ============================================================
+	// Render
+	// ============================================================
+	function render()
+	{
+		var html = '';
+		var categories = ['Section', 'Group', 'Row', 'Input'];
+
+		for (var ci = 0; ci < categories.length; ci++)
+		{
+			var cat = categories[ci];
+			var variants = Object.keys(Icons[cat]);
+
+			html += '<div class="category">';
+			html += '<div class="category-header">';
+			html += '<span class="category-name">' + cat + '</span>';
+			html += '<span class="category-count">' + variants.length + ' variants</span>';
+			html += '<span class="category-desc">' + categoryDescriptions[cat] + '</span>';
+			html += '</div>';
+			html += '<div class="icon-grid">';
+
+			for (var vi = 0; vi < variants.length; vi++)
+			{
+				var variant = variants[vi];
+				var isSelected = (selections[cat] === variant);
+				var svgMain = Icons[cat][variant](currentSize, currentColors, currentStroke);
+				var svg16 = Icons[cat][variant](14, currentColors, currentStroke);
+				var svg24 = Icons[cat][variant](20, currentColors, currentStroke);
+				var svg48 = Icons[cat][variant](40, currentColors, currentStroke);
+
+				html += '<div class="icon-card' + (isSelected ? ' selected' : '') + '" onclick="selectIcon(\'' + cat + '\', \'' + variant + '\')">';
+				html += '<div class="icon-preview"><div class="icon-preview-bg' + (darkBg ? ' dark-bg' : '') + '">' + svgMain + '</div></div>';
+				html += '<div class="icon-name">' + variant + '</div>';
+				html += '<div class="icon-sizes"><span class="sz">' + svg16 + '</span><span class="sz">' + svg24 + '</span><span class="sz">' + svg48 + '</span></div>';
+				html += '</div>';
+			}
+
+			html += '</div>'; // icon-grid
+			html += '</div>'; // category
+		}
+
+		// InputType Icons section
+		html += '<div class="category">';
+		html += '<div class="category-header">';
+		html += '<span class="category-name">InputType Icons</span>';
+		var inputTypeCount = Object.keys(InputTypeIcons).length;
+		html += '<span class="category-count">' + inputTypeCount + ' types</span>';
+		html += '<span class="category-desc">One icon per InputType definition. Used sparingly in the picker and UI hints.</span>';
+		html += '</div>';
+		html += '<div class="icon-grid">';
+
+		var itKeys = Object.keys(InputTypeIcons);
+		for (var iti = 0; iti < itKeys.length; iti++)
+		{
+			var itHash = itKeys[iti];
+			var itSvg = InputTypeIcons[itHash](currentSize, currentColors, currentStroke);
+			var itSvg16 = InputTypeIcons[itHash](14, currentColors, currentStroke);
+			var itSvg24 = InputTypeIcons[itHash](20, currentColors, currentStroke);
+			var itSvg48 = InputTypeIcons[itHash](40, currentColors, currentStroke);
+
+			html += '<div class="icon-card">';
+			html += '<div class="icon-preview"><div class="icon-preview-bg' + (darkBg ? ' dark-bg' : '') + '">' + itSvg + '</div></div>';
+			html += '<div class="icon-name">' + itHash + '</div>';
+			html += '<div class="icon-sizes"><span class="sz">' + itSvg16 + '</span><span class="sz">' + itSvg24 + '</span><span class="sz">' + itSvg48 + '</span></div>';
+			html += '</div>';
+		}
+
+		html += '</div>'; // icon-grid
+		html += '</div>'; // category
+
+		document.getElementById('Content').innerHTML = html;
+		renderSelectionPanel();
+	}
+
+	function renderSelectionPanel()
+	{
+		var panel = document.getElementById('SelectionPanel');
+		var summary = document.getElementById('SelectionSummary');
+		var hasAny = false;
+		var html = '';
+
+		var categories = ['Section', 'Group', 'Row', 'Input'];
+		for (var i = 0; i < categories.length; i++)
+		{
+			var cat = categories[i];
+			if (selections[cat])
+			{
+				hasAny = true;
+				var miniSvg = Icons[cat][selections[cat]](16, currentColors, currentStroke);
+				html += '<div class="selection-item">';
+				html += miniSvg;
+				html += '<span class="sel-label">' + cat + ':</span>';
+				html += '<span class="sel-variant">' + selections[cat] + '</span>';
+				html += '</div>';
+			}
+		}
+
+		if (hasAny)
+		{
+			panel.classList.add('visible');
+			summary.innerHTML = html;
+		}
+		else
+		{
+			panel.classList.remove('visible');
+		}
+	}
+
+	// ============================================================
+	// Event Handlers
+	// ============================================================
+	function selectIcon(pCategory, pVariant)
+	{
+		if (selections[pCategory] === pVariant)
+		{
+			selections[pCategory] = null;
+		}
+		else
+		{
+			selections[pCategory] = pVariant;
+		}
+		render();
+	}
+
+	function clearSelections()
+	{
+		selections = { Section: null, Group: null, Row: null, Input: null };
+		render();
+	}
+
+	function onSizeChange(pValue)
+	{
+		currentSize = parseInt(pValue, 10);
+		document.getElementById('SizeDisplay').textContent = currentSize + 'px';
+		render();
+	}
+
+	function onStrokeChange(pValue)
+	{
+		currentStroke = parseFloat(pValue);
+		document.getElementById('StrokeDisplay').textContent = currentStroke.toFixed(1);
+		render();
+	}
+
+	function onColorChange()
+	{
+		currentColors.Primary = document.getElementById('ColorPrimary').value;
+		currentColors.Accent = document.getElementById('ColorAccent').value;
+		currentColors.Muted = document.getElementById('ColorMuted').value;
+		currentColors.Fill = document.getElementById('ColorFill').value;
+		render();
+	}
+
+	function onBgChange()
+	{
+		darkBg = (document.getElementById('BgMode').value === 'dark');
+		render();
+	}
+
+	// ============================================================
+	// Initialize
+	// ============================================================
+	render();
+	</script>
+</body>
+</html>

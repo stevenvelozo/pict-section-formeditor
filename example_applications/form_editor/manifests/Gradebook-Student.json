@@ -1,0 +1,40 @@
+{
+	"Scope": "Student",
+	"Descriptors": {
+		"StudentName": {
+			"Name": "Student Full Name",
+			"Hash": "StudentName",
+			"DataType": "String",
+			"Default": "(unnamed student)",
+			"PictForm": {
+				"Section": "StudentGrid",
+				"Group": "StudentGrid"
+			}
+		},
+		"StudentID": {
+			"Name": "Learning Style",
+			"Hash": "StudentLearningStyle",
+			"DataType": "String",
+			"Default": "Visual",
+			"PictForm": {
+				"Section": "StudentGrid",
+				"Group": "StudentGrid"
+			}
+		},
+		"ShoeSize": {
+			"Name": "Shoe Size",
+			"Hash": "ShoeSize",
+			"DataType": "Number",
+			"Default": 7.5,
+			"PictForm": {
+				"Section": "StudentGrid",
+				"Group": "StudentGrid"
+			}
+		},
+		"StudentAge": {
+			"Name": "Age",
+			"Hash": "Age",
+			"DataType": "Number"
+		}
+	}
+}
