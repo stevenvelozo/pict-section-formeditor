@@ -9,7 +9,8 @@
 		<!-- Red Rock Mesa Theme — Pict Example App -->
 		<style>
 			*, *::before, *::after { box-sizing: border-box; }
-			body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #FAEDCD; color: #264653; }
+			html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+			body { margin: 0; padding: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #FAEDCD; color: #264653; }
 
 			/* --- Header Bar --- */
 			.pict-example-header { display: flex; align-items: stretch; background: #264653; border-bottom: 3px solid #E76F51; }
@@ -19,7 +20,9 @@
 			.pict-example-module { margin-left: auto; padding: 0.6rem 1rem; color: #D4A373; font-size: 0.75rem; display: flex; align-items: center; letter-spacing: 0.03em; }
 
 			/* --- Content Area --- */
-			.pict-example-content { padding: 1.5rem; }
+			.pict-example-content { padding: 1.5rem; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+			.pict-example-content #FormEditor-Container { flex: 1; min-height: 0; }
+			.pict-example-content #FormEditor-Container .pict-formeditor { height: 100%; }
 
 			/* --- Selector Bar --- */
 			.pict-fe-selector-bar { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: #fff; border: 1px solid #D4A373; border-radius: 6px; margin-bottom: 1rem; }

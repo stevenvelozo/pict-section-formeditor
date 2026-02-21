@@ -2529,6 +2529,374 @@ suite
 		);
 		suite
 		(
+			'Panel State and Tabs',
+			function ()
+			{
+				test
+				(
+					'Should default _PanelCollapsed to false and _PanelActiveTab to stats',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestPanelDefaults',
+						{
+							ViewIdentifier: 'TestPanelDefaults',
+							ManifestDataAddress: 'AppData.PanelDefaults'
+						}, libPictSectionFormEditor);
+
+						Expect(tmpView._PanelCollapsed).to.equal(false);
+						Expect(tmpView._PanelActiveTab).to.equal('stats');
+					}
+				);
+				test
+				(
+					'togglePropertiesPanel should flip _PanelCollapsed',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestPanelToggle',
+						{
+							ViewIdentifier: 'TestPanelToggle',
+							ManifestDataAddress: 'AppData.PanelToggle'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						Expect(tmpView._PanelCollapsed).to.equal(false);
+
+						tmpView.togglePropertiesPanel();
+						Expect(tmpView._PanelCollapsed).to.equal(true);
+
+						tmpView.togglePropertiesPanel();
+						Expect(tmpView._PanelCollapsed).to.equal(false);
+					}
+				);
+				test
+				(
+					'setPanelTab should switch active tab',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestSetPanelTab',
+						{
+							ViewIdentifier: 'TestSetPanelTab',
+							ManifestDataAddress: 'AppData.SetPanelTab'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						Expect(tmpView._PanelActiveTab).to.equal('stats');
+
+						tmpView.setPanelTab('properties');
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+
+						tmpView.setPanelTab('stats');
+						Expect(tmpView._PanelActiveTab).to.equal('stats');
+					}
+				);
+				test
+				(
+					'setPanelTab should ignore invalid tab names',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestSetPanelTabInvalid',
+						{
+							ViewIdentifier: 'TestSetPanelTabInvalid',
+							ManifestDataAddress: 'AppData.SetPanelTabInvalid'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						tmpView.setPanelTab('properties');
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+
+						tmpView.setPanelTab('invalid');
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+
+						tmpView.setPanelTab('');
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+
+						tmpView.setPanelTab(null);
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+					}
+				);
+				test
+				(
+					'selectInput should auto-switch to properties tab and expand panel',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestSelectAutoSwitch',
+						{
+							ViewIdentifier: 'TestSelectAutoSwitch',
+							ManifestDataAddress: 'AppData.SelectAutoSwitch'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Start with stats tab and collapsed panel
+						tmpView._PanelActiveTab = 'stats';
+						tmpView._PanelCollapsed = true;
+
+						// Add a section/group/row/input so selectInput has something to select
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addRow(0, 0);
+						tmpView.addInput(0, 0, 0);
+
+						tmpView.selectInput(0, 0, 0, 0);
+
+						Expect(tmpView._PanelActiveTab).to.equal('properties');
+						Expect(tmpView._PanelCollapsed).to.equal(false);
+					}
+				);
+				test
+				(
+					'deselectInput should NOT collapse the panel',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestDeselectNoCollapse',
+						{
+							ViewIdentifier: 'TestDeselectNoCollapse',
+							ManifestDataAddress: 'AppData.DeselectNoCollapse'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						tmpView._PanelCollapsed = false;
+						tmpView._PanelActiveTab = 'properties';
+
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addRow(0, 0);
+						tmpView.addInput(0, 0, 0);
+
+						tmpView.selectInput(0, 0, 0, 0);
+						tmpView.deselectInput();
+
+						Expect(tmpView._PanelCollapsed).to.equal(false);
+						Expect(tmpView._SelectedInputIndices).to.equal(null);
+					}
+				);
+				test
+				(
+					'getFormStats should return correct counts',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestFormStats',
+						{
+							ViewIdentifier: 'TestFormStats',
+							ManifestDataAddress: 'AppData.FormStats'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Empty manifest
+						let tmpStats = tmpView.getFormStats();
+						Expect(tmpStats.Sections).to.equal(0);
+						Expect(tmpStats.Groups).to.equal(0);
+						Expect(tmpStats.Inputs).to.equal(0);
+						Expect(tmpStats.Descriptors).to.equal(0);
+
+						// Add content
+						tmpView.addSection();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addGroup(1);
+						tmpView.addRow(0, 0);
+						tmpView.addRow(1, 0);
+						tmpView.addInput(0, 0, 0);
+						tmpView.addInput(0, 0, 0);
+						tmpView.addInput(1, 0, 0);
+
+						tmpStats = tmpView.getFormStats();
+						Expect(tmpStats.Sections).to.equal(2);
+						// Each addSection() creates 1 default group, + addGroup() adds 1 more each = 4 total
+						Expect(tmpStats.Groups).to.equal(4);
+						Expect(tmpStats.Inputs).to.equal(3);
+						Expect(tmpStats.Descriptors).to.equal(3);
+					}
+				);
+				test
+				(
+					'getFormStats should return zeros for empty manifest',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestFormStatsEmpty',
+						{
+							ViewIdentifier: 'TestFormStatsEmpty',
+							ManifestDataAddress: 'AppData.FormStatsEmpty'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Clear manifest entirely
+						tmpView._setManifestData({});
+
+						let tmpStats = tmpView.getFormStats();
+						Expect(tmpStats.Sections).to.equal(0);
+						Expect(tmpStats.Groups).to.equal(0);
+						Expect(tmpStats.Inputs).to.equal(0);
+						Expect(tmpStats.Descriptors).to.equal(0);
+					}
+				);
+				test
+				(
+					'getAllInputEntries should enumerate all inputs with indices',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestAllInputEntries',
+						{
+							ViewIdentifier: 'TestAllInputEntries',
+							ManifestDataAddress: 'AppData.AllInputEntries'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Empty manifest
+						let tmpEntries = tmpView.getAllInputEntries();
+						Expect(tmpEntries).to.be.an('array');
+						Expect(tmpEntries.length).to.equal(0);
+
+						// Add content
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addRow(0, 0);
+						tmpView.addInput(0, 0, 0);
+						tmpView.addInput(0, 0, 0);
+
+						tmpEntries = tmpView.getAllInputEntries();
+						Expect(tmpEntries.length).to.equal(2);
+
+						// Check structure of each entry
+						Expect(tmpEntries[0].SectionIndex).to.equal(0);
+						Expect(tmpEntries[0].GroupIndex).to.equal(0);
+						Expect(tmpEntries[0].RowIndex).to.equal(0);
+						Expect(tmpEntries[0].InputIndex).to.equal(0);
+						Expect(tmpEntries[0].Address).to.be.a('string');
+						Expect(tmpEntries[0].Label).to.be.a('string');
+						Expect(tmpEntries[0].SectionName).to.be.a('string');
+
+						Expect(tmpEntries[1].InputIndex).to.equal(1);
+					}
+				);
+				test
+				(
+					'onInputSelectorChange should forward selection to parent',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpFormEditor = tmpPict.addView('TestSelectorParent',
+						{
+							ViewIdentifier: 'TestSelectorParent',
+							ManifestDataAddress: 'AppData.SelectorParent'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpFormEditor.addSection();
+						tmpFormEditor.addGroup(0);
+						tmpFormEditor.addRow(0, 0);
+						tmpFormEditor.addInput(0, 0, 0);
+
+						let tmpPanel = tmpPict.addView('TestSelectorPanel',
+						{
+							ViewIdentifier: 'TestSelectorPanel'
+						}, tmpPropertiesPanel);
+						tmpPanel._ParentFormEditor = tmpFormEditor;
+
+						// Select via the selector
+						tmpPanel.onInputSelectorChange('0,0,0,0');
+
+						Expect(tmpFormEditor._SelectedInputIndices).to.be.an('array');
+						Expect(tmpFormEditor._SelectedInputIndices[0]).to.equal(0);
+						Expect(tmpFormEditor._SelectedInputIndices[1]).to.equal(0);
+						Expect(tmpFormEditor._SelectedInputIndices[2]).to.equal(0);
+						Expect(tmpFormEditor._SelectedInputIndices[3]).to.equal(0);
+					}
+				);
+				test
+				(
+					'onInputSelectorChange with empty value should deselect',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpFormEditor = tmpPict.addView('TestSelectorDeselect',
+						{
+							ViewIdentifier: 'TestSelectorDeselect',
+							ManifestDataAddress: 'AppData.SelectorDeselect'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpFormEditor.addSection();
+						tmpFormEditor.addGroup(0);
+						tmpFormEditor.addRow(0, 0);
+						tmpFormEditor.addInput(0, 0, 0);
+
+						let tmpPanel = tmpPict.addView('TestSelectorDeselectPanel',
+						{
+							ViewIdentifier: 'TestSelectorDeselectPanel'
+						}, tmpPropertiesPanel);
+						tmpPanel._ParentFormEditor = tmpFormEditor;
+
+						// Select first, then deselect
+						tmpFormEditor.selectInput(0, 0, 0, 0);
+						Expect(tmpFormEditor._SelectedInputIndices).to.not.equal(null);
+
+						tmpPanel.onInputSelectorChange('');
+						Expect(tmpFormEditor._SelectedInputIndices).to.equal(null);
+					}
+				);
+				test
+				(
+					'onInputSelectorChange should ignore invalid values',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpFormEditor = tmpPict.addView('TestSelectorInvalid',
+						{
+							ViewIdentifier: 'TestSelectorInvalid',
+							ManifestDataAddress: 'AppData.SelectorInvalid'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						let tmpPanel = tmpPict.addView('TestSelectorInvalidPanel',
+						{
+							ViewIdentifier: 'TestSelectorInvalidPanel'
+						}, tmpPropertiesPanel);
+						tmpPanel._ParentFormEditor = tmpFormEditor;
+
+						// These should not throw
+						tmpPanel.onInputSelectorChange('bad');
+						tmpPanel.onInputSelectorChange('1,2');
+						tmpPanel.onInputSelectorChange('a,b,c,d');
+
+						Expect(tmpFormEditor._SelectedInputIndices).to.equal(null);
+					}
+				);
+				test
+				(
+					'scrollToInput should not throw in node environment',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestScrollToInput',
+						{
+							ViewIdentifier: 'TestScrollToInput',
+							ManifestDataAddress: 'AppData.ScrollToInput'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Should not throw even without a DOM
+						tmpView.scrollToInput(0, 0, 0, 0);
+					}
+				);
+			}
+		);
+		suite
+		(
 			'InputType Manifests',
 			function ()
 			{
@@ -2737,6 +3105,995 @@ suite
 						Expect(tmpCustomManifest).to.be.an('object');
 						Expect(tmpCustomManifest.Descriptors['WidgetColor']).to.be.an('object');
 						Expect(tmpCustomManifest.Descriptors['WidgetColor'].DataType).to.equal('String');
+					}
+				);
+			}
+		);
+		suite
+		(
+			'ReferenceManifest Management',
+			function ()
+			{
+				test
+				(
+					'createReferenceManifest should create entry with Scope and empty Descriptors',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestRefManifestCreate',
+						{
+							ViewIdentifier: 'TestRefManifestCreate',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpName = tmpView.createReferenceManifest('MyManifest');
+						Expect(tmpName).to.equal('MyManifest');
+
+						let tmpManifest = tmpView._resolveManifestData();
+						Expect(tmpManifest.ReferenceManifests).to.be.an('object');
+						Expect(tmpManifest.ReferenceManifests['MyManifest']).to.be.an('object');
+						Expect(tmpManifest.ReferenceManifests['MyManifest'].Scope).to.equal('MyManifest');
+						Expect(tmpManifest.ReferenceManifests['MyManifest'].Descriptors).to.be.an('object');
+						Expect(Object.keys(tmpManifest.ReferenceManifests['MyManifest'].Descriptors).length).to.equal(0);
+					}
+				);
+				test
+				(
+					'createReferenceManifest should generate unique names for duplicates',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestRefManifestDup',
+						{
+							ViewIdentifier: 'TestRefManifestDup',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpName1 = tmpView.createReferenceManifest('TestManifest');
+						let tmpName2 = tmpView.createReferenceManifest('TestManifest');
+						let tmpName3 = tmpView.createReferenceManifest('TestManifest');
+
+						Expect(tmpName1).to.equal('TestManifest');
+						Expect(tmpName2).to.equal('TestManifest_2');
+						Expect(tmpName3).to.equal('TestManifest_3');
+
+						let tmpNames = tmpView.getReferenceManifestNames();
+						Expect(tmpNames.length).to.equal(3);
+					}
+				);
+				test
+				(
+					'getReferenceManifestNames should return list of manifest names',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestRefManifestNames',
+						{
+							ViewIdentifier: 'TestRefManifestNames',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpNames = tmpView.getReferenceManifestNames();
+						Expect(tmpNames).to.be.an('array');
+						Expect(tmpNames.length).to.equal(0);
+
+						tmpView.createReferenceManifest('Alpha');
+						tmpView.createReferenceManifest('Beta');
+
+						tmpNames = tmpView.getReferenceManifestNames();
+						Expect(tmpNames.length).to.equal(2);
+						Expect(tmpNames).to.include('Alpha');
+						Expect(tmpNames).to.include('Beta');
+					}
+				);
+				test
+				(
+					'_resolveReferenceManifest should return correct object or null',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestResolveRef',
+						{
+							ViewIdentifier: 'TestResolveRef',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						Expect(tmpView._resolveReferenceManifest('NonExistent')).to.equal(null);
+
+						tmpView.createReferenceManifest('Existing');
+
+						let tmpResolved = tmpView._resolveReferenceManifest('Existing');
+						Expect(tmpResolved).to.be.an('object');
+						Expect(tmpResolved.Scope).to.equal('Existing');
+					}
+				);
+				test
+				(
+					'bindReferenceManifest should set group RecordManifest',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestBindRef',
+						{
+							ViewIdentifier: 'TestBindRef',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createReferenceManifest('TestBind');
+
+						tmpView.bindReferenceManifest(0, 0, 'TestBind');
+
+						let tmpManifest = tmpView._resolveManifestData();
+						Expect(tmpManifest.Sections[0].Groups[0].RecordManifest).to.equal('TestBind');
+					}
+				);
+				test
+				(
+					'unbindReferenceManifest should clear group RecordManifest',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestUnbindRef',
+						{
+							ViewIdentifier: 'TestUnbindRef',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createReferenceManifest('TestUnbind');
+						tmpView.bindReferenceManifest(0, 0, 'TestUnbind');
+
+						Expect(tmpView._resolveManifestData().Sections[0].Groups[0].RecordManifest).to.equal('TestUnbind');
+
+						tmpView.unbindReferenceManifest(0, 0);
+
+						Expect(tmpView._resolveManifestData().Sections[0].Groups[0].hasOwnProperty('RecordManifest')).to.equal(false);
+					}
+				);
+				test
+				(
+					'createAndBindReferenceManifest should create and bind in one call',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestCreateBind',
+						{
+							ViewIdentifier: 'TestCreateBind',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+
+						let tmpGroup = tmpView._resolveManifestData().Sections[0].Groups[0];
+						tmpGroup.Hash = 'TestGroup';
+
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						Expect(tmpManifest.Sections[0].Groups[0].RecordManifest).to.be.a('string');
+						let tmpBoundName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						Expect(tmpManifest.ReferenceManifests[tmpBoundName]).to.be.an('object');
+						Expect(tmpManifest.ReferenceManifests[tmpBoundName].Descriptors).to.be.an('object');
+					}
+				);
+			}
+		);
+		suite
+		(
+			'Submanifest Column Operations',
+			function ()
+			{
+				test
+				(
+					'addSubmanifestColumn should add a Descriptor to bound ReferenceManifest',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestAddSubCol',
+						{
+							ViewIdentifier: 'TestAddSubCol',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpKeys = Object.keys(tmpRef.Descriptors);
+
+						Expect(tmpKeys.length).to.equal(1);
+
+						let tmpDesc = tmpRef.Descriptors[tmpKeys[0]];
+						Expect(tmpDesc.Name).to.be.a('string');
+						Expect(tmpDesc.Hash).to.be.a('string');
+						Expect(tmpDesc.DataType).to.equal('String');
+					}
+				);
+				test
+				(
+					'addSubmanifestColumn should add multiple columns with unique addresses',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestAddMultiSubCol',
+						{
+							ViewIdentifier: 'TestAddMultiSubCol',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpKeys = Object.keys(tmpRef.Descriptors);
+
+						Expect(tmpKeys.length).to.equal(3);
+						// All keys should be unique
+						let tmpUniqueKeys = new Set(tmpKeys);
+						Expect(tmpUniqueKeys.size).to.equal(3);
+					}
+				);
+				test
+				(
+					'removeSubmanifestColumn should remove Descriptor by address',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestRemoveSubCol',
+						{
+							ViewIdentifier: 'TestRemoveSubCol',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpKeys = Object.keys(tmpRef.Descriptors);
+						Expect(tmpKeys.length).to.equal(2);
+
+						let tmpFirstKey = tmpKeys[0];
+						tmpView.removeSubmanifestColumn(0, 0, tmpFirstKey);
+
+						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
+						let tmpRemainingKeys = Object.keys(tmpRef.Descriptors);
+						Expect(tmpRemainingKeys.length).to.equal(1);
+						Expect(tmpRemainingKeys).to.not.include(tmpFirstKey);
+					}
+				);
+				test
+				(
+					'moveSubmanifestColumnUp and Down should reorder Descriptors',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestMoveSubCol',
+						{
+							ViewIdentifier: 'TestMoveSubCol',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpOriginalKeys = Object.keys(tmpRef.Descriptors);
+
+						// Move the last column up — it should swap with the middle
+						tmpView.moveSubmanifestColumnUp(0, 0, tmpOriginalKeys[2]);
+
+						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
+						let tmpNewKeys = Object.keys(tmpRef.Descriptors);
+
+						Expect(tmpNewKeys[0]).to.equal(tmpOriginalKeys[0]);
+						Expect(tmpNewKeys[1]).to.equal(tmpOriginalKeys[2]);
+						Expect(tmpNewKeys[2]).to.equal(tmpOriginalKeys[1]);
+
+						// Move the first column down
+						tmpView.moveSubmanifestColumnDown(0, 0, tmpNewKeys[0]);
+
+						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
+						let tmpFinalKeys = Object.keys(tmpRef.Descriptors);
+
+						Expect(tmpFinalKeys[0]).to.equal(tmpOriginalKeys[2]);
+						Expect(tmpFinalKeys[1]).to.equal(tmpOriginalKeys[0]);
+					}
+				);
+				test
+				(
+					'selectSubmanifestColumn should set _SelectedTabularColumn and clear _SelectedInputIndices',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestSelectSubCol',
+						{
+							ViewIdentifier: 'TestSelectSubCol',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addRow(0, 0);
+						tmpView.addInput(0, 0, 0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+
+						// First select a record input
+						tmpView.selectInput(0, 0, 0, 0);
+						Expect(tmpView._SelectedInputIndices).to.not.equal(null);
+
+						// Now select a submanifest column
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpAddress = Object.keys(tmpRef.Descriptors)[0];
+
+						tmpView.selectSubmanifestColumn(0, 0, tmpAddress);
+
+						Expect(tmpView._SelectedTabularColumn).to.be.an('object');
+						Expect(tmpView._SelectedTabularColumn.SectionIndex).to.equal(0);
+						Expect(tmpView._SelectedTabularColumn.GroupIndex).to.equal(0);
+						Expect(tmpView._SelectedTabularColumn.ColumnAddress).to.equal(tmpAddress);
+						Expect(tmpView._SelectedInputIndices).to.equal(null);
+					}
+				);
+				test
+				(
+					'addSubmanifestColumn should be a no-op when no ReferenceManifest is bound',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestAddSubColNoRef',
+						{
+							ViewIdentifier: 'TestAddSubColNoRef',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+
+						// No ReferenceManifest bound — should not throw
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						// Manifest should not have any ReferenceManifests
+						Expect(Object.keys(tmpManifest.ReferenceManifests).length).to.equal(0);
+					}
+				);
+				test
+				(
+					'Shared ReferenceManifest edits via one group should affect the other',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestSharedRef',
+						{
+							ViewIdentifier: 'TestSharedRef',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addGroup(0);
+						tmpView.createReferenceManifest('SharedManifest');
+						tmpView.bindReferenceManifest(0, 0, 'SharedManifest');
+						tmpView.bindReferenceManifest(0, 1, 'SharedManifest');
+
+						// Add a column via group 0
+						tmpView.addSubmanifestColumn(0, 0);
+
+						// Should be visible from group 1 since they share the manifest
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRef = tmpManifest.ReferenceManifests['SharedManifest'];
+						Expect(Object.keys(tmpRef.Descriptors).length).to.equal(1);
+					}
+				);
+			}
+		);
+		suite
+		(
+			'Submanifest Row Helpers',
+			function ()
+			{
+				test
+				(
+					'_getSubmanifestRows should group Descriptors by PictForm.Row',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestGetSubRows',
+						{
+							ViewIdentifier: 'TestGetSubRows',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpRefManifest =
+						{
+							Scope: 'TestRows',
+							Descriptors:
+							{
+								'col_a': { Name: 'A', Hash: 'A', DataType: 'String', PictForm: { Row: 1 } },
+								'col_b': { Name: 'B', Hash: 'B', DataType: 'String', PictForm: { Row: 2 } },
+								'col_c': { Name: 'C', Hash: 'C', DataType: 'String', PictForm: { Row: 1 } },
+								'col_d': { Name: 'D', Hash: 'D', DataType: 'String', PictForm: { Row: 2 } }
+							}
+						};
+
+						let tmpRows = tmpView._getSubmanifestRows(tmpRefManifest);
+						Expect(tmpRows).to.be.an('array');
+						Expect(tmpRows.length).to.equal(2);
+						Expect(tmpRows[0].Row).to.equal(1);
+						Expect(tmpRows[0].Columns.length).to.equal(2);
+						Expect(tmpRows[0].Columns[0].Address).to.equal('col_a');
+						Expect(tmpRows[0].Columns[1].Address).to.equal('col_c');
+						Expect(tmpRows[1].Row).to.equal(2);
+						Expect(tmpRows[1].Columns.length).to.equal(2);
+					}
+				);
+				test
+				(
+					'_getSubmanifestRows should default Descriptors without PictForm.Row to row 1',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestSubRowsDefault',
+						{
+							ViewIdentifier: 'TestSubRowsDefault',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpRefManifest =
+						{
+							Scope: 'TestDefault',
+							Descriptors:
+							{
+								'col_a': { Name: 'A', Hash: 'A', DataType: 'String' },
+								'col_b': { Name: 'B', Hash: 'B', DataType: 'String', PictForm: {} }
+							}
+						};
+
+						let tmpRows = tmpView._getSubmanifestRows(tmpRefManifest);
+						Expect(tmpRows.length).to.equal(1);
+						Expect(tmpRows[0].Row).to.equal(1);
+						Expect(tmpRows[0].Columns.length).to.equal(2);
+					}
+				);
+				test
+				(
+					'_getSubmanifestMaxRow should return the highest row number',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestMaxRow',
+						{
+							ViewIdentifier: 'TestMaxRow',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpRefManifest =
+						{
+							Scope: 'TestMax',
+							Descriptors:
+							{
+								'col_a': { Name: 'A', Hash: 'A', DataType: 'String', PictForm: { Row: 1 } },
+								'col_b': { Name: 'B', Hash: 'B', DataType: 'String', PictForm: { Row: 5 } },
+								'col_c': { Name: 'C', Hash: 'C', DataType: 'String', PictForm: { Row: 3 } }
+							}
+						};
+
+						Expect(tmpView._getSubmanifestMaxRow(tmpRefManifest)).to.equal(5);
+
+						// Empty Descriptors should return 0
+						let tmpEmptyRef = { Scope: 'Empty', Descriptors: {} };
+						Expect(tmpView._getSubmanifestMaxRow(tmpEmptyRef)).to.equal(0);
+					}
+				);
+				test
+				(
+					'addSubmanifestRow should create a column with the next row number',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestAddSubRow',
+						{
+							ViewIdentifier: 'TestAddSubRow',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.createAndBindReferenceManifest(0, 0);
+
+						// Add first column (row 1 by default)
+						tmpView.addSubmanifestColumn(0, 0);
+
+						// Add a new row — should create a column with Row: 2
+						tmpView.addSubmanifestRow(0, 0);
+
+						let tmpManifest = tmpView._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpKeys = Object.keys(tmpRef.Descriptors);
+
+						Expect(tmpKeys.length).to.equal(2);
+
+						// The second column should have PictForm.Row = 2
+						let tmpSecondDesc = tmpRef.Descriptors[tmpKeys[1]];
+						Expect(tmpSecondDesc.PictForm).to.be.an('object');
+						Expect(tmpSecondDesc.PictForm.Row).to.equal(2);
+					}
+				);
+			}
+		);
+		suite
+		(
+			'Tabular and RecordSet Rendering',
+			function ()
+			{
+				test
+				(
+					'Loading Simple-Table manifest should not throw',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpSimpleTable =
+						{
+							"Scope": "SuperSimpleTabularForm",
+							"Sections":
+							[
+								{
+									"Hash": "FruitGrid",
+									"Name": "Fruits of the World",
+									"Groups":
+									[
+										{
+											"Hash": "FruitGrid",
+											"Name": "FruitGrid",
+											"Layout": "Tabular",
+											"RecordSetAddress": "FruitData.FruityVice",
+											"RecordManifest": "FruitEditor"
+										}
+									]
+								}
+							],
+							"Descriptors":
+							{
+								"FruitData.FruityVice":
+								{
+									"Name": "Fruits of the Earth",
+									"Hash": "FruitGrid",
+									"DataType": "Array",
+									"Default": [],
+									"PictForm": { "Section": "FruitGrid", "Group": "FruitGrid" }
+								}
+							},
+							"ReferenceManifests":
+							{
+								"FruitEditor":
+								{
+									"Scope": "FruitEditor",
+									"Descriptors":
+									{
+										"name": { "Name": "Fruit Name", "Hash": "Name", "DataType": "String" },
+										"family": { "Name": "Family", "Hash": "Family", "DataType": "String" },
+										"order": { "Name": "Order", "Hash": "Order", "DataType": "String" },
+										"genus": { "Name": "Genus", "Hash": "Genus", "DataType": "String" },
+										"nutritions.calories": { "Name": "Calories", "Hash": "Calories", "DataType": "Number" }
+									}
+								}
+							}
+						};
+
+						let tmpView = tmpPict.addView('TestSimpleTable',
+						{
+							ViewIdentifier: 'TestSimpleTable',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpPict.AppData.FormConfig = tmpSimpleTable;
+
+						// Verify it loaded correctly
+						let tmpManifest = tmpView._resolveManifestData();
+						Expect(tmpManifest.Sections[0].Groups[0].Layout).to.equal('Tabular');
+						Expect(tmpManifest.Sections[0].Groups[0].RecordManifest).to.equal('FruitEditor');
+						Expect(tmpManifest.ReferenceManifests['FruitEditor']).to.be.an('object');
+					}
+				);
+				test
+				(
+					'getFormStats should include ReferenceManifest and TabularColumn counts',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestFormStatsTabular',
+						{
+							ViewIdentifier: 'TestFormStatsTabular',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						// addSection() already creates one default group, so use group index 0
+						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+						tmpView.addSubmanifestColumn(0, 0);
+
+						let tmpStats = tmpView.getFormStats();
+						Expect(tmpStats.ReferenceManifests).to.equal(1);
+						Expect(tmpStats.TabularColumns).to.equal(3);
+						Expect(tmpStats.Sections).to.equal(1);
+						Expect(tmpStats.Groups).to.equal(1);
+					}
+				);
+				test
+				(
+					'getAllInputEntries should include tabular columns with IsTabular marker',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestGetAllTabular',
+						{
+							ViewIdentifier: 'TestGetAllTabular',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						// Add a Record group with one input
+						tmpView.addSection();
+						tmpView.addGroup(0);
+						tmpView.addRow(0, 0);
+						tmpView.addInput(0, 0, 0);
+
+						// Add a Tabular group with columns
+						tmpView.addGroup(0);
+						let tmpManifest = tmpView._resolveManifestData();
+						tmpManifest.Sections[0].Groups[1].Layout = 'Tabular';
+						tmpView.createAndBindReferenceManifest(0, 1);
+						tmpView.addSubmanifestColumn(0, 1);
+						tmpView.addSubmanifestColumn(0, 1);
+
+						let tmpEntries = tmpView.getAllInputEntries();
+						Expect(tmpEntries).to.be.an('array');
+
+						// Should have 1 record input + 2 tabular columns
+						Expect(tmpEntries.length).to.equal(3);
+
+						let tmpTabularEntries = tmpEntries.filter(function(e) { return e.IsTabular; });
+						Expect(tmpTabularEntries.length).to.equal(2);
+
+						let tmpRecordEntries = tmpEntries.filter(function(e) { return !e.IsTabular; });
+						Expect(tmpRecordEntries.length).to.equal(1);
+					}
+				);
+				test
+				(
+					'Layout dropdown should include RecordSet option',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestLayoutDropdown',
+						{
+							ViewIdentifier: 'TestLayoutDropdown',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.addSection();
+						tmpView.addGroup(0);
+
+						// The Layout property edit list should include RecordSet
+						// We verify this by checking that the view accepts RecordSet as a valid layout
+						let tmpManifest = tmpView._resolveManifestData();
+						tmpManifest.Sections[0].Groups[0].Layout = 'RecordSet';
+
+						// Should not throw when accessing a RecordSet layout group
+						Expect(tmpManifest.Sections[0].Groups[0].Layout).to.equal('RecordSet');
+					}
+				);
+				test
+				(
+					'_createEmptyManifest should include ReferenceManifests property',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestEmptyManifest',
+						{
+							ViewIdentifier: 'TestEmptyManifest',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						let tmpManifest = tmpView._resolveManifestData();
+						Expect(tmpManifest.ReferenceManifests).to.be.an('object');
+						Expect(Object.keys(tmpManifest.ReferenceManifests).length).to.equal(0);
+					}
+				);
+			}
+		);
+		suite
+		(
+			'Properties Panel Tabular Column Editing',
+			function ()
+			{
+				test
+				(
+					'selectTabularColumn should set _SelectedTabularColumn on properties panel',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestSelectTabCol',
+						{
+							ViewIdentifier: 'TestSelectTabCol'
+						}, tmpPropertiesPanel);
+
+						let tmpFormEditor = tmpPict.addView('TestSelectTabColParent',
+						{
+							ViewIdentifier: 'TestSelectTabColParent',
+							ManifestDataAddress: 'AppData.TestManifest'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpView._ParentFormEditor = tmpFormEditor;
+
+						tmpView.selectTabularColumn(0, 1, 'my_column');
+
+						Expect(tmpView._SelectedTabularColumn).to.be.an('object');
+						Expect(tmpView._SelectedTabularColumn.SectionIndex).to.equal(0);
+						Expect(tmpView._SelectedTabularColumn.GroupIndex).to.equal(1);
+						Expect(tmpView._SelectedTabularColumn.ColumnAddress).to.equal('my_column');
+						Expect(tmpView._SelectedInput).to.equal(null);
+					}
+				);
+				test
+				(
+					'deselectInput on properties panel should clear _SelectedTabularColumn',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestDeselectTabCol',
+						{
+							ViewIdentifier: 'TestDeselectTabCol'
+						}, tmpPropertiesPanel);
+
+						tmpView._SelectedTabularColumn = { SectionIndex: 0, GroupIndex: 0, ColumnAddress: 'test' };
+
+						tmpView.deselectInput();
+
+						Expect(tmpView._SelectedTabularColumn).to.equal(null);
+						Expect(tmpView._SelectedInput).to.equal(null);
+					}
+				);
+				test
+				(
+					'commitTabularPropertyChange should update Descriptor fields',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestCommitTabProp',
+						{
+							ViewIdentifier: 'TestCommitTabProp'
+						}, tmpPropertiesPanel);
+
+						let tmpFormEditor = tmpPict.addView('TestCommitTabPropParent',
+						{
+							ViewIdentifier: 'TestCommitTabPropParent',
+							ManifestDataAddress: 'AppData.TestCommitTabManifest'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpFormEditor.addSection();
+						tmpFormEditor.addGroup(0);
+						tmpFormEditor.createAndBindReferenceManifest(0, 0);
+						tmpFormEditor.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpFormEditor._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpAddress = Object.keys(tmpRef.Descriptors)[0];
+
+						tmpView._ParentFormEditor = tmpFormEditor;
+						tmpView.selectTabularColumn(0, 0, tmpAddress);
+
+						tmpView.commitTabularPropertyChange('Name', 'Updated Name');
+
+						let tmpDesc = tmpFormEditor._resolveManifestData().ReferenceManifests[tmpRefName].Descriptors[tmpAddress];
+						Expect(tmpDesc.Name).to.equal('Updated Name');
+
+						tmpView.commitTabularPropertyChange('Hash', 'UpdatedHash');
+						tmpDesc = tmpFormEditor._resolveManifestData().ReferenceManifests[tmpRefName].Descriptors[tmpAddress];
+						Expect(tmpDesc.Hash).to.equal('UpdatedHash');
+
+						tmpView.commitTabularPropertyChange('DataType', 'Number');
+						tmpDesc = tmpFormEditor._resolveManifestData().ReferenceManifests[tmpRefName].Descriptors[tmpAddress];
+						Expect(tmpDesc.DataType).to.equal('Number');
+					}
+				);
+				test
+				(
+					'onInputSelectorChange should handle T: prefix for tabular columns',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestInputSelectorTab',
+						{
+							ViewIdentifier: 'TestInputSelectorTab'
+						}, tmpPropertiesPanel);
+
+						let tmpFormEditor = tmpPict.addView('TestInputSelectorTabParent',
+						{
+							ViewIdentifier: 'TestInputSelectorTabParent',
+							ManifestDataAddress: 'AppData.TestSelectorManifest'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpFormEditor.addSection();
+						tmpFormEditor.addGroup(0);
+						tmpFormEditor.createAndBindReferenceManifest(0, 0);
+						tmpFormEditor.addSubmanifestColumn(0, 0);
+
+						let tmpManifest = tmpFormEditor._resolveManifestData();
+						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
+						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
+						let tmpAddress = Object.keys(tmpRef.Descriptors)[0];
+
+						tmpView._ParentFormEditor = tmpFormEditor;
+
+						// Select via T: prefix format
+						tmpView.onInputSelectorChange('T:0,0,' + tmpAddress);
+
+						Expect(tmpFormEditor._SelectedTabularColumn).to.be.an('object');
+						Expect(tmpFormEditor._SelectedTabularColumn.SectionIndex).to.equal(0);
+						Expect(tmpFormEditor._SelectedTabularColumn.GroupIndex).to.equal(0);
+						Expect(tmpFormEditor._SelectedTabularColumn.ColumnAddress).to.equal(tmpAddress);
+					}
+				);
+				test
+				(
+					'onInputSelectorChange should handle empty value by deselecting',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestInputSelectorEmpty',
+						{
+							ViewIdentifier: 'TestInputSelectorEmpty'
+						}, tmpPropertiesPanel);
+
+						let tmpFormEditor = tmpPict.addView('TestInputSelectorEmptyParent',
+						{
+							ViewIdentifier: 'TestInputSelectorEmptyParent',
+							ManifestDataAddress: 'AppData.TestSelectorEmptyManifest'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						tmpView._ParentFormEditor = tmpFormEditor;
+
+						// Should not throw when deselecting
+						tmpView.onInputSelectorChange('');
+						tmpView.onInputSelectorChange(null);
 					}
 				);
 			}

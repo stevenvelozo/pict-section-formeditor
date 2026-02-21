@@ -56,6 +56,17 @@ class PictViewFormEditor extends libPictView
 		// Selected input for the properties panel
 		this._SelectedInputIndices = null;
 
+		// Selected submanifest column for Tabular/RecordSet groups
+		this._SelectedTabularColumn = null;
+
+		// Selected section/group for the properties panel
+		this._SelectedSectionIndex = null;
+		this._SelectedGroupIndices = null;
+
+		// Properties panel state
+		this._PanelCollapsed = false;
+		this._PanelActiveTab = 'stats';
+
 		// Properties panel child view reference
 		this._PropertiesPanelView = null;
 	}
@@ -477,11 +488,13 @@ class PictViewFormEditor extends libPictView
 		this._reconcileManifestStructure();
 
 		let tmpHTML = '';
+
 		tmpHTML += '<div class="pict-fe-visual-layout">';
 
 		// Main content area
 		tmpHTML += '<div class="pict-fe-visual-main">';
 
+		// Header with Add Section button — inside main so it spans only the content column
 		tmpHTML += '<div class="pict-fe-visual-header">';
 		tmpHTML += '<h3>Form Sections</h3>';
 		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-primary" onclick="${this._browserViewRef()}.addSection()"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 12)}</span> Add Section</button>`;
@@ -504,16 +517,50 @@ class PictViewFormEditor extends libPictView
 
 		tmpHTML += '</div>'; // pict-fe-visual-main
 
-		// Properties panel container
-		let tmpPanelOpenClass = this._SelectedInputIndices ? ' pict-fe-properties-panel-open' : '';
+		// Collapse/expand toggle button
+		let tmpToggleIcon = this._PanelCollapsed ? '\u25C0' : '\u25B6';
+		let tmpToggleTitle = this._PanelCollapsed ? 'Expand panel' : 'Collapse panel';
+		tmpHTML += `<div class="pict-fe-panel-toggle" onclick="${this._browserViewRef()}.togglePropertiesPanel()" title="${tmpToggleTitle}">${tmpToggleIcon}</div>`;
+
+		// Properties panel container — always present, visibility via CSS class
+		let tmpPanelOpenClass = this._PanelCollapsed ? '' : ' pict-fe-properties-panel-open';
 		tmpHTML += `<div class="pict-fe-properties-panel${tmpPanelOpenClass}" id="FormEditor-PropertiesPanel-${this.Hash}"></div>`;
 
 		tmpHTML += '</div>'; // pict-fe-visual-layout
 
+		// Preserve the main content scroll position across the DOM replacement
+		let tmpPreviousMainScroll = 0;
+		if (typeof document !== 'undefined')
+		{
+			let tmpVisualPanel = document.getElementById(`FormEditor-Panel-Visual-${this.Hash}`);
+			if (tmpVisualPanel)
+			{
+				let tmpOldMain = tmpVisualPanel.querySelector('.pict-fe-visual-main');
+				if (tmpOldMain)
+				{
+					tmpPreviousMainScroll = tmpOldMain.scrollTop;
+				}
+			}
+		}
+
 		this.pict.ContentAssignment.assignContent(`#FormEditor-Panel-Visual-${this.Hash}`, tmpHTML);
 
-		// If a property panel is selected, render its content
-		if (this._PropertiesPanelView && this._SelectedInputIndices)
+		// Restore the main content scroll position after DOM replacement
+		if (typeof document !== 'undefined' && tmpPreviousMainScroll > 0)
+		{
+			let tmpVisualPanel = document.getElementById(`FormEditor-Panel-Visual-${this.Hash}`);
+			if (tmpVisualPanel)
+			{
+				let tmpNewMain = tmpVisualPanel.querySelector('.pict-fe-visual-main');
+				if (tmpNewMain)
+				{
+					tmpNewMain.scrollTop = tmpPreviousMainScroll;
+				}
+			}
+		}
+
+		// Always render the properties panel content
+		if (this._PropertiesPanelView)
 		{
 			this._PropertiesPanelView.renderPanel();
 		}
@@ -530,15 +577,16 @@ class PictViewFormEditor extends libPictView
 		let tmpHTML = '';
 		tmpHTML += `<div class="pict-fe-section-card"${this._buildDragAttributes('section', [pIndex])}>`;
 
-		// Section header with inline-editable name and hash
-		tmpHTML += '<div class="pict-fe-section-header">';
+		// Section header — clicking the header bar selects the section;
+		// child elements (name, hash, action buttons) stop propagation for their own handlers.
+		tmpHTML += `<div class="pict-fe-section-header" style="cursor:pointer;" onclick="${tmpViewRef}.selectSection(${pIndex})">`;
 		tmpHTML += '<div class="pict-fe-section-header-labels">';
 		tmpHTML += this._buildDragHandleHTML(14);
 		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-section">${this._IconographyProvider.getIcon('Section', 'Default', 14)}</span>`;
-		tmpHTML += `<span class="pict-fe-section-title" id="FormEditor-SectionName-${tmpHash}-${pIndex}" title="Section Name: ${this._escapeAttr(tmpName)}" onclick="${tmpViewRef}.beginEditProperty('Section', ${pIndex}, -1, 'Name')">${this._escapeHTML(tmpName)}</span>`;
-		tmpHTML += `<span class="pict-fe-section-hash" id="FormEditor-SectionHash-${tmpHash}-${pIndex}" title="Section Hash: ${this._escapeAttr(tmpSectionHash)}" onclick="${tmpViewRef}.beginEditProperty('Section', ${pIndex}, -1, 'Hash')">${this._escapeHTML(tmpSectionHash)}</span>`;
+		tmpHTML += `<span class="pict-fe-section-title" id="FormEditor-SectionName-${tmpHash}-${pIndex}" title="Section Name: ${this._escapeAttr(tmpName)}" onclick="event.stopPropagation(); ${tmpViewRef}.beginEditProperty('Section', ${pIndex}, -1, 'Name')">${this._escapeHTML(tmpName)}</span>`;
+		tmpHTML += `<span class="pict-fe-section-hash" id="FormEditor-SectionHash-${tmpHash}-${pIndex}" title="Section Hash: ${this._escapeAttr(tmpSectionHash)}" onclick="event.stopPropagation(); ${tmpViewRef}.beginEditProperty('Section', ${pIndex}, -1, 'Hash')">${this._escapeHTML(tmpSectionHash)}</span>`;
 		tmpHTML += '</div>';
-		tmpHTML += '<div class="pict-fe-section-actions">';
+		tmpHTML += '<div class="pict-fe-section-actions" onclick="event.stopPropagation()">';
 		if (pIndex > 0)
 		{
 			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}.moveSectionUp(${pIndex})" title="Move up">\u25B2</button>`;
@@ -594,17 +642,18 @@ class PictViewFormEditor extends libPictView
 		let tmpHTML = '';
 		tmpHTML += `<div class="pict-fe-group-card"${this._buildDragAttributes('group', [pSectionIndex, pGroupIndex])}>`;
 
-		// Group header with inline-editable name and hash
-		tmpHTML += '<div class="pict-fe-group-header">';
+		// Group header — clicking the header bar selects the group;
+		// child elements (name, hash, layout, action buttons) stop propagation for their own handlers.
+		tmpHTML += `<div class="pict-fe-group-header" style="cursor:pointer;" onclick="${tmpViewRef}.selectGroup(${pSectionIndex}, ${pGroupIndex})">`;
 		tmpHTML += '<div class="pict-fe-group-header-labels">';
 		tmpHTML += this._buildDragHandleHTML(12);
 		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-group">${this._IconographyProvider.getIcon('Group', 'Default', 14)}</span>`;
-		tmpHTML += `<span class="pict-fe-group-title" id="FormEditor-GroupName-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Name: ${this._escapeAttr(tmpGroupName)}" onclick="${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Name')">${this._escapeHTML(tmpGroupName)}</span>`;
-		tmpHTML += `<span class="pict-fe-group-hash" id="FormEditor-GroupHash-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Hash: ${this._escapeAttr(tmpGroupHash)}" onclick="${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Hash')">${this._escapeHTML(tmpGroupHash)}</span>`;
+		tmpHTML += `<span class="pict-fe-group-title" id="FormEditor-GroupName-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Name: ${this._escapeAttr(tmpGroupName)}" onclick="event.stopPropagation(); ${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Name')">${this._escapeHTML(tmpGroupName)}</span>`;
+		tmpHTML += `<span class="pict-fe-group-hash" id="FormEditor-GroupHash-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Hash: ${this._escapeAttr(tmpGroupHash)}" onclick="event.stopPropagation(); ${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Hash')">${this._escapeHTML(tmpGroupHash)}</span>`;
 		let tmpCurrentLayout = pGroup.Layout || 'Record';
-		tmpHTML += `<span class="pict-fe-group-layout" id="FormEditor-GroupLayout-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Layout: ${this._escapeAttr(tmpCurrentLayout)}" onclick="${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Layout')">${this._escapeHTML(tmpCurrentLayout)}</span>`;
+		tmpHTML += `<span class="pict-fe-group-layout" id="FormEditor-GroupLayout-${tmpHash}-${pSectionIndex}-${pGroupIndex}" title="Group Layout: ${this._escapeAttr(tmpCurrentLayout)}" onclick="event.stopPropagation(); ${tmpViewRef}.beginEditProperty('Group', ${pSectionIndex}, ${pGroupIndex}, 'Layout')">${this._escapeHTML(tmpCurrentLayout)}</span>`;
 		tmpHTML += '</div>';
-		tmpHTML += '<div class="pict-fe-group-actions">';
+		tmpHTML += '<div class="pict-fe-group-actions" onclick="event.stopPropagation()">';
 		if (pGroupIndex > 0)
 		{
 			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}.moveGroupUp(${pSectionIndex}, ${pGroupIndex})" title="Move up">\u25B2</button>`;
@@ -617,10 +666,14 @@ class PictViewFormEditor extends libPictView
 		tmpHTML += '</div>';
 		tmpHTML += '</div>';
 
-		// Group body — render rows for Record layout groups
+		// Group body — render based on layout type
 		if (tmpCurrentLayout === 'Record')
 		{
 			tmpHTML += this._renderGroupBody(pGroup, pSectionIndex, pGroupIndex);
+		}
+		else if (tmpCurrentLayout === 'Tabular' || tmpCurrentLayout === 'RecordSet')
+		{
+			tmpHTML += this._renderSubmanifestGroupBody(pGroup, pSectionIndex, pGroupIndex);
 		}
 
 		tmpHTML += '</div>'; // group-card
@@ -645,6 +698,269 @@ class PictViewFormEditor extends libPictView
 		}
 
 		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-add-row" onclick="${tmpViewRef}.addRow(${pSectionIndex}, ${pGroupIndex})"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> Add Row</button>`;
+		tmpHTML += '</div>';
+
+		return tmpHTML;
+	}
+
+	/* ---------- Submanifest (Tabular / RecordSet) body rendering ---------- */
+
+	_renderSubmanifestGroupBody(pGroup, pSectionIndex, pGroupIndex)
+	{
+		let tmpViewRef = this._browserViewRef();
+		let tmpHash = this.Hash;
+
+		let tmpRecordSetAddress = pGroup.RecordSetAddress || '';
+		let tmpRecordManifestName = pGroup.RecordManifest || '';
+		let tmpCurrentLayout = pGroup.Layout || 'Tabular';
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-group-body pict-fe-tabular-body">';
+
+		// Tabular configuration fields
+		tmpHTML += '<div class="pict-fe-tabular-fields">';
+
+		// RecordSetAddress field
+		tmpHTML += '<div class="pict-fe-tabular-field">';
+		tmpHTML += '<div class="pict-fe-field-label">RecordSetAddress</div>';
+		tmpHTML += `<input class="pict-fe-field-input" type="text" value="${this._escapeAttr(tmpRecordSetAddress)}" onchange="${tmpViewRef}.updateGroupProperty(${pSectionIndex}, ${pGroupIndex}, 'RecordSetAddress', this.value); ${tmpViewRef}.renderVisualEditor();" placeholder="e.g. FruitData.FruityVice" />`;
+		tmpHTML += '</div>';
+
+		// RecordManifest selector
+		tmpHTML += '<div class="pict-fe-tabular-field">';
+		tmpHTML += '<div class="pict-fe-field-label">RecordManifest</div>';
+		tmpHTML += this._renderReferenceManifestSelector(pSectionIndex, pGroupIndex, tmpRecordManifestName);
+		tmpHTML += '</div>';
+
+		tmpHTML += '</div>'; // tabular-fields
+
+		// Column editing area (only if a ReferenceManifest is bound)
+		if (tmpRecordManifestName)
+		{
+			let tmpRefManifest = this._resolveReferenceManifest(tmpRecordManifestName);
+			if (tmpRefManifest)
+			{
+				let tmpDescriptors = tmpRefManifest.Descriptors;
+				let tmpHasColumns = tmpDescriptors && typeof tmpDescriptors === 'object' && Object.keys(tmpDescriptors).length > 0;
+
+				if (tmpCurrentLayout === 'RecordSet')
+				{
+					tmpHTML += this._renderSubmanifestRowsView(tmpRefManifest, pSectionIndex, pGroupIndex);
+				}
+				else
+				{
+					// Tabular: flat column list
+					tmpHTML += this._renderSubmanifestColumnList(tmpRefManifest, pSectionIndex, pGroupIndex);
+				}
+			}
+			else
+			{
+				tmpHTML += `<div class="pict-fe-empty">ReferenceManifest "${this._escapeHTML(tmpRecordManifestName)}" not found. Create it or select an existing one.</div>`;
+			}
+		}
+
+		tmpHTML += '</div>'; // tabular-body
+
+		return tmpHTML;
+	}
+
+	_renderReferenceManifestSelector(pSectionIndex, pGroupIndex, pCurrentManifestName)
+	{
+		let tmpViewRef = this._browserViewRef();
+		let tmpNames = this.getReferenceManifestNames();
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-refmanifest-selector">';
+
+		// Select dropdown for existing ReferenceManifests
+		tmpHTML += `<select class="pict-fe-field-select" onchange="${tmpViewRef}.bindReferenceManifest(${pSectionIndex}, ${pGroupIndex}, this.value)">`;
+		tmpHTML += '<option value="">-- Select or Create --</option>';
+		for (let i = 0; i < tmpNames.length; i++)
+		{
+			let tmpSelected = (tmpNames[i] === pCurrentManifestName) ? ' selected' : '';
+			tmpHTML += `<option value="${this._escapeAttr(tmpNames[i])}"${tmpSelected}>${this._escapeHTML(tmpNames[i])}</option>`;
+		}
+		tmpHTML += '</select>';
+
+		// Create New button
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}.createAndBindReferenceManifest(${pSectionIndex}, ${pGroupIndex})" title="Create a new ReferenceManifest"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> New</button>`;
+
+		// Unbind button (only show if currently bound)
+		if (pCurrentManifestName)
+		{
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger" onclick="${tmpViewRef}.unbindReferenceManifest(${pSectionIndex}, ${pGroupIndex})" title="Unbind ReferenceManifest">\u00D7</button>`;
+		}
+
+		tmpHTML += '</div>';
+
+		return tmpHTML;
+	}
+
+	_renderSubmanifestColumnList(pRefManifest, pSectionIndex, pGroupIndex)
+	{
+		let tmpViewRef = this._browserViewRef();
+
+		let tmpHTML = '';
+
+		// Header
+		tmpHTML += '<div class="pict-fe-tabular-columns-header">';
+		tmpHTML += `<span class="pict-fe-row-label">Columns</span>`;
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-add-input" onclick="${tmpViewRef}.addSubmanifestColumn(${pSectionIndex}, ${pGroupIndex})"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> Add Column</button>`;
+		tmpHTML += '</div>';
+
+		let tmpDescriptors = pRefManifest.Descriptors;
+		if (tmpDescriptors && typeof tmpDescriptors === 'object')
+		{
+			let tmpColumnKeys = Object.keys(tmpDescriptors);
+			if (tmpColumnKeys.length > 0)
+			{
+				tmpHTML += '<div class="pict-fe-tabular-columns-list">';
+				for (let c = 0; c < tmpColumnKeys.length; c++)
+				{
+					tmpHTML += this._renderSubmanifestColumn(
+						tmpColumnKeys[c],
+						tmpDescriptors[tmpColumnKeys[c]],
+						pSectionIndex,
+						pGroupIndex,
+						c,
+						tmpColumnKeys.length
+					);
+				}
+				tmpHTML += '</div>';
+			}
+			else
+			{
+				tmpHTML += '<div class="pict-fe-empty">No columns defined. Click "Add Column" to create one.</div>';
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	_renderSubmanifestRowsView(pRefManifest, pSectionIndex, pGroupIndex)
+	{
+		let tmpViewRef = this._browserViewRef();
+
+		let tmpHTML = '';
+
+		let tmpRows = this._getSubmanifestRows(pRefManifest);
+
+		if (tmpRows.length === 0)
+		{
+			// Header with Add Row button
+			tmpHTML += '<div class="pict-fe-tabular-columns-header">';
+			tmpHTML += `<span class="pict-fe-row-label">Rows &amp; Columns</span>`;
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-add-row" onclick="${tmpViewRef}.addSubmanifestRow(${pSectionIndex}, ${pGroupIndex})"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> Add Row</button>`;
+			tmpHTML += '</div>';
+			tmpHTML += '<div class="pict-fe-empty">No rows or columns defined. Click "Add Row" to create one.</div>';
+		}
+		else
+		{
+			// Header
+			tmpHTML += '<div class="pict-fe-tabular-columns-header">';
+			tmpHTML += `<span class="pict-fe-row-label">Rows &amp; Columns</span>`;
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-add-row" onclick="${tmpViewRef}.addSubmanifestRow(${pSectionIndex}, ${pGroupIndex})"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> Add Row</button>`;
+			tmpHTML += '</div>';
+
+			for (let r = 0; r < tmpRows.length; r++)
+			{
+				let tmpRowData = tmpRows[r];
+				let tmpRowNum = tmpRowData.Row;
+				let tmpColumns = tmpRowData.Columns;
+
+				tmpHTML += '<div class="pict-fe-row">';
+
+				// Row header
+				tmpHTML += '<div class="pict-fe-row-header">';
+				tmpHTML += `<span class="pict-fe-icon pict-fe-icon-row">${this._IconographyProvider.getIcon('Row', 'Default', 12)}</span>`;
+				tmpHTML += `<span class="pict-fe-row-label">Row ${tmpRowNum}</span>`;
+				tmpHTML += '</div>';
+
+				// Columns as input cards
+				tmpHTML += '<div class="pict-fe-row-inputs">';
+				for (let c = 0; c < tmpColumns.length; c++)
+				{
+					tmpHTML += this._renderSubmanifestColumn(
+						tmpColumns[c].Address,
+						tmpColumns[c].Descriptor,
+						pSectionIndex,
+						pGroupIndex,
+						c,
+						tmpColumns.length
+					);
+				}
+				tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-add-input" onclick="${tmpViewRef}.addSubmanifestColumn(${pSectionIndex}, ${pGroupIndex}, ${tmpRowNum})"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 10)}</span> Add Column</button>`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '</div>'; // row
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	_renderSubmanifestColumn(pColumnAddress, pDescriptor, pSectionIndex, pGroupIndex, pColumnIndex, pColumnCount)
+	{
+		let tmpHash = this.Hash;
+		let tmpViewRef = this._browserViewRef();
+
+		let tmpName = pDescriptor ? (pDescriptor.Name || '') : '';
+		let tmpColumnHash = pDescriptor ? (pDescriptor.Hash || pColumnAddress) : pColumnAddress;
+		let tmpType = pDescriptor ? (pDescriptor.DataType || 'String') : 'String';
+		let tmpOrdinal = pColumnIndex + 1;
+
+		// Build tooltip
+		let tmpTooltipParts = [];
+		tmpTooltipParts.push('Address: ' + pColumnAddress);
+		tmpTooltipParts.push('Hash: ' + tmpColumnHash);
+		if (tmpName)
+		{
+			tmpTooltipParts.push('Name: ' + tmpName);
+		}
+		tmpTooltipParts.push('DataType: ' + tmpType);
+		let tmpTooltip = tmpTooltipParts.join('&#10;');
+
+		// Display text
+		let tmpDisplayText = '';
+		if (this._InputDisplayMode === 'hash')
+		{
+			tmpDisplayText = tmpColumnHash;
+		}
+		else
+		{
+			tmpDisplayText = tmpName || tmpColumnHash;
+		}
+
+		// Selected state
+		let tmpIsSelected = false;
+		if (this._SelectedTabularColumn &&
+			this._SelectedTabularColumn.SectionIndex === pSectionIndex &&
+			this._SelectedTabularColumn.GroupIndex === pGroupIndex &&
+			this._SelectedTabularColumn.ColumnAddress === pColumnAddress)
+		{
+			tmpIsSelected = true;
+		}
+
+		let tmpSelectedClass = tmpIsSelected ? ' pict-fe-input-selected' : '';
+
+		// DataType icon
+		let tmpDataTypeIconHTML = this._IconographyProvider.getDataTypeIcon(tmpType, 12);
+		if (!tmpDataTypeIconHTML)
+		{
+			tmpDataTypeIconHTML = this._IconographyProvider.getIcon('Input', 'Default', 12);
+		}
+
+		// Escape the column address for use in onclick
+		let tmpEscapedAddress = this._escapeAttr(pColumnAddress).replace(/'/g, "\\'");
+
+		let tmpHTML = '';
+		tmpHTML += `<div class="pict-fe-input${tmpSelectedClass}" id="FormEditor-SubCol-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${pColumnIndex}" title="${tmpTooltip}" onclick="${tmpViewRef}.selectSubmanifestColumn(${pSectionIndex}, ${pGroupIndex}, '${tmpEscapedAddress}')">`;
+		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-datatype">${tmpDataTypeIconHTML}</span>`;
+		tmpHTML += `<span class="pict-fe-input-ordinal">${tmpOrdinal}</span>`;
+		tmpHTML += `<span class="pict-fe-input-name">${this._escapeHTML(this._truncateMiddle(tmpDisplayText, 20))}</span>`;
+
+		// Remove button
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger pict-fe-input-remove" onclick="event.stopPropagation(); ${tmpViewRef}.removeSubmanifestColumn(${pSectionIndex}, ${pGroupIndex}, '${tmpEscapedAddress}')" title="Remove column">\u00D7</button>`;
 		tmpHTML += '</div>';
 
 		return tmpHTML;
@@ -771,7 +1087,7 @@ class PictViewFormEditor extends libPictView
 		}
 
 		let tmpHTML = '';
-		tmpHTML += `<div class="pict-fe-input${tmpSelectedClass}" title="${tmpTooltip}"${this._buildDragAttributes('input', [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex])} onclick="${tmpViewRef}.selectInput(${pSectionIndex}, ${pGroupIndex}, ${pRowIndex}, ${pInputIndex})">`;
+		tmpHTML += `<div class="pict-fe-input${tmpSelectedClass}" id="FormEditor-Input-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${pRowIndex}-${pInputIndex}" title="${tmpTooltip}"${this._buildDragAttributes('input', [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex])} onclick="${tmpViewRef}.selectInput(${pSectionIndex}, ${pGroupIndex}, ${pRowIndex}, ${pInputIndex})">`;
 		tmpHTML += this._buildDragHandleHTML(10);
 		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-datatype">${tmpDataTypeIconHTML}</span>`;
 		tmpHTML += `<span class="pict-fe-input-ordinal">${tmpOrdinal}</span>`;
@@ -1277,6 +1593,645 @@ class PictViewFormEditor extends libPictView
 		}
 	}
 
+	/**
+	 * Move an input left (earlier) within its row.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} pRowIndex
+	 * @param {number} pInputIndex
+	 */
+	moveInputLeft(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		{
+			return;
+		}
+
+		let tmpRow = tmpGroup.Rows[pRowIndex];
+		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+		{
+			return;
+		}
+
+		if (pInputIndex <= 0 || pInputIndex >= tmpRow.Inputs.length)
+		{
+			return;
+		}
+
+		let tmpItem = tmpRow.Inputs.splice(pInputIndex, 1)[0];
+		tmpRow.Inputs.splice(pInputIndex - 1, 0, tmpItem);
+
+		// Update the selection to follow the moved input
+		this._SelectedInputIndices = [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex - 1];
+		if (this._PropertiesPanelView && this._PropertiesPanelView._SelectedInput)
+		{
+			this._PropertiesPanelView._SelectedInput.InputIndex = pInputIndex - 1;
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Move an input right (later) within its row.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} pRowIndex
+	 * @param {number} pInputIndex
+	 */
+	moveInputRight(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		{
+			return;
+		}
+
+		let tmpRow = tmpGroup.Rows[pRowIndex];
+		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+		{
+			return;
+		}
+
+		if (pInputIndex < 0 || pInputIndex >= tmpRow.Inputs.length - 1)
+		{
+			return;
+		}
+
+		let tmpItem = tmpRow.Inputs.splice(pInputIndex, 1)[0];
+		tmpRow.Inputs.splice(pInputIndex + 1, 0, tmpItem);
+
+		// Update the selection to follow the moved input
+		this._SelectedInputIndices = [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex + 1];
+		if (this._PropertiesPanelView && this._PropertiesPanelView._SelectedInput)
+		{
+			this._PropertiesPanelView._SelectedInput.InputIndex = pInputIndex + 1;
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                Code Section: ReferenceManifest Management                 */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Return the list of ReferenceManifest keys in the manifest.
+	 *
+	 * @returns {Array<string>}
+	 */
+	getReferenceManifestNames()
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.ReferenceManifests || typeof tmpManifest.ReferenceManifests !== 'object')
+		{
+			return [];
+		}
+		return Object.keys(tmpManifest.ReferenceManifests);
+	}
+
+	/**
+	 * Create a new ReferenceManifest entry.
+	 *
+	 * @param {string} pName - Desired name/key for the ReferenceManifest
+	 * @returns {string} The actual key used (may differ if pName was taken)
+	 */
+	createReferenceManifest(pName)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest)
+		{
+			return '';
+		}
+
+		if (!tmpManifest.ReferenceManifests || typeof tmpManifest.ReferenceManifests !== 'object')
+		{
+			tmpManifest.ReferenceManifests = {};
+		}
+
+		let tmpKey = (typeof pName === 'string' && pName.length > 0) ? pName : 'SubManifest_1';
+
+		// Ensure uniqueness
+		let tmpBase = tmpKey;
+		let tmpCounter = 1;
+		while (tmpManifest.ReferenceManifests.hasOwnProperty(tmpKey))
+		{
+			tmpCounter++;
+			tmpKey = tmpBase + '_' + tmpCounter;
+		}
+
+		tmpManifest.ReferenceManifests[tmpKey] =
+		{
+			Scope: tmpKey,
+			Descriptors: {}
+		};
+
+		return tmpKey;
+	}
+
+	/**
+	 * Resolve a ReferenceManifest by name.
+	 *
+	 * @param {string} pManifestName - Key in ReferenceManifests
+	 * @returns {object|null}
+	 */
+	_resolveReferenceManifest(pManifestName)
+	{
+		if (!pManifestName || typeof pManifestName !== 'string')
+		{
+			return null;
+		}
+
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.ReferenceManifests)
+		{
+			return null;
+		}
+
+		return tmpManifest.ReferenceManifests[pManifestName] || null;
+	}
+
+	/**
+	 * Bind an existing ReferenceManifest to a group.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {string} pManifestName - Key in ReferenceManifests
+	 */
+	bindReferenceManifest(pSectionIndex, pGroupIndex, pManifestName)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup)
+		{
+			return;
+		}
+
+		tmpGroup.RecordManifest = pManifestName;
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Unbind a ReferenceManifest from a group.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 */
+	unbindReferenceManifest(pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup)
+		{
+			return;
+		}
+
+		delete tmpGroup.RecordManifest;
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Create a new ReferenceManifest and bind it to a group in one step.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 */
+	createAndBindReferenceManifest(pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup)
+		{
+			return;
+		}
+
+		// Generate name based on group hash
+		let tmpBaseName = tmpGroup.Hash || ('Manifest_' + pSectionIndex + '_' + pGroupIndex);
+		let tmpKey = this.createReferenceManifest(tmpBaseName);
+
+		if (tmpKey)
+		{
+			tmpGroup.RecordManifest = tmpKey;
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*              Code Section: Submanifest Column Operations                   */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Add a column (Descriptor) to the bound ReferenceManifest.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} [pRow] - PictForm.Row value (defaults to 1)
+	 */
+	addSubmanifestColumn(pSectionIndex, pGroupIndex, pRow)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !tmpGroup.RecordManifest)
+		{
+			return;
+		}
+
+		let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+		if (!tmpRefManifest)
+		{
+			return;
+		}
+
+		if (!tmpRefManifest.Descriptors || typeof tmpRefManifest.Descriptors !== 'object')
+		{
+			tmpRefManifest.Descriptors = {};
+		}
+
+		let tmpRow = (typeof pRow === 'number' && pRow > 0) ? pRow : 1;
+
+		// Generate a unique column address
+		let tmpColumnNum = Object.keys(tmpRefManifest.Descriptors).length + 1;
+		let tmpAddress = 'Column_' + tmpColumnNum;
+		while (tmpRefManifest.Descriptors.hasOwnProperty(tmpAddress))
+		{
+			tmpColumnNum++;
+			tmpAddress = 'Column_' + tmpColumnNum;
+		}
+
+		let tmpColumnName = 'Column ' + tmpColumnNum;
+
+		tmpRefManifest.Descriptors[tmpAddress] =
+		{
+			Name: tmpColumnName,
+			Hash: tmpAddress,
+			DataType: 'String',
+			PictForm:
+			{
+				Section: tmpSection.Hash || '',
+				Group: tmpGroup.Hash || '',
+				Row: tmpRow
+			}
+		};
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Remove a column (Descriptor) from the bound ReferenceManifest.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {string} pColumnAddress - The Descriptor address key
+	 */
+	removeSubmanifestColumn(pSectionIndex, pGroupIndex, pColumnAddress)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !tmpGroup.RecordManifest)
+		{
+			return;
+		}
+
+		let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+		if (!tmpRefManifest || !tmpRefManifest.Descriptors)
+		{
+			return;
+		}
+
+		if (tmpRefManifest.Descriptors.hasOwnProperty(pColumnAddress))
+		{
+			delete tmpRefManifest.Descriptors[pColumnAddress];
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Move a submanifest column up (earlier in key order).
+	 */
+	moveSubmanifestColumnUp(pSectionIndex, pGroupIndex, pColumnAddress)
+	{
+		this._reorderSubmanifestColumn(pSectionIndex, pGroupIndex, pColumnAddress, -1);
+	}
+
+	/**
+	 * Move a submanifest column down (later in key order).
+	 */
+	moveSubmanifestColumnDown(pSectionIndex, pGroupIndex, pColumnAddress)
+	{
+		this._reorderSubmanifestColumn(pSectionIndex, pGroupIndex, pColumnAddress, 1);
+	}
+
+	/**
+	 * Reorder a column within the submanifest Descriptors by rebuilding the object.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {string} pColumnAddress
+	 * @param {number} pDirection - -1 for up, +1 for down
+	 */
+	_reorderSubmanifestColumn(pSectionIndex, pGroupIndex, pColumnAddress, pDirection)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !tmpGroup.RecordManifest)
+		{
+			return;
+		}
+
+		let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+		if (!tmpRefManifest || !tmpRefManifest.Descriptors)
+		{
+			return;
+		}
+
+		let tmpKeys = Object.keys(tmpRefManifest.Descriptors);
+		let tmpIndex = tmpKeys.indexOf(pColumnAddress);
+		if (tmpIndex < 0)
+		{
+			return;
+		}
+
+		let tmpNewIndex = tmpIndex + pDirection;
+		if (tmpNewIndex < 0 || tmpNewIndex >= tmpKeys.length)
+		{
+			return;
+		}
+
+		// Swap keys
+		let tmpSwap = tmpKeys[tmpNewIndex];
+		tmpKeys[tmpNewIndex] = tmpKeys[tmpIndex];
+		tmpKeys[tmpIndex] = tmpSwap;
+
+		// Rebuild the Descriptors object in new order
+		let tmpNewDescriptors = {};
+		for (let i = 0; i < tmpKeys.length; i++)
+		{
+			tmpNewDescriptors[tmpKeys[i]] = tmpRefManifest.Descriptors[tmpKeys[i]];
+		}
+		tmpRefManifest.Descriptors = tmpNewDescriptors;
+
+		this.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                Code Section: Submanifest Row Helpers                       */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Group submanifest Descriptors by PictForm.Row.
+	 *
+	 * @param {object} pRefManifest - A ReferenceManifest object
+	 * @returns {Array} Array of { Row: number, Columns: [{ Address, Descriptor }, ...] }
+	 */
+	_getSubmanifestRows(pRefManifest)
+	{
+		let tmpResult = [];
+
+		if (!pRefManifest || !pRefManifest.Descriptors || typeof pRefManifest.Descriptors !== 'object')
+		{
+			return tmpResult;
+		}
+
+		let tmpRowMap = {};
+		let tmpKeys = Object.keys(pRefManifest.Descriptors);
+
+		for (let i = 0; i < tmpKeys.length; i++)
+		{
+			let tmpDescriptor = pRefManifest.Descriptors[tmpKeys[i]];
+			let tmpRow = 1;
+			if (tmpDescriptor && tmpDescriptor.PictForm && tmpDescriptor.PictForm.Row)
+			{
+				tmpRow = parseInt(tmpDescriptor.PictForm.Row, 10);
+				if (isNaN(tmpRow) || tmpRow < 1)
+				{
+					tmpRow = 1;
+				}
+			}
+
+			if (!tmpRowMap[tmpRow])
+			{
+				tmpRowMap[tmpRow] = [];
+			}
+			tmpRowMap[tmpRow].push({ Address: tmpKeys[i], Descriptor: tmpDescriptor });
+		}
+
+		// Sort by row number
+		let tmpRowNumbers = Object.keys(tmpRowMap).map(Number).sort(function(a, b) { return a - b; });
+		for (let i = 0; i < tmpRowNumbers.length; i++)
+		{
+			tmpResult.push({ Row: tmpRowNumbers[i], Columns: tmpRowMap[tmpRowNumbers[i]] });
+		}
+
+		return tmpResult;
+	}
+
+	/**
+	 * Get the highest PictForm.Row value across all Descriptors in a ReferenceManifest.
+	 *
+	 * @param {object} pRefManifest
+	 * @returns {number}
+	 */
+	_getSubmanifestMaxRow(pRefManifest)
+	{
+		if (!pRefManifest || !pRefManifest.Descriptors || typeof pRefManifest.Descriptors !== 'object')
+		{
+			return 0;
+		}
+
+		let tmpMaxRow = 0;
+		let tmpKeys = Object.keys(pRefManifest.Descriptors);
+
+		for (let i = 0; i < tmpKeys.length; i++)
+		{
+			let tmpDescriptor = pRefManifest.Descriptors[tmpKeys[i]];
+			if (tmpDescriptor && tmpDescriptor.PictForm && tmpDescriptor.PictForm.Row)
+			{
+				let tmpRow = parseInt(tmpDescriptor.PictForm.Row, 10);
+				if (!isNaN(tmpRow) && tmpRow > tmpMaxRow)
+				{
+					tmpMaxRow = tmpRow;
+				}
+			}
+		}
+
+		return tmpMaxRow;
+	}
+
+	/**
+	 * Add a new row to a RecordSet submanifest by creating a column in the next row.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 */
+	addSubmanifestRow(pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup || !tmpGroup.RecordManifest)
+		{
+			return;
+		}
+
+		let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+		if (!tmpRefManifest)
+		{
+			return;
+		}
+
+		let tmpNextRow = this._getSubmanifestMaxRow(tmpRefManifest) + 1;
+		this.addSubmanifestColumn(pSectionIndex, pGroupIndex, tmpNextRow);
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*              Code Section: Submanifest Column Selection                    */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Select a submanifest column (Tabular/RecordSet) for the properties panel.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {string} pColumnAddress - The Descriptor address key
+	 */
+	selectSubmanifestColumn(pSectionIndex, pGroupIndex, pColumnAddress)
+	{
+		// Clear Record input selection
+		this._SelectedInputIndices = null;
+		// Also select the containing section and group
+		this._SelectedSectionIndex = pSectionIndex;
+		this._SelectedGroupIndices = { SectionIndex: pSectionIndex, GroupIndex: pGroupIndex };
+
+		this._SelectedTabularColumn =
+		{
+			SectionIndex: pSectionIndex,
+			GroupIndex: pGroupIndex,
+			ColumnAddress: pColumnAddress
+		};
+
+		if (this._PropertiesPanelView)
+		{
+			this._PropertiesPanelView.selectTabularColumn(pSectionIndex, pGroupIndex, pColumnAddress);
+		}
+
+		// Auto-switch to properties tab and expand panel
+		this._PanelActiveTab = 'properties';
+		if (this._PanelCollapsed)
+		{
+			this._PanelCollapsed = false;
+		}
+
+		this.renderVisualEditor();
+
+		// Align the properties panel with the selected column after layout settles
+		let tmpSelf = this;
+		setTimeout(function () { tmpSelf._alignPanelToSelection(); }, 0);
+	}
+
 	/* -------------------------------------------------------------------------- */
 	/*                     Code Section: Input Selection & Display                */
 	/* -------------------------------------------------------------------------- */
@@ -1292,25 +2247,102 @@ class PictViewFormEditor extends libPictView
 	selectInput(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
 	{
 		this._SelectedInputIndices = [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex];
+		// Clear submanifest column selection
+		this._SelectedTabularColumn = null;
+		// Also select the containing section and group
+		this._SelectedSectionIndex = pSectionIndex;
+		this._SelectedGroupIndices = { SectionIndex: pSectionIndex, GroupIndex: pGroupIndex };
 
 		if (this._PropertiesPanelView)
 		{
 			this._PropertiesPanelView.selectInput(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex);
 		}
 
+		// Auto-switch to properties tab and expand panel
+		this._PanelActiveTab = 'properties';
+		if (this._PanelCollapsed)
+		{
+			this._PanelCollapsed = false;
+		}
+
 		this.renderVisualEditor();
+
+		// Align the properties panel with the selected input after layout settles
+		let tmpSelf = this;
+		setTimeout(function () { tmpSelf._alignPanelToSelection(); }, 0);
 	}
 
 	/**
-	 * Deselect the current input and close the properties panel.
+	 * Deselect the current input.  The panel stays open.
 	 */
 	deselectInput()
 	{
 		this._SelectedInputIndices = null;
+		this._SelectedTabularColumn = null;
+		this._SelectedSectionIndex = null;
+		this._SelectedGroupIndices = null;
 
 		if (this._PropertiesPanelView)
 		{
-			this._PropertiesPanelView.deselectInput();
+			this._PropertiesPanelView.deselectAll();
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Select a section to open it in the properties panel.
+	 *
+	 * @param {number} pSectionIndex - Index of the section
+	 */
+	selectSection(pSectionIndex)
+	{
+		this._SelectedSectionIndex = pSectionIndex;
+		// Clear input, tabular, and group selections
+		this._SelectedInputIndices = null;
+		this._SelectedTabularColumn = null;
+		this._SelectedGroupIndices = null;
+
+		if (this._PropertiesPanelView)
+		{
+			this._PropertiesPanelView.selectSection(pSectionIndex);
+		}
+
+		// Auto-switch to section tab and expand panel
+		this._PanelActiveTab = 'section';
+		if (this._PanelCollapsed)
+		{
+			this._PanelCollapsed = false;
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Select a group to open it in the properties panel.
+	 *
+	 * @param {number} pSectionIndex - Index of the section
+	 * @param {number} pGroupIndex - Index of the group
+	 */
+	selectGroup(pSectionIndex, pGroupIndex)
+	{
+		this._SelectedGroupIndices = { SectionIndex: pSectionIndex, GroupIndex: pGroupIndex };
+		// Clear input and tabular selections
+		this._SelectedInputIndices = null;
+		this._SelectedTabularColumn = null;
+		// Also select the containing section
+		this._SelectedSectionIndex = pSectionIndex;
+
+		if (this._PropertiesPanelView)
+		{
+			this._PropertiesPanelView.selectGroup(pSectionIndex, pGroupIndex);
+		}
+
+		// Auto-switch to group tab and expand panel
+		this._PanelActiveTab = 'group';
+		if (this._PanelCollapsed)
+		{
+			this._PanelCollapsed = false;
 		}
 
 		this.renderVisualEditor();
@@ -1328,6 +2360,235 @@ class PictViewFormEditor extends libPictView
 			this._InputDisplayMode = pMode;
 			this.renderVisualEditor();
 		}
+	}
+
+	/**
+	 * Toggle the properties panel collapsed/expanded state.
+	 */
+	togglePropertiesPanel()
+	{
+		this._PanelCollapsed = !this._PanelCollapsed;
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Switch the active tab in the properties panel.
+	 *
+	 * @param {string} pTabName - 'stats' or 'properties'
+	 */
+	setPanelTab(pTabName)
+	{
+		if (pTabName === 'stats' || pTabName === 'properties' || pTabName === 'section' || pTabName === 'group')
+		{
+			this._PanelActiveTab = pTabName;
+			// Re-render only the panel content, not the entire visual editor
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderPanel();
+			}
+		}
+	}
+
+	/**
+	 * Compute summary statistics about the form manifest.
+	 *
+	 * @returns {object} { Sections, Groups, Inputs, Descriptors }
+	 */
+	getFormStats()
+	{
+		let tmpManifest = this._resolveManifestData();
+		let tmpStats =
+		{
+			Sections: 0,
+			Groups: 0,
+			Inputs: 0,
+			Descriptors: 0,
+			ReferenceManifests: 0,
+			TabularColumns: 0
+		};
+
+		if (!tmpManifest)
+		{
+			return tmpStats;
+		}
+
+		if (Array.isArray(tmpManifest.Sections))
+		{
+			tmpStats.Sections = tmpManifest.Sections.length;
+			for (let i = 0; i < tmpManifest.Sections.length; i++)
+			{
+				let tmpSection = tmpManifest.Sections[i];
+				if (Array.isArray(tmpSection.Groups))
+				{
+					tmpStats.Groups += tmpSection.Groups.length;
+					for (let j = 0; j < tmpSection.Groups.length; j++)
+					{
+						let tmpGroup = tmpSection.Groups[j];
+						if (Array.isArray(tmpGroup.Rows))
+						{
+							for (let k = 0; k < tmpGroup.Rows.length; k++)
+							{
+								let tmpRow = tmpGroup.Rows[k];
+								if (Array.isArray(tmpRow.Inputs))
+								{
+									tmpStats.Inputs += tmpRow.Inputs.length;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (tmpManifest.Descriptors && typeof tmpManifest.Descriptors === 'object')
+		{
+			tmpStats.Descriptors = Object.keys(tmpManifest.Descriptors).length;
+		}
+
+		if (tmpManifest.ReferenceManifests && typeof tmpManifest.ReferenceManifests === 'object')
+		{
+			let tmpRefNames = Object.keys(tmpManifest.ReferenceManifests);
+			tmpStats.ReferenceManifests = tmpRefNames.length;
+			for (let r = 0; r < tmpRefNames.length; r++)
+			{
+				let tmpRefManifest = tmpManifest.ReferenceManifests[tmpRefNames[r]];
+				if (tmpRefManifest && tmpRefManifest.Descriptors && typeof tmpRefManifest.Descriptors === 'object')
+				{
+					tmpStats.TabularColumns += Object.keys(tmpRefManifest.Descriptors).length;
+				}
+			}
+		}
+
+		return tmpStats;
+	}
+
+	/**
+	 * Enumerate all inputs in the manifest with their indices and labels.
+	 *
+	 * @returns {Array} Array of { SectionIndex, GroupIndex, RowIndex, InputIndex, Address, Label, SectionName }
+	 */
+	getAllInputEntries()
+	{
+		let tmpManifest = this._resolveManifestData();
+		let tmpEntries = [];
+
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return tmpEntries;
+		}
+
+		for (let s = 0; s < tmpManifest.Sections.length; s++)
+		{
+			let tmpSection = tmpManifest.Sections[s];
+			if (!Array.isArray(tmpSection.Groups))
+			{
+				continue;
+			}
+			for (let g = 0; g < tmpSection.Groups.length; g++)
+			{
+				let tmpGroup = tmpSection.Groups[g];
+				let tmpGroupLayout = tmpGroup.Layout || 'Record';
+
+				// Record layout: enumerate rows and inputs
+				if (tmpGroupLayout === 'Record' && Array.isArray(tmpGroup.Rows))
+				{
+					for (let r = 0; r < tmpGroup.Rows.length; r++)
+					{
+						let tmpRow = tmpGroup.Rows[r];
+						if (!Array.isArray(tmpRow.Inputs))
+						{
+							continue;
+						}
+						for (let i = 0; i < tmpRow.Inputs.length; i++)
+						{
+							let tmpAddress = tmpRow.Inputs[i];
+							let tmpDescriptor = (tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress]) ? tmpManifest.Descriptors[tmpAddress] : null;
+							let tmpLabel = tmpDescriptor ? (tmpDescriptor.Name || tmpDescriptor.Hash || tmpAddress) : tmpAddress;
+
+							tmpEntries.push(
+							{
+								SectionIndex: s,
+								GroupIndex: g,
+								RowIndex: r,
+								InputIndex: i,
+								Address: tmpAddress,
+								Label: tmpLabel,
+								SectionName: tmpSection.Name || tmpSection.Hash || ('Section ' + (s + 1)),
+								GroupName: tmpGroup.Name || tmpGroup.Hash || ('Group ' + (g + 1)),
+								RowNumber: r + 1
+							});
+						}
+					}
+				}
+				// Tabular / RecordSet: enumerate submanifest columns
+				else if ((tmpGroupLayout === 'Tabular' || tmpGroupLayout === 'RecordSet') && tmpGroup.RecordManifest)
+				{
+					let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+					if (tmpRefManifest && tmpRefManifest.Descriptors && typeof tmpRefManifest.Descriptors === 'object')
+					{
+						let tmpColKeys = Object.keys(tmpRefManifest.Descriptors);
+						for (let c = 0; c < tmpColKeys.length; c++)
+						{
+							let tmpColDescriptor = tmpRefManifest.Descriptors[tmpColKeys[c]];
+							let tmpLabel = tmpColDescriptor ? (tmpColDescriptor.Name || tmpColDescriptor.Hash || tmpColKeys[c]) : tmpColKeys[c];
+
+							tmpEntries.push(
+							{
+								SectionIndex: s,
+								GroupIndex: g,
+								Address: tmpColKeys[c],
+								Label: tmpLabel,
+								SectionName: tmpSection.Name || tmpSection.Hash || ('Section ' + (s + 1)),
+								GroupName: tmpGroup.Name || tmpGroup.Hash || ('Group ' + (g + 1)),
+								IsTabular: true
+							});
+						}
+					}
+				}
+			}
+		}
+
+		return tmpEntries;
+	}
+
+	/**
+	 * Scroll a specific input card into view in the visual editor.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} pRowIndex
+	 * @param {number} pInputIndex
+	 */
+	scrollToInput(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpInputId = `FormEditor-Input-${this.Hash}-${pSectionIndex}-${pGroupIndex}-${pRowIndex}-${pInputIndex}`;
+		let tmpElement = document.getElementById(tmpInputId);
+
+		if (tmpElement)
+		{
+			tmpElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+	}
+
+	/**
+	 * Align the properties panel vertically with the currently selected input
+	 * or tabular column.  Also scrolls the selected element into view in the
+	 * main content area if it is not already visible.
+	 *
+	 * Should be called after renderVisualEditor() inside a setTimeout so the
+	 * browser has computed layout before we measure positions.
+	 */
+	_alignPanelToSelection()
+	{
+		// No-op: the properties panel now has a fixed header and tab bar with
+		// independently scrolling tab content.  The previous approach of adding
+		// paddingTop to align the panel with the selected input caused the panel
+		// to jump.  The searchable selector dropdowns provide easy navigation.
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -1899,7 +3160,7 @@ class PictViewFormEditor extends libPictView
 		{
 			// Layout uses a select dropdown
 			// onclick stopPropagation prevents the parent span's onclick from re-calling beginEditProperty
-			let tmpLayouts = ['Record', 'Tabular'];
+			let tmpLayouts = ['Record', 'Tabular', 'RecordSet'];
 			let tmpCommitCall = `${tmpViewRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')`;
 			tmpEditorHTML += `<select class="pict-fe-inline-edit-select" id="${tmpElementId}-Input" onclick="event.stopPropagation()" onchange="${tmpCommitCall}" onblur="setTimeout(function(){${tmpCommitCall}},150)" onkeydown="if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}">`;
 			for (let i = 0; i < tmpLayouts.length; i++)
@@ -2620,7 +3881,8 @@ class PictViewFormEditor extends libPictView
 		{
 			Scope: 'NewForm',
 			Sections: [],
-			Descriptors: {}
+			Descriptors: {},
+			ReferenceManifests: {}
 		});
 	}
 
