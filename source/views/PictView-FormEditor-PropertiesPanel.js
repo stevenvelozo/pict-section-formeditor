@@ -32,6 +32,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Drag state for solver reordering
 		this._SolverDragState = null;
+
+		// Solver modal context: { Type, SectionIndex, SolverIndex, GroupIndex, Expression, Ordinal }
+		this._SolverModalContext = null;
 	}
 
 	/**
@@ -606,7 +609,8 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				{
 					tmpHTML += '<span class="pict-fe-solver-drag-handle" title="Drag to reorder">&#9776;</span>';
 				}
-				tmpHTML += `<button class="pict-fe-solver-btn pict-fe-solver-btn-remove" title="Remove" onclick="${tmpPanelViewRef}.removeSolver('${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})">&#10005;</button>`;
+				tmpHTML += `<button class="pict-fe-solver-btn pict-fe-solver-btn-expand" title="Edit in modal" onclick="${tmpPanelViewRef}.openSolverModal('${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})">Edit</button>`;
+				tmpHTML += `<button class="pict-fe-solver-btn pict-fe-solver-btn-remove" title="Remove" onclick="if(this.dataset.armed){${tmpPanelViewRef}.removeSolver('${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})}else{this.dataset.armed='1';this.textContent='Sure?';this.classList.add('pict-fe-solver-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='\\u2715';b.classList.remove('pict-fe-solver-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='\\u2715';this.classList.remove('pict-fe-solver-btn-armed');clearTimeout(this._armTimer)}">&#10005;</button>`;
 				tmpHTML += '</div>';
 
 				// Right side: up/down arrows + ordinal
@@ -998,6 +1002,504 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	}
 
 	/* -------------------------------------------------------------------------- */
+	/*                     Solver Editor Modal                                    */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Open the solver editor modal for a given solver entry.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {number} [pGroupIndex]
+	 */
+	openSolverModal(pType, pSectionIndex, pSolverIndex, pGroupIndex)
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+
+		// Close any existing modal first
+		this.closeSolverModal();
+
+		// Resolve the solver entry
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget || pSolverIndex < 0 || pSolverIndex >= tmpTarget.Solvers.length)
+		{
+			return;
+		}
+
+		let tmpSolver = tmpTarget.Solvers[pSolverIndex];
+		let tmpExpression = '';
+		let tmpOrdinal = '';
+
+		if (typeof tmpSolver === 'string')
+		{
+			tmpExpression = tmpSolver;
+		}
+		else if (typeof tmpSolver === 'object' && tmpSolver !== null)
+		{
+			tmpExpression = tmpSolver.Expression || '';
+			tmpOrdinal = (tmpSolver.Ordinal !== undefined && tmpSolver.Ordinal !== null) ? String(tmpSolver.Ordinal) : '';
+		}
+
+		// Display ordinal: show "1" for strings (implicit default)
+		let tmpDisplayOrdinal = tmpOrdinal || '1';
+
+		// Store context
+		this._SolverModalContext =
+		{
+			Type: pType,
+			SectionIndex: pSectionIndex,
+			SolverIndex: pSolverIndex,
+			GroupIndex: pGroupIndex,
+			Expression: tmpExpression,
+			Ordinal: tmpDisplayOrdinal
+		};
+
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		// Build modal HTML
+		let tmpModalHTML = this._renderSolverModal();
+
+		// Create overlay
+		let tmpOverlay = document.createElement('div');
+		tmpOverlay.id = 'PictFE-SolverModal-Overlay';
+		tmpOverlay.className = 'pict-fe-solver-modal-overlay';
+		tmpOverlay.onclick = function() { eval(tmpPanelViewRef + '.closeSolverModal()'); };
+		tmpOverlay.addEventListener('wheel', function(pEvent) { pEvent.preventDefault(); }, { passive: false });
+
+		// Create modal container
+		let tmpModalContainer = document.createElement('div');
+		tmpModalContainer.id = 'PictFE-SolverModal';
+		tmpModalContainer.className = 'pict-fe-solver-modal';
+		tmpModalContainer.innerHTML = tmpModalHTML;
+		tmpModalContainer.onclick = function(e) { e.stopPropagation(); };
+		// Contain scroll within the modal
+		tmpModalContainer.addEventListener('wheel', function(pEvent)
+		{
+			pEvent.stopPropagation();
+			let tmpScrollable = tmpModalContainer.querySelector('.pict-fe-solver-modal-reference-list');
+			if (!tmpScrollable)
+			{
+				pEvent.preventDefault();
+				return;
+			}
+			let tmpAtTop = (tmpScrollable.scrollTop <= 0) && (pEvent.deltaY < 0);
+			let tmpAtBottom = (tmpScrollable.scrollTop + tmpScrollable.clientHeight >= tmpScrollable.scrollHeight) && (pEvent.deltaY > 0);
+			if (tmpAtTop || tmpAtBottom)
+			{
+				pEvent.preventDefault();
+			}
+		}, { passive: false });
+
+		tmpOverlay.appendChild(tmpModalContainer);
+		document.body.appendChild(tmpOverlay);
+
+		// Center the modal
+		tmpModalContainer.style.position = 'fixed';
+		tmpModalContainer.style.top = '50%';
+		tmpModalContainer.style.left = '50%';
+		tmpModalContainer.style.transform = 'translate(-50%, -50%)';
+
+		// Focus the expression textarea
+		let tmpTextarea = document.getElementById('PictFE-SolverModal-Expression');
+		if (tmpTextarea && tmpTextarea.focus)
+		{
+			tmpTextarea.focus();
+		}
+	}
+
+	/**
+	 * Render the inner HTML of the solver editor modal.
+	 *
+	 * @returns {string} Modal innerHTML
+	 */
+	_renderSolverModal()
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpContext = this._SolverModalContext;
+		if (!tmpContext)
+		{
+			return '';
+		}
+
+		// Resolve context labels
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		let tmpContextLabel = '';
+		let tmpBadgeLabel = '';
+
+		if (tmpManifest && Array.isArray(tmpManifest.Sections))
+		{
+			let tmpSection = tmpManifest.Sections[tmpContext.SectionIndex];
+			let tmpSectionName = tmpSection ? (tmpSection.Name || tmpSection.Hash || ('Section ' + (tmpContext.SectionIndex + 1))) : '';
+
+			if (tmpContext.Type === 'Group')
+			{
+				tmpBadgeLabel = 'Tabular Group Solver';
+				let tmpGroup = (tmpSection && Array.isArray(tmpSection.Groups)) ? tmpSection.Groups[tmpContext.GroupIndex] : null;
+				let tmpGroupName = tmpGroup ? (tmpGroup.Name || tmpGroup.Hash || ('Group ' + (tmpContext.GroupIndex + 1))) : '';
+				tmpContextLabel = tmpSectionName + ' \u203A ' + tmpGroupName;
+			}
+			else
+			{
+				tmpBadgeLabel = 'Section Solver';
+				tmpContextLabel = tmpSectionName;
+			}
+		}
+
+		let tmpHTML = '';
+
+		// Header
+		tmpHTML += '<div class="pict-fe-solver-modal-header">';
+		tmpHTML += `<button class="pict-fe-solver-modal-close" onclick="${tmpPanelViewRef}.closeSolverModal()" title="Close">&times;</button>`;
+		tmpHTML += '<span class="pict-fe-solver-modal-title">Solver Editor</span>';
+		tmpHTML += `<span class="pict-fe-solver-modal-badge">${this._escapeHTML(tmpBadgeLabel)}</span>`;
+		tmpHTML += `<span class="pict-fe-solver-modal-context">${this._escapeHTML(tmpContextLabel)}</span>`;
+		tmpHTML += '</div>';
+
+		// Body
+		tmpHTML += '<div class="pict-fe-solver-modal-body">';
+
+		// Expression textarea
+		tmpHTML += '<label class="pict-fe-props-label">Expression</label>';
+		tmpHTML += `<textarea class="pict-fe-solver-modal-expression" id="PictFE-SolverModal-Expression" rows="5" placeholder="Enter solver expression\u2026" onkeydown="if(event.key==='Escape'){${tmpPanelViewRef}.closeSolverModal();}">${this._escapeHTML(tmpContext.Expression)}</textarea>`;
+
+		// Ordinal row
+		tmpHTML += '<div class="pict-fe-solver-modal-ordinal-row">';
+		tmpHTML += '<label class="pict-fe-props-label">Ordinal</label>';
+		tmpHTML += `<input class="pict-fe-solver-modal-ordinal-input" id="PictFE-SolverModal-Ordinal" type="text" value="${this._escapeAttr(tmpContext.Ordinal)}" placeholder="1" />`;
+		tmpHTML += '</div>';
+
+		// Reference panel
+		tmpHTML += '<div class="pict-fe-solver-modal-reference">';
+		tmpHTML += '<div class="pict-fe-solver-modal-reference-header">';
+		tmpHTML += '<span class="pict-fe-props-label">Reference</span>';
+		tmpHTML += `<input class="pict-fe-solver-modal-reference-search" id="PictFE-SolverModal-RefSearch" type="text" placeholder="Filter addresses\u2026" oninput="${tmpPanelViewRef}._onSolverModalReferenceSearch(this.value)" />`;
+		tmpHTML += '</div>';
+		tmpHTML += '<div class="pict-fe-solver-modal-reference-list" id="PictFE-SolverModal-RefList">';
+		tmpHTML += this._renderSolverModalReference('');
+		tmpHTML += '</div>';
+		tmpHTML += '</div>';
+
+		tmpHTML += '</div>'; // body
+
+		// Footer
+		tmpHTML += '<div class="pict-fe-solver-modal-footer">';
+		tmpHTML += `<button class="pict-fe-solver-modal-btn" onclick="${tmpPanelViewRef}.closeSolverModal()">Cancel</button>`;
+		tmpHTML += `<button class="pict-fe-solver-modal-btn pict-fe-solver-modal-btn-save" onclick="${tmpPanelViewRef}.saveSolverModal()">Save</button>`;
+		tmpHTML += '</div>';
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Render the reference list content for the solver modal.
+	 * Each entry shows two rows:
+	 *   Row 1: Name (left) + Hash: XYZ (right)
+	 *   Row 2: First solver equation snippet (left) + Address: A.B.C (right)
+	 *
+	 * @param {string} pFilterText - Search filter text
+	 * @returns {string} HTML for the reference list items
+	 */
+	_renderSolverModalReference(pFilterText)
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpEntries = this._ParentFormEditor.getAllInputEntries();
+		let tmpFilter = (pFilterText || '').toLowerCase().trim();
+
+		// Build a map of hash → first solver expression that contains it
+		let tmpSolverMap = this._buildSolverHashMap();
+
+		// Group entries by section
+		let tmpGrouped = {};
+		let tmpSectionOrder = [];
+
+		for (let i = 0; i < tmpEntries.length; i++)
+		{
+			let tmpEntry = tmpEntries[i];
+			let tmpAddress = tmpEntry.Address || '';
+			let tmpLabel = tmpEntry.Label || '';
+			let tmpHash = tmpEntry.Hash || '';
+			let tmpGroupName = tmpEntry.GroupName || '';
+			let tmpSectionName = tmpEntry.SectionName || '';
+
+			// Apply filter
+			if (tmpFilter)
+			{
+				let tmpSearchable = (tmpAddress + ' ' + tmpLabel + ' ' + tmpHash + ' ' + tmpGroupName + ' ' + tmpSectionName).toLowerCase();
+				if (tmpSearchable.indexOf(tmpFilter) < 0)
+				{
+					continue;
+				}
+			}
+
+			// Build a group key — for tabular entries include the group name
+			let tmpGroupKey = tmpSectionName;
+			if (tmpEntry.IsTabular)
+			{
+				tmpGroupKey = tmpSectionName + ' \u203A ' + tmpGroupName + ' (Tabular)';
+			}
+
+			if (!tmpGrouped[tmpGroupKey])
+			{
+				tmpGrouped[tmpGroupKey] = [];
+				tmpSectionOrder.push(tmpGroupKey);
+			}
+
+			tmpGrouped[tmpGroupKey].push(tmpEntry);
+		}
+
+		if (tmpSectionOrder.length === 0)
+		{
+			return '<div class="pict-fe-solver-empty">No matching entries.</div>';
+		}
+
+		let tmpHTML = '';
+
+		for (let g = 0; g < tmpSectionOrder.length; g++)
+		{
+			let tmpKey = tmpSectionOrder[g];
+			let tmpItems = tmpGrouped[tmpKey];
+
+			tmpHTML += `<div class="pict-fe-solver-modal-reference-group">${this._escapeHTML(tmpKey)}</div>`;
+
+			for (let j = 0; j < tmpItems.length; j++)
+			{
+				let tmpItem = tmpItems[j];
+				let tmpAddress = tmpItem.Address || '';
+				let tmpHash = tmpItem.Hash || '';
+				let tmpLabel = tmpItem.Label || tmpAddress;
+				let tmpEscapedAddress = this._escapeAttr(tmpAddress).replace(/'/g, "\\'");
+
+				// Find the first solver expression referencing this hash
+				let tmpFirstSolver = tmpHash ? (tmpSolverMap[tmpHash] || '') : '';
+
+				tmpHTML += `<div class="pict-fe-solver-modal-reference-item" onclick="${tmpPanelViewRef}.insertSolverReference('${tmpEscapedAddress}')" title="Click to insert: ${this._escapeAttr(tmpAddress)}">`;
+
+				// Row 1: Name (left) + Hash (right)
+				tmpHTML += '<div class="pict-fe-solver-modal-reference-row">';
+				tmpHTML += `<span class="pict-fe-solver-modal-reference-name">${this._escapeHTML(tmpLabel)}</span>`;
+				if (tmpHash)
+				{
+					tmpHTML += `<span class="pict-fe-solver-modal-reference-hash">Hash: ${this._escapeHTML(tmpHash)}</span>`;
+				}
+				tmpHTML += '</div>';
+
+				// Row 2: First solver equation (left) + Address (right)
+				tmpHTML += '<div class="pict-fe-solver-modal-reference-row">';
+				if (tmpFirstSolver)
+				{
+					tmpHTML += `<span class="pict-fe-solver-modal-reference-solver">${this._escapeHTML(tmpFirstSolver)}</span>`;
+				}
+				else
+				{
+					tmpHTML += '<span class="pict-fe-solver-modal-reference-solver"></span>';
+				}
+				tmpHTML += `<span class="pict-fe-solver-modal-reference-address">Address: ${this._escapeHTML(tmpAddress)}</span>`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '</div>';
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Build a map of Hash → first solver expression that contains that hash.
+	 * Scans all section solvers and group solvers in the manifest.
+	 *
+	 * @returns {Object} Map of hash string → solver expression string
+	 */
+	_buildSolverHashMap()
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		let tmpMap = {};
+
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return tmpMap;
+		}
+
+		// Collect all solver expressions
+		let tmpAllExpressions = [];
+
+		for (let s = 0; s < tmpManifest.Sections.length; s++)
+		{
+			let tmpSection = tmpManifest.Sections[s];
+
+			// Section solvers
+			if (Array.isArray(tmpSection.Solvers))
+			{
+				for (let i = 0; i < tmpSection.Solvers.length; i++)
+				{
+					let tmpSolver = tmpSection.Solvers[i];
+					let tmpExpr = (typeof tmpSolver === 'string') ? tmpSolver : ((tmpSolver && tmpSolver.Expression) || '');
+					if (tmpExpr)
+					{
+						tmpAllExpressions.push(tmpExpr);
+					}
+				}
+			}
+
+			// Group solvers
+			if (Array.isArray(tmpSection.Groups))
+			{
+				for (let g = 0; g < tmpSection.Groups.length; g++)
+				{
+					let tmpGroup = tmpSection.Groups[g];
+					if (Array.isArray(tmpGroup.RecordSetSolvers))
+					{
+						for (let i = 0; i < tmpGroup.RecordSetSolvers.length; i++)
+						{
+							let tmpSolver = tmpGroup.RecordSetSolvers[i];
+							let tmpExpr = (typeof tmpSolver === 'string') ? tmpSolver : ((tmpSolver && tmpSolver.Expression) || '');
+							if (tmpExpr)
+							{
+								tmpAllExpressions.push(tmpExpr);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// For each Descriptor hash, find the first expression that contains it
+		if (tmpManifest.Descriptors && typeof tmpManifest.Descriptors === 'object')
+		{
+			let tmpAddresses = Object.keys(tmpManifest.Descriptors);
+			for (let a = 0; a < tmpAddresses.length; a++)
+			{
+				let tmpDescriptor = tmpManifest.Descriptors[tmpAddresses[a]];
+				let tmpHash = tmpDescriptor ? tmpDescriptor.Hash : null;
+				if (!tmpHash || tmpMap[tmpHash])
+				{
+					continue;
+				}
+
+				for (let e = 0; e < tmpAllExpressions.length; e++)
+				{
+					if (tmpAllExpressions[e].indexOf(tmpHash) >= 0)
+					{
+						tmpMap[tmpHash] = tmpAllExpressions[e];
+						break;
+					}
+				}
+			}
+		}
+
+		return tmpMap;
+	}
+
+	/**
+	 * Handle search input in the solver modal reference panel.
+	 * Re-renders only the reference list, preserving the rest of the modal.
+	 *
+	 * @param {string} pSearchText
+	 */
+	_onSolverModalReferenceSearch(pSearchText)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpRefList = document.getElementById('PictFE-SolverModal-RefList');
+		if (!tmpRefList)
+		{
+			return;
+		}
+
+		tmpRefList.innerHTML = this._renderSolverModalReference(pSearchText);
+	}
+
+	/**
+	 * Insert a reference address at the cursor position in the solver modal expression textarea.
+	 *
+	 * @param {string} pAddress - The address string to insert
+	 */
+	insertSolverReference(pAddress)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpTextarea = document.getElementById('PictFE-SolverModal-Expression');
+		if (!tmpTextarea)
+		{
+			return;
+		}
+
+		let tmpStart = tmpTextarea.selectionStart || 0;
+		let tmpEnd = tmpTextarea.selectionEnd || 0;
+		let tmpValue = tmpTextarea.value || '';
+
+		// Insert the address at the cursor position, replacing any selection
+		tmpTextarea.value = tmpValue.substring(0, tmpStart) + pAddress + tmpValue.substring(tmpEnd);
+
+		// Move cursor to after the inserted text
+		let tmpNewPos = tmpStart + pAddress.length;
+		tmpTextarea.selectionStart = tmpNewPos;
+		tmpTextarea.selectionEnd = tmpNewPos;
+
+		tmpTextarea.focus();
+	}
+
+	/**
+	 * Close the solver editor modal and clean up.
+	 */
+	closeSolverModal()
+	{
+		this._SolverModalContext = null;
+
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpOverlay = document.getElementById('PictFE-SolverModal-Overlay');
+		if (tmpOverlay && tmpOverlay.parentNode)
+		{
+			tmpOverlay.parentNode.removeChild(tmpOverlay);
+		}
+	}
+
+	/**
+	 * Save the solver modal values and close.
+	 * Reads expression and ordinal from the modal, updates the solver,
+	 * closes the modal, and re-renders.
+	 */
+	saveSolverModal()
+	{
+		if (!this._SolverModalContext)
+		{
+			return;
+		}
+
+		let tmpContext = this._SolverModalContext;
+
+		if (typeof document !== 'undefined')
+		{
+			let tmpExpressionEl = document.getElementById('PictFE-SolverModal-Expression');
+			let tmpOrdinalEl = document.getElementById('PictFE-SolverModal-Ordinal');
+
+			let tmpExpression = tmpExpressionEl ? tmpExpressionEl.value : tmpContext.Expression;
+			let tmpOrdinal = tmpOrdinalEl ? tmpOrdinalEl.value : tmpContext.Ordinal;
+
+			// Update the solver expression first, then ordinal
+			// (ordinal may promote/demote the solver format)
+			this.updateSolverExpression(tmpContext.Type, tmpContext.SectionIndex, tmpContext.SolverIndex, tmpExpression, tmpContext.GroupIndex);
+			this.updateSolverOrdinal(tmpContext.Type, tmpContext.SectionIndex, tmpContext.SolverIndex, tmpOrdinal, tmpContext.GroupIndex);
+		}
+
+		this.closeSolverModal();
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
 	/*                     Group Properties Tab                                   */
 	/* -------------------------------------------------------------------------- */
 
@@ -1169,10 +1671,19 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			tmpHTML += `<input class="pict-fe-props-input pict-fe-props-input-mono" type="text" value="${this._escapeAttr(tmpRecordSetAddress)}" placeholder="e.g. FruitData.FruityVice" onchange="${tmpPanelViewRef}.commitGroupPropertyChange('RecordSetAddress', this.value)" />`;
 			tmpHTML += '</div>';
 
-			// RecordManifest field
+			// RecordManifest dropdown
 			tmpHTML += '<div class="pict-fe-props-field">';
 			tmpHTML += '<div class="pict-fe-props-label">RecordManifest</div>';
-			tmpHTML += `<input class="pict-fe-props-input pict-fe-props-input-mono" type="text" value="${this._escapeAttr(tmpRecordManifest)}" placeholder="e.g. FruitEditor" onchange="${tmpPanelViewRef}.commitGroupPropertyChange('RecordManifest', this.value)" />`;
+			let tmpManifestNames = this._ParentFormEditor.getReferenceManifestNames();
+			tmpHTML += `<select class="pict-fe-props-input" onchange="${tmpPanelViewRef}.commitGroupPropertyChange('RecordManifest', this.value)">`;
+			tmpHTML += `<option value=""${tmpRecordManifest ? '' : ' selected'}>\u2014 None \u2014</option>`;
+			for (let m = 0; m < tmpManifestNames.length; m++)
+			{
+				let tmpSelected = (tmpManifestNames[m] === tmpRecordManifest) ? ' selected' : '';
+				tmpHTML += `<option value="${this._escapeAttr(tmpManifestNames[m])}"${tmpSelected}>${this._escapeHTML(tmpManifestNames[m])}</option>`;
+			}
+			tmpHTML += '</select>';
+			tmpHTML += this._renderRecordManifestSummary(tmpRecordManifest);
 			tmpHTML += '</div>';
 
 			// RecordSetSolvers
@@ -1181,6 +1692,79 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		tmpHTML += '</div>'; // pict-fe-props-body
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Render a small summary of the selected RecordManifest.
+	 * Shows column count, data types, and scope.
+	 *
+	 * @param {string} pManifestName - The RecordManifest name
+	 * @returns {string} HTML string
+	 */
+	_renderRecordManifestSummary(pManifestName)
+	{
+		if (!pManifestName)
+		{
+			return '';
+		}
+
+		let tmpRefManifest = this._ParentFormEditor._resolveReferenceManifest(pManifestName);
+
+		if (!tmpRefManifest)
+		{
+			return '<div class="pict-fe-manifest-summary pict-fe-manifest-summary-error">Manifest not found</div>';
+		}
+
+		let tmpDescriptors = tmpRefManifest.Descriptors;
+		let tmpColumnKeys = (tmpDescriptors && typeof tmpDescriptors === 'object') ? Object.keys(tmpDescriptors) : [];
+		let tmpColumnCount = tmpColumnKeys.length;
+
+		// Count data types
+		let tmpDataTypes = {};
+		for (let i = 0; i < tmpColumnKeys.length; i++)
+		{
+			let tmpDesc = tmpDescriptors[tmpColumnKeys[i]];
+			let tmpType = (tmpDesc && tmpDesc.DataType) ? tmpDesc.DataType : 'Unknown';
+			tmpDataTypes[tmpType] = (tmpDataTypes[tmpType] || 0) + 1;
+		}
+
+		// Count how many have PictForm configuration
+		let tmpConfiguredCount = 0;
+		for (let i = 0; i < tmpColumnKeys.length; i++)
+		{
+			let tmpDesc = tmpDescriptors[tmpColumnKeys[i]];
+			if (tmpDesc && tmpDesc.PictForm)
+			{
+				tmpConfiguredCount++;
+			}
+		}
+
+		let tmpHTML = '<div class="pict-fe-manifest-summary">';
+
+		// Stats row
+		tmpHTML += '<div class="pict-fe-manifest-summary-stats">';
+		tmpHTML += `<span class="pict-fe-manifest-summary-stat"><strong>${tmpColumnCount}</strong> column${tmpColumnCount !== 1 ? 's' : ''}</span>`;
+		if (tmpConfiguredCount > 0)
+		{
+			tmpHTML += `<span class="pict-fe-manifest-summary-stat"><strong>${tmpConfiguredCount}</strong> configured</span>`;
+		}
+		tmpHTML += '</div>';
+
+		// Data types
+		let tmpTypeKeys = Object.keys(tmpDataTypes);
+		if (tmpTypeKeys.length > 0)
+		{
+			tmpHTML += '<div class="pict-fe-manifest-summary-types">';
+			for (let t = 0; t < tmpTypeKeys.length; t++)
+			{
+				tmpHTML += `<span class="pict-fe-manifest-summary-type">${this._escapeHTML(tmpTypeKeys[t])} (${tmpDataTypes[tmpTypeKeys[t]]})</span>`;
+			}
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += '</div>';
 
 		return tmpHTML;
 	}
@@ -2041,11 +2625,14 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		let tmpDescriptor = tmpResolved.Descriptor;
 		let tmpPanelViewRef = this._browserViewRef();
+		let tmpViewRef = this._ParentFormEditor._browserViewRef();
 		let tmpIconProvider = this._ParentFormEditor._IconographyProvider;
 
 		let tmpName = tmpDescriptor.Name || '';
 		let tmpColumnHash = tmpDescriptor.Hash || tmpResolved.Address;
 		let tmpDataType = tmpDescriptor.DataType || 'String';
+		let tmpInputType = (tmpDescriptor.PictForm && tmpDescriptor.PictForm.InputType) ? tmpDescriptor.PictForm.InputType : '';
+		let tmpWidth = (tmpDescriptor.PictForm && tmpDescriptor.PictForm.Width) ? tmpDescriptor.PictForm.Width : '';
 		let tmpRow = (tmpDescriptor.PictForm && tmpDescriptor.PictForm.Row) ? tmpDescriptor.PictForm.Row : 1;
 
 		// Determine if parent group is Tabular or RecordSet
@@ -2093,6 +2680,21 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += '</select>';
 		tmpHTML += '</div>';
 
+		// InputType picker button
+		let tmpInputTypeIcon = tmpInputType ? tmpIconProvider.getInputTypeIcon(tmpInputType, 14) : '';
+		let tmpInputTypeLabel = tmpInputType || 'DataType Default';
+		let tmpEscapedColumnAddr = this._escapeAttr(tmpResolved.Address).replace(/'/g, "\\'");
+		tmpHTML += '<div class="pict-fe-props-field">';
+		tmpHTML += `<div class="pict-fe-props-label">${tmpInputTypeIcon ? '<span class="pict-fe-icon" style="margin-right:4px; vertical-align:middle; opacity:0.6;">' + tmpInputTypeIcon + '</span>' : ''}InputType</div>`;
+		tmpHTML += `<button class="pict-fe-props-inputtype-btn" id="FormEditor-PropsInputTypeBtn-${this._ParentFormEditor.Hash}" onclick="${tmpViewRef}.beginEditTabularInputType(${this._SelectedTabularColumn.SectionIndex}, ${this._SelectedTabularColumn.GroupIndex}, '${tmpEscapedColumnAddr}')">${this._escapeHTML(tmpInputTypeLabel)}</button>`;
+		tmpHTML += '</div>';
+
+		// Width field
+		tmpHTML += '<div class="pict-fe-props-field">';
+		tmpHTML += '<div class="pict-fe-props-label">Width</div>';
+		tmpHTML += `<input class="pict-fe-props-input" type="number" min="1" max="12" value="${this._escapeAttr(String(tmpWidth))}" placeholder="auto" onchange="${tmpPanelViewRef}.commitTabularPropertyChange('Width', this.value)" />`;
+		tmpHTML += '</div>';
+
 		// PictForm.Row field
 		tmpHTML += '<div class="pict-fe-props-field">';
 		tmpHTML += '<div class="pict-fe-props-label">Row</div>';
@@ -2108,7 +2710,6 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += '</div>';
 
 		// Position indicator and move buttons
-		let tmpViewRef = this._ParentFormEditor._browserViewRef();
 		let tmpKeys = tmpResolved.RefManifest && tmpResolved.RefManifest.Descriptors ? Object.keys(tmpResolved.RefManifest.Descriptors) : [];
 		let tmpColumnIndex = tmpKeys.indexOf(tmpResolved.Address);
 		let tmpColumnCount = tmpKeys.length;
@@ -2128,15 +2729,184 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += '</div>';
 		tmpHTML += '</div>';
 
+		// InputType-specific properties section
+		tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+		tmpHTML += this._renderTabularInputTypeProperties(tmpInputType, tmpDescriptor, tmpPanelViewRef);
+
 		tmpHTML += '</div>'; // pict-fe-props-body
 
 		return tmpHTML;
 	}
 
 	/**
+	 * Render InputType-specific properties for a tabular column descriptor.
+	 * Reuses the same InputType manifest lookup as regular inputs but
+	 * commits changes via commitTabularPictFormChange.
+	 *
+	 * @param {string} pInputType - The InputType hash
+	 * @param {object} pDescriptor - The column descriptor
+	 * @param {string} pPanelViewRef - Panel view reference string for event handlers
+	 * @returns {string} HTML string
+	 */
+	_renderTabularInputTypeProperties(pInputType, pDescriptor, pPanelViewRef)
+	{
+		if (!pInputType)
+		{
+			return '<div class="pict-fe-props-placeholder">Select an InputType to see additional properties.</div>';
+		}
+
+		let tmpManifest = this._ParentFormEditor._getInputTypeManifest(pInputType);
+		if (!tmpManifest || !tmpManifest.Descriptors || Object.keys(tmpManifest.Descriptors).length === 0)
+		{
+			return '<div class="pict-fe-props-placeholder">No additional properties for ' + this._escapeHTML(pInputType) + '.</div>';
+		}
+
+		let tmpPictForm = (pDescriptor && pDescriptor.PictForm) ? pDescriptor.PictForm : {};
+		let tmpHTML = '';
+
+		tmpHTML += `<div class="pict-fe-props-section-header">${this._escapeHTML(pInputType)} Properties</div>`;
+
+		let tmpDescriptorKeys = Object.keys(tmpManifest.Descriptors);
+		for (let i = 0; i < tmpDescriptorKeys.length; i++)
+		{
+			let tmpPropHash = tmpDescriptorKeys[i];
+			let tmpPropDescriptor = tmpManifest.Descriptors[tmpPropHash];
+			let tmpPropName = tmpPropDescriptor.Name || tmpPropHash;
+			let tmpPropDataType = tmpPropDescriptor.DataType || 'String';
+			let tmpPropDescription = tmpPropDescriptor.Description || '';
+			let tmpCurrentValue = tmpPictForm.hasOwnProperty(tmpPropHash) ? tmpPictForm[tmpPropHash] : '';
+
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += `<div class="pict-fe-props-label" title="${this._escapeAttr(tmpPropDescription)}">${this._escapeHTML(tmpPropName)}</div>`;
+
+			if (tmpPropDataType === 'Boolean')
+			{
+				let tmpChecked = tmpCurrentValue ? ' checked' : '';
+				tmpHTML += `<label class="pict-fe-props-checkbox-label">`;
+				tmpHTML += `<input type="checkbox" class="pict-fe-props-checkbox"${tmpChecked} onchange="${pPanelViewRef}.commitTabularPictFormChange('${tmpPropHash}', this.checked, 'Boolean')" />`;
+				tmpHTML += ` ${this._escapeHTML(tmpPropDescription)}</label>`;
+			}
+			else if (tmpPropDataType === 'Number')
+			{
+				let tmpDisplayValue = (typeof tmpCurrentValue === 'number') ? String(tmpCurrentValue) : '';
+				tmpHTML += `<input class="pict-fe-props-input" type="number" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitTabularPictFormChange('${tmpPropHash}', this.value, 'Number')" />`;
+			}
+			else
+			{
+				let tmpIsMultiline = (tmpPropDescription.indexOf('JSON') >= 0) || (tmpPropHash === 'Template');
+				if (tmpIsMultiline)
+				{
+					let tmpDisplayValue = '';
+					if (typeof tmpCurrentValue === 'string')
+					{
+						tmpDisplayValue = tmpCurrentValue;
+					}
+					else if (tmpCurrentValue !== null && tmpCurrentValue !== undefined && typeof tmpCurrentValue !== 'string')
+					{
+						try { tmpDisplayValue = JSON.stringify(tmpCurrentValue, null, 2); }
+						catch (e) { tmpDisplayValue = String(tmpCurrentValue); }
+					}
+					tmpHTML += `<textarea class="pict-fe-props-textarea" rows="4" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitTabularPictFormChange('${tmpPropHash}', this.value, 'String')">${this._escapeHTML(tmpDisplayValue)}</textarea>`;
+				}
+				else
+				{
+					let tmpDisplayValue = (typeof tmpCurrentValue === 'string') ? tmpCurrentValue : '';
+					tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitTabularPictFormChange('${tmpPropHash}', this.value, 'String')" />`;
+				}
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Commit a PictForm property change for a tabular column descriptor.
+	 *
+	 * @param {string} pPropertyHash - The PictForm property key
+	 * @param {*} pValue - The new value
+	 * @param {string} pDataType - 'Boolean', 'Number', or 'String'
+	 */
+	commitTabularPictFormChange(pPropertyHash, pValue, pDataType)
+	{
+		if (!this._SelectedTabularColumn || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		let tmpResolved = this._resolveSelectedTabularDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		let tmpDescriptor = tmpResolved.Descriptor;
+
+		if (!tmpDescriptor.PictForm)
+		{
+			tmpDescriptor.PictForm = {};
+		}
+
+		switch (pDataType)
+		{
+			case 'Boolean':
+			{
+				tmpDescriptor.PictForm[pPropertyHash] = !!pValue;
+				break;
+			}
+
+			case 'Number':
+			{
+				let tmpNumValue = parseFloat(pValue);
+				if (isNaN(tmpNumValue) || pValue === '')
+				{
+					delete tmpDescriptor.PictForm[pPropertyHash];
+				}
+				else
+				{
+					tmpDescriptor.PictForm[pPropertyHash] = tmpNumValue;
+				}
+				break;
+			}
+
+			default: // String
+			{
+				if (typeof pValue === 'string' && pValue.length > 0)
+				{
+					let tmpTrimmed = pValue.trim();
+					if ((tmpTrimmed.charAt(0) === '[' && tmpTrimmed.charAt(tmpTrimmed.length - 1) === ']') ||
+						(tmpTrimmed.charAt(0) === '{' && tmpTrimmed.charAt(tmpTrimmed.length - 1) === '}'))
+					{
+						try
+						{
+							tmpDescriptor.PictForm[pPropertyHash] = JSON.parse(tmpTrimmed);
+						}
+						catch (e)
+						{
+							tmpDescriptor.PictForm[pPropertyHash] = pValue;
+						}
+					}
+					else
+					{
+						tmpDescriptor.PictForm[pPropertyHash] = pValue;
+					}
+				}
+				else
+				{
+					delete tmpDescriptor.PictForm[pPropertyHash];
+				}
+				break;
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
 	 * Commit a property change for a submanifest column.
 	 *
-	 * @param {string} pProperty - 'Name', 'Hash', 'DataType', or 'Row'
+	 * @param {string} pProperty - 'Name', 'Hash', 'DataType', 'Row', 'Width', or 'InputType'
 	 * @param {string} pValue
 	 */
 	commitTabularPropertyChange(pProperty, pValue)
@@ -2180,6 +2950,24 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 					tmpRowNum = 1;
 				}
 				tmpDescriptor.PictForm.Row = tmpRowNum;
+				break;
+			}
+
+			case 'Width':
+			{
+				if (!tmpDescriptor.PictForm)
+				{
+					tmpDescriptor.PictForm = {};
+				}
+				let tmpWidthValue = parseInt(pValue, 10);
+				if (isNaN(tmpWidthValue) || pValue === '')
+				{
+					delete tmpDescriptor.PictForm.Width;
+				}
+				else
+				{
+					tmpDescriptor.PictForm.Width = tmpWidthValue;
+				}
 				break;
 			}
 

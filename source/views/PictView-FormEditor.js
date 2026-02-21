@@ -2566,6 +2566,8 @@ class PictViewFormEditor extends libPictView
 							let tmpAddress = tmpRow.Inputs[i];
 							let tmpDescriptor = (tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress]) ? tmpManifest.Descriptors[tmpAddress] : null;
 							let tmpLabel = tmpDescriptor ? (tmpDescriptor.Name || tmpDescriptor.Hash || tmpAddress) : tmpAddress;
+							let tmpHash = tmpDescriptor ? (tmpDescriptor.Hash || '') : '';
+							let tmpDataType = tmpDescriptor ? (tmpDescriptor.DataType || '') : '';
 
 							tmpEntries.push(
 							{
@@ -2574,7 +2576,9 @@ class PictViewFormEditor extends libPictView
 								RowIndex: r,
 								InputIndex: i,
 								Address: tmpAddress,
+								Hash: tmpHash,
 								Label: tmpLabel,
+								DataType: tmpDataType,
 								SectionName: tmpSection.Name || tmpSection.Hash || ('Section ' + (s + 1)),
 								GroupName: tmpGroup.Name || tmpGroup.Hash || ('Group ' + (g + 1)),
 								RowNumber: r + 1
@@ -2593,13 +2597,17 @@ class PictViewFormEditor extends libPictView
 						{
 							let tmpColDescriptor = tmpRefManifest.Descriptors[tmpColKeys[c]];
 							let tmpLabel = tmpColDescriptor ? (tmpColDescriptor.Name || tmpColDescriptor.Hash || tmpColKeys[c]) : tmpColKeys[c];
+							let tmpHash = tmpColDescriptor ? (tmpColDescriptor.Hash || '') : '';
+							let tmpDataType = tmpColDescriptor ? (tmpColDescriptor.DataType || '') : '';
 
 							tmpEntries.push(
 							{
 								SectionIndex: s,
 								GroupIndex: g,
 								Address: tmpColKeys[c],
+								Hash: tmpHash,
 								Label: tmpLabel,
+								DataType: tmpDataType,
 								SectionName: tmpSection.Name || tmpSection.Hash || ('Section ' + (s + 1)),
 								GroupName: tmpGroup.Name || tmpGroup.Hash || ('Group ' + (g + 1)),
 								IsTabular: true
@@ -3813,46 +3821,187 @@ class PictViewFormEditor extends libPictView
 		}
 
 		let tmpContext = this._InputTypePickerContext;
-		let tmpSectionIndex = tmpContext.SectionIndex;
-		let tmpGroupIndex = tmpContext.GroupIndex;
-		let tmpRowIndex = tmpContext.RowIndex;
-		let tmpInputIndex = tmpContext.InputIndex;
 
 		// Close the picker
 		this.closeInputTypePicker();
 
-		// Update the Descriptor's PictForm.InputType
 		let tmpManifest = this._resolveManifestData();
-		if (tmpManifest && tmpManifest.Sections)
+		if (!tmpManifest || !tmpManifest.Sections)
 		{
-			let tmpSection = tmpManifest.Sections[tmpSectionIndex];
-			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[tmpGroupIndex] : null;
-			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[tmpRowIndex] : null;
+			return;
+		}
+
+		let tmpDescriptor = null;
+
+		if (tmpContext.IsTabular)
+		{
+			// Tabular column — resolve descriptor from ReferenceManifest
+			let tmpSection = tmpManifest.Sections[tmpContext.SectionIndex];
+			let tmpGroup = (tmpSection && Array.isArray(tmpSection.Groups)) ? tmpSection.Groups[tmpContext.GroupIndex] : null;
+			if (tmpGroup && tmpGroup.RecordManifest)
+			{
+				let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+				if (tmpRefManifest && tmpRefManifest.Descriptors && tmpRefManifest.Descriptors[tmpContext.ColumnAddress])
+				{
+					tmpDescriptor = tmpRefManifest.Descriptors[tmpContext.ColumnAddress];
+				}
+			}
+		}
+		else
+		{
+			// Regular input — resolve descriptor from main Descriptors
+			let tmpSection = tmpManifest.Sections[tmpContext.SectionIndex];
+			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[tmpContext.GroupIndex] : null;
+			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[tmpContext.RowIndex] : null;
 			if (tmpRow && Array.isArray(tmpRow.Inputs))
 			{
-				let tmpAddress = tmpRow.Inputs[tmpInputIndex];
+				let tmpAddress = tmpRow.Inputs[tmpContext.InputIndex];
 				if (typeof tmpAddress === 'string' && tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress])
 				{
-					let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
-					if (!tmpDescriptor.PictForm)
-					{
-						tmpDescriptor.PictForm = {};
-					}
+					tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+				}
+			}
+		}
 
-					if (pInputTypeHash === '')
+		if (tmpDescriptor)
+		{
+			if (!tmpDescriptor.PictForm)
+			{
+				tmpDescriptor.PictForm = {};
+			}
+
+			if (pInputTypeHash === '')
+			{
+				// "DataType Default" — remove the InputType property
+				delete tmpDescriptor.PictForm.InputType;
+			}
+			else
+			{
+				tmpDescriptor.PictForm.InputType = pInputTypeHash;
+			}
+		}
+
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Open the InputType picker for a tabular/RecordSet column descriptor.
+	 * Reuses the same picker UI as regular inputs but resolves the descriptor
+	 * from the ReferenceManifest instead of the main Descriptors.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {string} pColumnAddress - The column address in the ReferenceManifest
+	 */
+	beginEditTabularInputType(pSectionIndex, pGroupIndex, pColumnAddress)
+	{
+		let tmpHash = this.Hash;
+		let tmpViewRef = this._browserViewRef();
+		let tmpPickerId = `FormEditor-InputTypePicker-${tmpHash}`;
+
+		// Close any existing picker first
+		this.closeInputTypePicker();
+
+		// Resolve the current InputType from the ReferenceManifest descriptor
+		let tmpManifest = this._resolveManifestData();
+		let tmpCurrentValue = '';
+		if (tmpManifest && tmpManifest.Sections)
+		{
+			let tmpSection = tmpManifest.Sections[pSectionIndex];
+			let tmpGroup = (tmpSection && Array.isArray(tmpSection.Groups)) ? tmpSection.Groups[pGroupIndex] : null;
+			if (tmpGroup && tmpGroup.RecordManifest)
+			{
+				let tmpRefManifest = this._resolveReferenceManifest(tmpGroup.RecordManifest);
+				if (tmpRefManifest && tmpRefManifest.Descriptors && tmpRefManifest.Descriptors[pColumnAddress])
+				{
+					let tmpDescriptor = tmpRefManifest.Descriptors[pColumnAddress];
+					if (tmpDescriptor.PictForm && tmpDescriptor.PictForm.InputType)
 					{
-						// "DataType Default" — remove the InputType property
-						delete tmpDescriptor.PictForm.InputType;
-					}
-					else
-					{
-						tmpDescriptor.PictForm.InputType = pInputTypeHash;
+						tmpCurrentValue = tmpDescriptor.PictForm.InputType;
 					}
 				}
 			}
 		}
 
-		this.renderVisualEditor();
+		// Store context — mark as tabular so commitEditInputType knows to handle it
+		this._InputTypePickerContext =
+		{
+			SectionIndex: pSectionIndex,
+			GroupIndex: pGroupIndex,
+			ColumnAddress: pColumnAddress,
+			IsTabular: true,
+			CurrentValue: tmpCurrentValue
+		};
+
+		// Build the picker HTML
+		let tmpPickerHTML = this._renderInputTypePicker(tmpCurrentValue, '');
+
+		// Anchor near the properties panel InputType button
+		if (typeof document !== 'undefined')
+		{
+			let tmpOverlay = document.createElement('div');
+			tmpOverlay.id = tmpPickerId + '-Overlay';
+			tmpOverlay.className = 'pict-fe-inputtype-overlay';
+			tmpOverlay.onclick = function() { eval(tmpViewRef + '.closeInputTypePicker()'); };
+			tmpOverlay.addEventListener('wheel', function(pEvent) { pEvent.preventDefault(); }, { passive: false });
+
+			let tmpPickerContainer = document.createElement('div');
+			tmpPickerContainer.id = tmpPickerId;
+			tmpPickerContainer.className = 'pict-fe-inputtype-picker';
+			tmpPickerContainer.innerHTML = tmpPickerHTML;
+			tmpPickerContainer.onclick = function(e) { e.stopPropagation(); };
+			tmpPickerContainer.addEventListener('wheel', function(pEvent)
+			{
+				pEvent.stopPropagation();
+				let tmpScrollable = tmpPickerContainer.querySelector('.pict-fe-inputtype-picker-categories');
+				if (!tmpScrollable)
+				{
+					pEvent.preventDefault();
+					return;
+				}
+				let tmpAtTop = (tmpScrollable.scrollTop <= 0) && (pEvent.deltaY < 0);
+				let tmpAtBottom = (tmpScrollable.scrollTop + tmpScrollable.clientHeight >= tmpScrollable.scrollHeight) && (pEvent.deltaY > 0);
+				if (tmpAtTop || tmpAtBottom)
+				{
+					pEvent.preventDefault();
+				}
+			}, { passive: false });
+
+			tmpOverlay.appendChild(tmpPickerContainer);
+			document.body.appendChild(tmpOverlay);
+
+			// Position anchored to the InputType button in the properties panel
+			let tmpAnchorEl = document.getElementById(`FormEditor-PropsInputTypeBtn-${tmpHash}`);
+			if (tmpAnchorEl && tmpAnchorEl.getBoundingClientRect)
+			{
+				let tmpAnchorRect = tmpAnchorEl.getBoundingClientRect();
+
+				tmpPickerContainer.style.position = 'fixed';
+				tmpPickerContainer.style.top = (tmpAnchorRect.bottom + 4) + 'px';
+				tmpPickerContainer.style.left = tmpAnchorRect.left + 'px';
+
+				let tmpPickerWidth = 340;
+				if (tmpAnchorRect.left + tmpPickerWidth > window.innerWidth)
+				{
+					tmpPickerContainer.style.left = Math.max(8, window.innerWidth - tmpPickerWidth - 8) + 'px';
+				}
+
+				let tmpPickerMaxHeight = 420;
+				if (tmpAnchorRect.bottom + 4 + tmpPickerMaxHeight > window.innerHeight)
+				{
+					tmpPickerContainer.style.top = '';
+					tmpPickerContainer.style.bottom = (window.innerHeight - tmpAnchorRect.top + 4) + 'px';
+				}
+			}
+
+			// Focus the search input
+			let tmpSearchSet = this.pict.ContentAssignment.getElement(`#${tmpPickerId}-Search`);
+			let tmpSearch = (Array.isArray(tmpSearchSet) && tmpSearchSet.length > 0) ? tmpSearchSet[0] : tmpSearchSet;
+			if (tmpSearch && tmpSearch.focus)
+			{
+				tmpSearch.focus();
+			}
+		}
 	}
 
 	/* -------------------------------------------------------------------------- */

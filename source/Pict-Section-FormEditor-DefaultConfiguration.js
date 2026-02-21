@@ -418,11 +418,12 @@ module.exports = (
 }
 .pict-fe-row-label
 {
-	font-size: 11px;
-	font-weight: 600;
-	color: #B0A89E;
+	font-size: 10px;
+	font-weight: 500;
+	color: #C5BFAE;
 	text-transform: uppercase;
 	letter-spacing: 0.3px;
+	margin-left: 4px;
 }
 .pict-fe-row-actions
 {
@@ -1207,6 +1208,55 @@ module.exports = (
 	font-size: 12px;
 }
 
+/* ---- Manifest Summary ---- */
+.pict-fe-manifest-summary
+{
+	margin-top: 6px;
+	padding: 6px 8px;
+	background: #F9F7F3;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	font-size: 11px;
+	color: #5D544A;
+}
+.pict-fe-manifest-summary-error
+{
+	color: #A04040;
+	font-style: italic;
+	background: #FFF5F5;
+	border-color: #E0B0B0;
+}
+.pict-fe-manifest-summary-stats
+{
+	display: flex;
+	gap: 12px;
+	margin-bottom: 3px;
+}
+.pict-fe-manifest-summary-stat
+{
+	white-space: nowrap;
+}
+.pict-fe-manifest-summary-stat strong
+{
+	color: #9E6B47;
+	font-weight: 700;
+}
+.pict-fe-manifest-summary-types
+{
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.pict-fe-manifest-summary-type
+{
+	font-size: 10px;
+	padding: 1px 5px;
+	background: #EDE8DF;
+	border-radius: 3px;
+	color: #8A7F72;
+	white-space: nowrap;
+}
+
 /* ---- Solver List ---- */
 .pict-fe-solver-list-header
 {
@@ -1337,6 +1387,17 @@ module.exports = (
 	background: #F0ECE4;
 	border-color: #D4CFC6;
 }
+.pict-fe-solver-btn-remove,
+.pict-fe-solver-btn-expand
+{
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+.pict-fe-solver-entry:hover .pict-fe-solver-btn-remove,
+.pict-fe-solver-entry:hover .pict-fe-solver-btn-expand
+{
+	opacity: 1;
+}
 .pict-fe-solver-btn-remove
 {
 	color: #C0A0A0;
@@ -1346,6 +1407,19 @@ module.exports = (
 	color: #A04040;
 	background: #FFEBEE;
 	border-color: #E0B0B0;
+}
+.pict-fe-solver-btn-armed
+{
+	opacity: 1 !important;
+	color: #fff !important;
+	background: #C0392B !important;
+	border-color: #A93226 !important;
+	font-size: 10px;
+	padding: 1px 6px;
+}
+.pict-fe-solver-btn-armed:hover
+{
+	background: #A93226 !important;
 }
 .pict-fe-solver-drag-handle
 {
@@ -1373,6 +1447,329 @@ module.exports = (
 	font-size: 11px;
 	color: #B0A89E;
 	font-style: italic;
+}
+.pict-fe-solver-btn-expand
+{
+	color: #B0A89E;
+}
+.pict-fe-solver-btn-expand:hover
+{
+	color: #9E6B47;
+	background: #F5F0E8;
+	border-color: #D4CFC6;
+}
+
+/* ---- Solver Editor Modal ---- */
+.pict-fe-solver-modal-overlay
+{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(61, 50, 41, 0.35);
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.pict-fe-solver-modal
+{
+	position: relative;
+	z-index: 10000;
+	width: 660px;
+	max-height: 80vh;
+	background: #FFF;
+	border: 1px solid #D4CFC6;
+	border-radius: 10px;
+	box-shadow: 0 12px 36px rgba(61, 50, 41, 0.18), 0 4px 12px rgba(61, 50, 41, 0.08);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+.pict-fe-solver-modal-header
+{
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 16px;
+	border-bottom: 1px solid #E8E3DA;
+	background: #F5F0E8;
+	flex-shrink: 0;
+}
+.pict-fe-solver-modal-close
+{
+	border: none;
+	background: none;
+	font-size: 18px;
+	color: #8A7F72;
+	cursor: pointer;
+	padding: 0 4px;
+	line-height: 1;
+}
+.pict-fe-solver-modal-close:hover
+{
+	color: #3D3229;
+}
+.pict-fe-solver-modal-title
+{
+	font-size: 14px;
+	font-weight: 600;
+	color: #3D3229;
+}
+.pict-fe-solver-modal-badge
+{
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: #EDE8DF;
+	color: #9E6B47;
+}
+.pict-fe-solver-modal-context
+{
+	margin-left: auto;
+	font-size: 12px;
+	color: #8A7F72;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.pict-fe-solver-modal-body
+{
+	padding: 16px;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+}
+.pict-fe-solver-modal-field-label
+{
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: #8A7F72;
+	margin-bottom: 4px;
+}
+.pict-fe-solver-modal-expression
+{
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	font-family: monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	color: #3D3229;
+	background: #FDFCFA;
+	resize: vertical;
+	box-sizing: border-box;
+}
+.pict-fe-solver-modal-expression:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.15);
+}
+.pict-fe-solver-modal-ordinal-row
+{
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 10px;
+}
+.pict-fe-solver-modal-ordinal-label
+{
+	font-size: 11px;
+	color: #8A7F72;
+}
+.pict-fe-solver-modal-ordinal
+{
+	width: 56px;
+	padding: 4px 6px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-family: monospace;
+	font-size: 12px;
+	color: #3D3229;
+	background: #FFF;
+	text-align: center;
+	box-sizing: border-box;
+}
+.pict-fe-solver-modal-ordinal:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.12);
+}
+.pict-fe-solver-modal-reference
+{
+	margin-top: 14px;
+	border-top: 1px solid #E8E3DA;
+	padding-top: 12px;
+}
+.pict-fe-solver-modal-reference-header
+{
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+.pict-fe-solver-modal-reference-title
+{
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: #8A7F72;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+.pict-fe-solver-modal-reference-search
+{
+	flex: 1;
+	padding: 4px 8px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-size: 12px;
+	color: #3D3229;
+	background: #FFF;
+	box-sizing: border-box;
+}
+.pict-fe-solver-modal-reference-search:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.12);
+}
+.pict-fe-solver-modal-reference-list
+{
+	max-height: 160px;
+	overflow-y: auto;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	background: #FDFCFA;
+}
+.pict-fe-solver-modal-reference-group
+{
+	padding: 6px 10px 2px 10px;
+	font-size: 9px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #9E6B47;
+	background: #F5F0E8;
+	border-bottom: 1px solid #E8E3DA;
+	position: sticky;
+	top: 0;
+}
+.pict-fe-solver-modal-reference-item
+{
+	display: flex;
+	flex-direction: column;
+	padding: 5px 10px;
+	cursor: pointer;
+	border-bottom: 1px solid #F0ECE4;
+	transition: background 0.1s;
+}
+.pict-fe-solver-modal-reference-item:last-child
+{
+	border-bottom: none;
+}
+.pict-fe-solver-modal-reference-item:hover
+{
+	background: #F5F0E8;
+}
+.pict-fe-solver-modal-reference-row
+{
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+.pict-fe-solver-modal-reference-name
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: #3D3229;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pict-fe-solver-modal-reference-hash
+{
+	font-family: monospace;
+	font-size: 10px;
+	color: #8A7F72;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+.pict-fe-solver-modal-reference-solver
+{
+	font-family: monospace;
+	font-size: 10px;
+	color: #9E6B47;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pict-fe-solver-modal-reference-address
+{
+	font-family: monospace;
+	font-size: 10px;
+	color: #B0A89E;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+.pict-fe-solver-modal-reference-empty
+{
+	padding: 12px;
+	text-align: center;
+	font-size: 11px;
+	color: #B0A89E;
+	font-style: italic;
+}
+.pict-fe-solver-modal-footer
+{
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 16px;
+	border-top: 1px solid #E8E3DA;
+	background: #F9F7F3;
+	flex-shrink: 0;
+}
+.pict-fe-solver-modal-btn
+{
+	padding: 6px 16px;
+	border: 1px solid #D4CFC6;
+	border-radius: 4px;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	background: #FFF;
+	color: #3D3229;
+	transition: background 0.1s, border-color 0.1s;
+}
+.pict-fe-solver-modal-btn:hover
+{
+	background: #F5F0E8;
+	border-color: #C5BFAE;
+}
+.pict-fe-solver-modal-btn-save
+{
+	background: #9E6B47;
+	color: #FFF;
+	border-color: #9E6B47;
+}
+.pict-fe-solver-modal-btn-save:hover
+{
+	background: #8A5C3A;
+	border-color: #8A5C3A;
 }
 
 /* ---- Searchable Selector Dropdown ---- */
