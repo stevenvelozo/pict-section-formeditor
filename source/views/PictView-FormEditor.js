@@ -66,6 +66,8 @@ class PictViewFormEditor extends libPictView
 		// Properties panel state
 		this._PanelCollapsed = false;
 		this._PanelActiveTab = 'stats';
+		this._PanelWidth = 300;
+		this._PanelResizing = false;
 
 		// Properties panel child view reference
 		this._PropertiesPanelView = null;
@@ -517,14 +519,16 @@ class PictViewFormEditor extends libPictView
 
 		tmpHTML += '</div>'; // pict-fe-visual-main
 
-		// Collapse/expand toggle button
-		let tmpToggleIcon = this._PanelCollapsed ? '\u25C0' : '\u25B6';
-		let tmpToggleTitle = this._PanelCollapsed ? 'Expand panel' : 'Collapse panel';
-		tmpHTML += `<div class="pict-fe-panel-toggle" onclick="${this._browserViewRef()}.togglePropertiesPanel()" title="${tmpToggleTitle}">${tmpToggleIcon}</div>`;
+		// Resize handle / collapse toggle (double-click to toggle)
+		let tmpViewRef = this._browserViewRef();
+		tmpHTML += `<div class="pict-fe-panel-toggle" onmousedown="${tmpViewRef}.onPanelResizeStart(event)" ondblclick="${tmpViewRef}.togglePropertiesPanel()">`;
+		tmpHTML += '<div class="pict-fe-panel-toggle-grip"></div>';
+		tmpHTML += '</div>';
 
 		// Properties panel container — always present, visibility via CSS class
 		let tmpPanelOpenClass = this._PanelCollapsed ? '' : ' pict-fe-properties-panel-open';
-		tmpHTML += `<div class="pict-fe-properties-panel${tmpPanelOpenClass}" id="FormEditor-PropertiesPanel-${this.Hash}"></div>`;
+		let tmpPanelStyle = this._PanelCollapsed ? '' : ` style="width: ${this._PanelWidth}px;"`;
+		tmpHTML += `<div class="pict-fe-properties-panel${tmpPanelOpenClass}"${tmpPanelStyle} id="FormEditor-PropertiesPanel-${this.Hash}"></div>`;
 
 		tmpHTML += '</div>'; // pict-fe-visual-layout
 
@@ -2369,6 +2373,64 @@ class PictViewFormEditor extends libPictView
 	{
 		this._PanelCollapsed = !this._PanelCollapsed;
 		this.renderVisualEditor();
+	}
+
+	/**
+	 * Begin resizing the properties panel by dragging the toggle bar.
+	 *
+	 * @param {MouseEvent} pEvent
+	 */
+	onPanelResizeStart(pEvent)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		// Don't start resize if panel is collapsed — just toggle instead
+		if (this._PanelCollapsed)
+		{
+			this.togglePropertiesPanel();
+			return;
+		}
+
+		pEvent.preventDefault();
+		this._PanelResizing = true;
+
+		let tmpSelf = this;
+		let tmpStartX = pEvent.clientX;
+		let tmpStartWidth = this._PanelWidth;
+		let tmpPanelEl = document.getElementById('FormEditor-PropertiesPanel-' + this.Hash);
+
+		if (!tmpPanelEl)
+		{
+			this._PanelResizing = false;
+			return;
+		}
+
+		let tmpOnMouseMove = function(pMoveEvent)
+		{
+			if (!tmpSelf._PanelResizing)
+			{
+				return;
+			}
+
+			// Moving left increases panel width, moving right decreases it
+			let tmpDelta = tmpStartX - pMoveEvent.clientX;
+			let tmpNewWidth = Math.max(240, Math.min(600, tmpStartWidth + tmpDelta));
+			tmpSelf._PanelWidth = tmpNewWidth;
+			tmpPanelEl.style.width = tmpNewWidth + 'px';
+		};
+
+		let tmpOnMouseUp = function()
+		{
+			tmpSelf._PanelResizing = false;
+			document.removeEventListener('mousemove', tmpOnMouseMove);
+			document.removeEventListener('mouseup', tmpOnMouseUp);
+		};
+
+		document.addEventListener('mousemove', tmpOnMouseMove);
+		document.addEventListener('mouseup', tmpOnMouseUp);
 	}
 
 	/**

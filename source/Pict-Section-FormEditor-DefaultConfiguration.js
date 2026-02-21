@@ -714,30 +714,49 @@ module.exports = (
 }
 .pict-fe-panel-toggle
 {
-	width: 20px;
+	width: 14px;
 	flex-shrink: 0;
 	display: flex;
+	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	cursor: pointer;
-	background: #F5F0E8;
-	border-left: 1px solid #E8E3DA;
-	border-right: 1px solid #E8E3DA;
+	cursor: col-resize;
+	background: #F0ECE4;
+	border: 1px solid #E8E3DA;
+	border-radius: 6px;
+	margin: 72px 0 6px 0;
 	color: #B0A89E;
 	font-size: 10px;
 	user-select: none;
-	transition: background 0.15s, color 0.15s;
+	transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .pict-fe-panel-toggle:hover
 {
-	background: #EDE8DF;
+	background: #E8E3DA;
+	border-color: #D4CFC6;
 	color: #3D3229;
+}
+.pict-fe-panel-toggle:active
+{
+	background: #DDD7CC;
+	border-color: #C5BFAE;
+}
+.pict-fe-panel-toggle-grip
+{
+	width: 4px;
+	height: 32px;
+	border-radius: 2px;
+	background: #CBC4B8;
+	transition: background 0.15s;
+}
+.pict-fe-panel-toggle:hover .pict-fe-panel-toggle-grip
+{
+	background: #A89E92;
 }
 .pict-fe-properties-panel
 {
 	width: 0;
 	overflow: hidden;
-	transition: width 0.2s;
 	border-left: 1px solid transparent;
 	background: #FAFAF8;
 	display: flex;
@@ -745,7 +764,6 @@ module.exports = (
 }
 .pict-fe-properties-panel-open
 {
-	width: 300px;
 	overflow: hidden;
 	border-left-color: #E8E3DA;
 }
@@ -1187,6 +1205,174 @@ module.exports = (
 	color: #B0A89E;
 	font-style: italic;
 	font-size: 12px;
+}
+
+/* ---- Solver List ---- */
+.pict-fe-solver-list-header
+{
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+.pict-fe-solver-list-title
+{
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: #8A7F72;
+}
+.pict-fe-solver-add-btn
+{
+	padding: 2px 8px;
+	border: 1px solid #D4CFC6;
+	border-radius: 3px;
+	background: #FFF;
+	color: #9E6B47;
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	line-height: 1.4;
+}
+.pict-fe-solver-add-btn:hover
+{
+	background: #F5F0E8;
+	border-color: #9E6B47;
+}
+.pict-fe-solver-entry
+{
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px 8px;
+	margin-bottom: 4px;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	background: #FDFCFA;
+	transition: border-color 0.1s, opacity 0.1s;
+}
+.pict-fe-solver-entry:hover
+{
+	border-color: #D4CFC6;
+}
+.pict-fe-solver-entry.pict-fe-dragging
+{
+	opacity: 0.4;
+}
+.pict-fe-solver-entry.pict-fe-drag-over
+{
+	outline: 2px dashed #9E6B47;
+	outline-offset: -2px;
+	background: rgba(158, 107, 71, 0.05);
+}
+.pict-fe-solver-expression
+{
+	width: 100%;
+	padding: 4px 6px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-family: monospace;
+	font-size: 11px;
+	color: #3D3229;
+	background: #FFF;
+	box-sizing: border-box;
+}
+.pict-fe-solver-expression:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.12);
+}
+.pict-fe-solver-bottom-row
+{
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.pict-fe-solver-bottom-left
+{
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.pict-fe-solver-bottom-right
+{
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.pict-fe-solver-ordinal
+{
+	width: 40px;
+	padding: 2px 4px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-family: monospace;
+	font-size: 11px;
+	color: #3D3229;
+	background: #FFF;
+	text-align: center;
+	box-sizing: border-box;
+}
+.pict-fe-solver-ordinal:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.12);
+}
+.pict-fe-solver-btn
+{
+	padding: 1px 4px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	background: none;
+	cursor: pointer;
+	font-size: 12px;
+	line-height: 1;
+	color: #B0A89E;
+}
+.pict-fe-solver-btn:hover
+{
+	color: #3D3229;
+	background: #F0ECE4;
+	border-color: #D4CFC6;
+}
+.pict-fe-solver-btn-remove
+{
+	color: #C0A0A0;
+}
+.pict-fe-solver-btn-remove:hover
+{
+	color: #A04040;
+	background: #FFEBEE;
+	border-color: #E0B0B0;
+}
+.pict-fe-solver-drag-handle
+{
+	cursor: grab;
+	opacity: 0.35;
+	font-size: 10px;
+	display: inline-flex;
+	align-items: center;
+	transition: opacity 0.15s;
+	padding: 1px 2px;
+	color: #8A7F72;
+}
+.pict-fe-solver-drag-handle:hover
+{
+	opacity: 0.7;
+}
+.pict-fe-solver-drag-handle:active
+{
+	cursor: grabbing;
+}
+.pict-fe-solver-empty
+{
+	padding: 8px;
+	text-align: center;
+	font-size: 11px;
+	color: #B0A89E;
+	font-style: italic;
 }
 
 /* ---- Searchable Selector Dropdown ---- */

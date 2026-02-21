@@ -29,6 +29,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Currently selected group: { SectionIndex, GroupIndex } or null
 		this._SelectedGroup = null;
+
+		// Drag state for solver reordering
+		this._SolverDragState = null;
 	}
 
 	/**
@@ -493,6 +496,10 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += `<textarea class="pict-fe-props-textarea" rows="4" placeholder="e.g. h3 { color: red; }" onchange="${tmpPanelViewRef}.commitSectionPropertyChange('CustomCSS', this.value)">${this._escapeHTML(tmpCustomCSS)}</textarea>`;
 		tmpHTML += '</div>';
 
+		// Solvers
+		tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+		tmpHTML += this._renderSolverList('Section', tmpSection.Solvers, this._SelectedSection.SectionIndex);
+
 		tmpHTML += '</div>'; // pict-fe-props-body
 
 		return tmpHTML;
@@ -513,6 +520,481 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		this._ParentFormEditor.updateSectionProperty(this._SelectedSection.SectionIndex, pProperty, pValue);
 		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                     Solver List (shared by Section & Group)                 */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Render a solver list UI.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {Array} pSolvers - The solvers array (may be undefined)
+	 * @param {number} pSectionIndex - Section index
+	 * @param {number} [pGroupIndex] - Group index (for Group type only)
+	 * @returns {string} HTML string
+	 */
+	_renderSolverList(pType, pSolvers, pSectionIndex, pGroupIndex)
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpSolverArray = Array.isArray(pSolvers) ? pSolvers : [];
+		let tmpDragEnabled = this._ParentFormEditor._DragAndDropEnabled;
+
+		// Build reusable arg fragments for onclick handlers
+		let tmpGroupArg = (pType === 'Group') ? (', ' + pGroupIndex) : '';
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-field">';
+
+		// Header with title and add button
+		tmpHTML += '<div class="pict-fe-solver-list-header">';
+		tmpHTML += `<div class="pict-fe-solver-list-title">${pType === 'Group' ? 'RecordSetSolvers' : 'Solvers'}</div>`;
+		tmpHTML += `<button class="pict-fe-solver-add-btn" onclick="${tmpPanelViewRef}.addSolver('${pType}', ${pSectionIndex}${tmpGroupArg})">+ Add</button>`;
+		tmpHTML += '</div>';
+
+		if (tmpSolverArray.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-solver-empty">No solvers defined.</div>';
+		}
+		else
+		{
+			for (let i = 0; i < tmpSolverArray.length; i++)
+			{
+				let tmpSolver = tmpSolverArray[i];
+				let tmpExpression = '';
+				let tmpOrdinal = '';
+				let tmpIsObject = false;
+
+				if (typeof tmpSolver === 'string')
+				{
+					tmpExpression = tmpSolver;
+				}
+				else if (typeof tmpSolver === 'object' && tmpSolver !== null)
+				{
+					tmpExpression = tmpSolver.Expression || '';
+					tmpOrdinal = (tmpSolver.Ordinal !== undefined && tmpSolver.Ordinal !== null) ? String(tmpSolver.Ordinal) : '';
+					tmpIsObject = true;
+				}
+
+				// Display ordinal: show the actual ordinal for objects, show "1" for strings (implicit default)
+				let tmpDisplayOrdinal = tmpIsObject ? tmpOrdinal : '1';
+
+				// Drag attributes for the entry
+				let tmpDragAttrs = '';
+				if (tmpDragEnabled)
+				{
+					tmpDragAttrs = ` draggable="true"` +
+						` ondragstart="${tmpPanelViewRef}.onSolverDragStart(event, '${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})"` +
+						` ondragover="${tmpPanelViewRef}.onSolverDragOver(event, '${pType}', ${i})"` +
+						` ondragleave="${tmpPanelViewRef}.onSolverDragLeave(event)"` +
+						` ondrop="${tmpPanelViewRef}.onSolverDrop(event, '${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})"` +
+						` ondragend="${tmpPanelViewRef}.onSolverDragEnd(event)"`;
+				}
+
+				tmpHTML += `<div class="pict-fe-solver-entry"${tmpDragAttrs}>`;
+
+				// Top row: full-width expression input
+				tmpHTML += `<input class="pict-fe-solver-expression" type="text" value="${this._escapeAttr(tmpExpression)}" placeholder="Expression..." onchange="${tmpPanelViewRef}.updateSolverExpression('${pType}', ${pSectionIndex}, ${i}, this.value${tmpGroupArg})" />`;
+
+				// Bottom row: delete on left, arrows + ordinal on right
+				tmpHTML += '<div class="pict-fe-solver-bottom-row">';
+
+				// Left side: drag handle (if enabled) + remove button
+				tmpHTML += '<div class="pict-fe-solver-bottom-left">';
+				if (tmpDragEnabled)
+				{
+					tmpHTML += '<span class="pict-fe-solver-drag-handle" title="Drag to reorder">&#9776;</span>';
+				}
+				tmpHTML += `<button class="pict-fe-solver-btn pict-fe-solver-btn-remove" title="Remove" onclick="${tmpPanelViewRef}.removeSolver('${pType}', ${pSectionIndex}, ${i}${tmpGroupArg})">&#10005;</button>`;
+				tmpHTML += '</div>';
+
+				// Right side: up/down arrows + ordinal
+				tmpHTML += '<div class="pict-fe-solver-bottom-right">';
+				if (i > 0)
+				{
+					tmpHTML += `<button class="pict-fe-solver-btn" title="Move up" onclick="${tmpPanelViewRef}.moveSolver('${pType}', ${pSectionIndex}, ${i}, -1${tmpGroupArg})">&#9650;</button>`;
+				}
+				if (i < tmpSolverArray.length - 1)
+				{
+					tmpHTML += `<button class="pict-fe-solver-btn" title="Move down" onclick="${tmpPanelViewRef}.moveSolver('${pType}', ${pSectionIndex}, ${i}, 1${tmpGroupArg})">&#9660;</button>`;
+				}
+				tmpHTML += `<input class="pict-fe-solver-ordinal" type="text" value="${this._escapeAttr(tmpDisplayOrdinal)}" title="Ordinal (execution order)" onchange="${tmpPanelViewRef}.updateSolverOrdinal('${pType}', ${pSectionIndex}, ${i}, this.value${tmpGroupArg})" />`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '</div>'; // bottom-row
+				tmpHTML += '</div>'; // solver-entry
+			}
+		}
+
+		tmpHTML += '</div>'; // pict-fe-props-field
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Resolve the solvers array for a given type and indices.
+	 * Returns the parent object and the property name so callers can
+	 * read or write the array.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} [pGroupIndex]
+	 * @returns {{ Parent: object, Property: string, Solvers: Array }|null}
+	 */
+	_resolveSolverTarget(pType, pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return null;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection)
+		{
+			return null;
+		}
+
+		if (pType === 'Group')
+		{
+			if (!Array.isArray(tmpSection.Groups))
+			{
+				return null;
+			}
+			let tmpGroup = tmpSection.Groups[pGroupIndex];
+			if (!tmpGroup)
+			{
+				return null;
+			}
+			if (!Array.isArray(tmpGroup.RecordSetSolvers))
+			{
+				tmpGroup.RecordSetSolvers = [];
+			}
+			return { Parent: tmpGroup, Property: 'RecordSetSolvers', Solvers: tmpGroup.RecordSetSolvers };
+		}
+		else
+		{
+			if (!Array.isArray(tmpSection.Solvers))
+			{
+				tmpSection.Solvers = [];
+			}
+			return { Parent: tmpSection, Property: 'Solvers', Solvers: tmpSection.Solvers };
+		}
+	}
+
+	/**
+	 * Add a new solver entry.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} [pGroupIndex]
+	 */
+	addSolver(pType, pSectionIndex, pGroupIndex)
+	{
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget)
+		{
+			return;
+		}
+
+		// Add as a simple empty string expression
+		tmpTarget.Solvers.push('');
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Remove a solver entry.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {number} [pGroupIndex]
+	 */
+	removeSolver(pType, pSectionIndex, pSolverIndex, pGroupIndex)
+	{
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget || pSolverIndex < 0 || pSolverIndex >= tmpTarget.Solvers.length)
+		{
+			return;
+		}
+
+		tmpTarget.Solvers.splice(pSolverIndex, 1);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Move a solver entry up or down.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {number} pDirection - -1 for up, +1 for down
+	 * @param {number} [pGroupIndex]
+	 */
+	moveSolver(pType, pSectionIndex, pSolverIndex, pDirection, pGroupIndex)
+	{
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget)
+		{
+			return;
+		}
+
+		let tmpNewIndex = pSolverIndex + pDirection;
+		if (tmpNewIndex < 0 || tmpNewIndex >= tmpTarget.Solvers.length)
+		{
+			return;
+		}
+
+		let tmpSolver = tmpTarget.Solvers.splice(pSolverIndex, 1)[0];
+		tmpTarget.Solvers.splice(tmpNewIndex, 0, tmpSolver);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Update a solver's expression value.
+	 * If the solver was a string, keep it as a string.
+	 * If it was an object, update the Expression property.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {string} pExpression
+	 * @param {number} [pGroupIndex]
+	 */
+	updateSolverExpression(pType, pSectionIndex, pSolverIndex, pExpression, pGroupIndex)
+	{
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget || pSolverIndex < 0 || pSolverIndex >= tmpTarget.Solvers.length)
+		{
+			return;
+		}
+
+		let tmpSolver = tmpTarget.Solvers[pSolverIndex];
+
+		if (typeof tmpSolver === 'object' && tmpSolver !== null)
+		{
+			// Object format — update the Expression property
+			tmpSolver.Expression = pExpression;
+		}
+		else
+		{
+			// String format — replace with the new string
+			tmpTarget.Solvers[pSolverIndex] = pExpression;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Update a solver's ordinal value.
+	 * If the ordinal is set on a string solver, promote it to object format.
+	 * If the ordinal is cleared on an object solver, demote it to string format.
+	 *
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {string} pOrdinalStr
+	 * @param {number} [pGroupIndex]
+	 */
+	updateSolverOrdinal(pType, pSectionIndex, pSolverIndex, pOrdinalStr, pGroupIndex)
+	{
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget || pSolverIndex < 0 || pSolverIndex >= tmpTarget.Solvers.length)
+		{
+			return;
+		}
+
+		let tmpSolver = tmpTarget.Solvers[pSolverIndex];
+		let tmpOrdinalTrimmed = (pOrdinalStr || '').trim();
+
+		if (tmpOrdinalTrimmed === '' || tmpOrdinalTrimmed === '1')
+		{
+			// Ordinal is 1 (the default) or empty — demote to string if it was an object
+			if (typeof tmpSolver === 'object' && tmpSolver !== null)
+			{
+				tmpTarget.Solvers[pSolverIndex] = tmpSolver.Expression || '';
+			}
+			// If already a string, nothing to do — 1 is the implicit default
+		}
+		else
+		{
+			let tmpOrdinalValue = parseInt(tmpOrdinalTrimmed, 10);
+			if (isNaN(tmpOrdinalValue))
+			{
+				return;
+			}
+
+			if (typeof tmpSolver === 'string')
+			{
+				// Promote string to object format
+				tmpTarget.Solvers[pSolverIndex] = { Ordinal: tmpOrdinalValue, Expression: tmpSolver };
+			}
+			else if (typeof tmpSolver === 'object' && tmpSolver !== null)
+			{
+				tmpSolver.Ordinal = tmpOrdinalValue;
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                     Solver Drag and Drop                                   */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Handle dragstart on a solver entry.
+	 *
+	 * @param {Event} pEvent
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pSolverIndex
+	 * @param {number} [pGroupIndex]
+	 */
+	onSolverDragStart(pEvent, pType, pSectionIndex, pSolverIndex, pGroupIndex)
+	{
+		if (!this._ParentFormEditor._DragAndDropEnabled)
+		{
+			return;
+		}
+
+		if (pEvent && pEvent.stopPropagation)
+		{
+			pEvent.stopPropagation();
+		}
+
+		this._SolverDragState =
+		{
+			Type: pType,
+			SectionIndex: pSectionIndex,
+			SolverIndex: pSolverIndex,
+			GroupIndex: pGroupIndex
+		};
+
+		if (pEvent && pEvent.dataTransfer)
+		{
+			pEvent.dataTransfer.effectAllowed = 'move';
+			pEvent.dataTransfer.setData('text/plain', '');
+		}
+
+		if (pEvent && pEvent.currentTarget)
+		{
+			pEvent.currentTarget.classList.add('pict-fe-dragging');
+		}
+	}
+
+	/**
+	 * Handle dragover on a solver entry.
+	 *
+	 * @param {Event} pEvent
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSolverIndex
+	 */
+	onSolverDragOver(pEvent, pType, pSolverIndex)
+	{
+		if (!this._ParentFormEditor._DragAndDropEnabled || !this._SolverDragState)
+		{
+			return;
+		}
+
+		if (this._SolverDragState.Type !== pType)
+		{
+			return;
+		}
+
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+			pEvent.stopPropagation();
+		}
+
+		if (pEvent && pEvent.currentTarget && this._SolverDragState.SolverIndex !== pSolverIndex)
+		{
+			pEvent.currentTarget.classList.add('pict-fe-drag-over');
+		}
+	}
+
+	/**
+	 * Handle dragleave on a solver entry.
+	 *
+	 * @param {Event} pEvent
+	 */
+	onSolverDragLeave(pEvent)
+	{
+		if (pEvent && pEvent.currentTarget)
+		{
+			pEvent.currentTarget.classList.remove('pict-fe-drag-over');
+		}
+	}
+
+	/**
+	 * Handle drop on a solver entry — reorder the solver.
+	 *
+	 * @param {Event} pEvent
+	 * @param {string} pType - 'Section' or 'Group'
+	 * @param {number} pSectionIndex
+	 * @param {number} pTargetIndex
+	 * @param {number} [pGroupIndex]
+	 */
+	onSolverDrop(pEvent, pType, pSectionIndex, pTargetIndex, pGroupIndex)
+	{
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+			pEvent.stopPropagation();
+		}
+
+		if (pEvent && pEvent.currentTarget)
+		{
+			pEvent.currentTarget.classList.remove('pict-fe-drag-over');
+		}
+
+		if (!this._ParentFormEditor._DragAndDropEnabled || !this._SolverDragState)
+		{
+			this._SolverDragState = null;
+			return;
+		}
+
+		if (this._SolverDragState.Type !== pType)
+		{
+			this._SolverDragState = null;
+			return;
+		}
+
+		let tmpSourceIndex = this._SolverDragState.SolverIndex;
+		this._SolverDragState = null;
+
+		if (tmpSourceIndex === pTargetIndex)
+		{
+			return;
+		}
+
+		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
+		if (!tmpTarget)
+		{
+			return;
+		}
+
+		// Move the solver from source to target position
+		let tmpSolver = tmpTarget.Solvers.splice(tmpSourceIndex, 1)[0];
+		tmpTarget.Solvers.splice(pTargetIndex, 0, tmpSolver);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Handle dragend on a solver entry — clean up.
+	 *
+	 * @param {Event} pEvent
+	 */
+	onSolverDragEnd(pEvent)
+	{
+		this._SolverDragState = null;
+
+		if (pEvent && pEvent.currentTarget)
+		{
+			pEvent.currentTarget.classList.remove('pict-fe-dragging');
+		}
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -692,6 +1174,10 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			tmpHTML += '<div class="pict-fe-props-label">RecordManifest</div>';
 			tmpHTML += `<input class="pict-fe-props-input pict-fe-props-input-mono" type="text" value="${this._escapeAttr(tmpRecordManifest)}" placeholder="e.g. FruitEditor" onchange="${tmpPanelViewRef}.commitGroupPropertyChange('RecordManifest', this.value)" />`;
 			tmpHTML += '</div>';
+
+			// RecordSetSolvers
+			tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+			tmpHTML += this._renderSolverList('Group', tmpGroup.RecordSetSolvers, this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex);
 		}
 
 		tmpHTML += '</div>'; // pict-fe-props-body
