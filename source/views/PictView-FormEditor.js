@@ -2440,7 +2440,7 @@ class PictViewFormEditor extends libPictView
 	 */
 	setPanelTab(pTabName)
 	{
-		if (pTabName === 'stats' || pTabName === 'properties' || pTabName === 'section' || pTabName === 'group')
+		if (pTabName === 'stats' || pTabName === 'properties' || pTabName === 'section' || pTabName === 'group' || pTabName === 'options')
 		{
 			this._PanelActiveTab = pTabName;
 			// Re-render only the panel content, not the entire visual editor
@@ -4093,7 +4093,8 @@ class PictViewFormEditor extends libPictView
 			Scope: 'NewForm',
 			Sections: [],
 			Descriptors: {},
-			ReferenceManifests: {}
+			ReferenceManifests: {},
+			StaticOptionLists: []
 		});
 	}
 

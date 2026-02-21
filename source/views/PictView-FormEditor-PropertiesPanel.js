@@ -35,6 +35,15 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Solver modal context: { Type, SectionIndex, SolverIndex, GroupIndex, Expression, Ordinal }
 		this._SolverModalContext = null;
+
+		// Currently expanded reference item hash in the solver modal
+		this._SolverModalExpandedHash = null;
+
+		// Drag state for option entry reordering
+		this._OptionsDragState = null;
+
+		// Currently expanded named option list (by Hash)
+		this._ExpandedNamedList = null;
 	}
 
 	/**
@@ -267,11 +276,13 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		let tmpPropsActive = (tmpActiveTab === 'properties') ? ' pict-fe-panel-tab-active' : '';
 		let tmpSectionActive = (tmpActiveTab === 'section') ? ' pict-fe-panel-tab-active' : '';
 		let tmpGroupActive = (tmpActiveTab === 'group') ? ' pict-fe-panel-tab-active' : '';
+		let tmpOptionsActive = (tmpActiveTab === 'options') ? ' pict-fe-panel-tab-active' : '';
 		tmpHTML += '<div class="pict-fe-panel-tabbar">';
 		tmpHTML += `<button class="pict-fe-panel-tab${tmpStatsActive}" onclick="${tmpViewRef}.setPanelTab('stats')">Stats</button>`;
 		tmpHTML += `<button class="pict-fe-panel-tab${tmpSectionActive}" onclick="${tmpViewRef}.setPanelTab('section')">Section</button>`;
 		tmpHTML += `<button class="pict-fe-panel-tab${tmpGroupActive}" onclick="${tmpViewRef}.setPanelTab('group')">Group</button>`;
 		tmpHTML += `<button class="pict-fe-panel-tab${tmpPropsActive}" onclick="${tmpViewRef}.setPanelTab('properties')">Input</button>`;
+		tmpHTML += `<button class="pict-fe-panel-tab${tmpOptionsActive}" onclick="${tmpViewRef}.setPanelTab('options')">Options</button>`;
 		tmpHTML += '</div>';
 
 		// Tab content: Form Stats
@@ -299,6 +310,12 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += `<div class="pict-fe-panel-tab-content${tmpPropsDisplay}">`;
 		tmpHTML += this._renderInputSelectorDropdown();
 		tmpHTML += this._renderInputProperties();
+		tmpHTML += '</div>';
+
+		// Tab content: Options
+		let tmpOptionsDisplay = (tmpActiveTab === 'options') ? ' pict-fe-panel-tab-content-active' : '';
+		tmpHTML += `<div class="pict-fe-panel-tab-content${tmpOptionsDisplay}">`;
+		tmpHTML += this._renderOptionsTab();
 		tmpHTML += '</div>';
 
 		let tmpPanelEl = `#FormEditor-PropertiesPanel-${this._ParentFormEditor.Hash}`;
@@ -1020,6 +1037,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		// Close any existing modal first
 		this.closeSolverModal();
 
+		// Reset expanded reference state
+		this._SolverModalExpandedHash = null;
+
 		// Resolve the solver entry
 		let tmpTarget = this._resolveSolverTarget(pType, pSectionIndex, pGroupIndex);
 		if (!tmpTarget || pSolverIndex < 0 || pSolverIndex >= tmpTarget.Solvers.length)
@@ -1209,8 +1229,8 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		let tmpEntries = this._ParentFormEditor.getAllInputEntries();
 		let tmpFilter = (pFilterText || '').toLowerCase().trim();
 
-		// Build a map of hash → first solver expression that contains it
-		let tmpSolverMap = this._buildSolverHashMap();
+		// Build a map of hash → { assignment, references[] }
+		let tmpSolverMap = this._buildSolverHashMapAll();
 
 		// Group entries by section
 		let tmpGrouped = {};
@@ -1272,11 +1292,14 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				let tmpHash = tmpItem.Hash || '';
 				let tmpLabel = tmpItem.Label || tmpAddress;
 				let tmpEscapedAddress = this._escapeAttr(tmpAddress).replace(/'/g, "\\'");
+				let tmpEscapedHash = this._escapeAttr(tmpHash).replace(/'/g, "\\'");
 
-				// Find the first solver expression referencing this hash
-				let tmpFirstSolver = tmpHash ? (tmpSolverMap[tmpHash] || '') : '';
+				// Determine solver data for this hash
+				let tmpSolverData = tmpHash ? tmpSolverMap[tmpHash] : null;
+				let tmpFirstSolver = (tmpSolverData && tmpSolverData.assignment) ? tmpSolverData.assignment.Expression : '';
+				let tmpIsExpanded = (this._SolverModalExpandedHash === tmpHash && tmpHash);
 
-				tmpHTML += `<div class="pict-fe-solver-modal-reference-item" onclick="${tmpPanelViewRef}.insertSolverReference('${tmpEscapedAddress}')" title="Click to insert: ${this._escapeAttr(tmpAddress)}">`;
+				tmpHTML += `<div class="pict-fe-solver-modal-reference-item${tmpIsExpanded ? ' pict-fe-solver-modal-reference-item-expanded' : ''}" onclick="${tmpPanelViewRef}.toggleSolverReferenceDetail('${tmpEscapedHash}')">`;
 
 				// Row 1: Name (left) + Hash (right)
 				tmpHTML += '<div class="pict-fe-solver-modal-reference-row">';
@@ -1287,18 +1310,39 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				}
 				tmpHTML += '</div>';
 
-				// Row 2: First solver equation (left) + Address (right)
+				// Row 2: Address (left) + Insert button (right)
 				tmpHTML += '<div class="pict-fe-solver-modal-reference-row">';
-				if (tmpFirstSolver)
-				{
-					tmpHTML += `<span class="pict-fe-solver-modal-reference-solver">${this._escapeHTML(tmpFirstSolver)}</span>`;
-				}
-				else
-				{
-					tmpHTML += '<span class="pict-fe-solver-modal-reference-solver"></span>';
-				}
 				tmpHTML += `<span class="pict-fe-solver-modal-reference-address">Address: ${this._escapeHTML(tmpAddress)}</span>`;
+				tmpHTML += `<button class="pict-fe-solver-modal-reference-insert-btn" onclick="event.stopPropagation();${tmpPanelViewRef}.insertSolverReference('${tmpEscapedAddress}')">Insert</button>`;
 				tmpHTML += '</div>';
+
+				// Expanded detail section (shown only when this hash is expanded)
+				if (tmpIsExpanded && tmpSolverData)
+				{
+					tmpHTML += '<div class="pict-fe-solver-modal-reference-detail">';
+
+					if (tmpSolverData.assignment)
+					{
+						tmpHTML += '<div class="pict-fe-solver-modal-reference-detail-label">ASSIGNED BY</div>';
+						tmpHTML += `<div class="pict-fe-solver-modal-reference-detail-equation pict-fe-solver-modal-reference-detail-assignment">${this._escapeHTML(tmpSolverData.assignment.Expression)}</div>`;
+					}
+
+					if (tmpSolverData.references.length > 0)
+					{
+						tmpHTML += '<div class="pict-fe-solver-modal-reference-detail-label">REFERENCED IN</div>';
+						for (let r = 0; r < tmpSolverData.references.length; r++)
+						{
+							tmpHTML += `<div class="pict-fe-solver-modal-reference-detail-equation">${this._escapeHTML(tmpSolverData.references[r].Expression)}</div>`;
+						}
+					}
+
+					if (!tmpSolverData.assignment && tmpSolverData.references.length === 0)
+					{
+						tmpHTML += '<div class="pict-fe-solver-modal-reference-detail-empty">No solver equations reference this hash.</div>';
+					}
+
+					tmpHTML += '</div>';
+				}
 
 				tmpHTML += '</div>';
 			}
@@ -1308,12 +1352,15 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	}
 
 	/**
-	 * Build a map of Hash → first solver expression that contains that hash.
-	 * Scans all section solvers and group solvers in the manifest.
+	 * Build a comprehensive map of Hash → { assignment, references[] } from all solver expressions.
+	 * Scans all section solvers and group RecordSetSolvers in the manifest.
 	 *
-	 * @returns {Object} Map of hash string → solver expression string
+	 * For each hash, the assignment is the expression where the hash appears on the left side of '='.
+	 * All other expressions containing the hash are references. Results are sorted by ordinal.
+	 *
+	 * @returns {Object} Map of hash string → { assignment: { Expression, Ordinal } | null, references: [{ Expression, Ordinal }] }
 	 */
-	_buildSolverHashMap()
+	_buildSolverHashMapAll()
 	{
 		let tmpManifest = this._ParentFormEditor._resolveManifestData();
 		let tmpMap = {};
@@ -1323,7 +1370,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			return tmpMap;
 		}
 
-		// Collect all solver expressions
+		// Collect all solver expressions as { Expression, Ordinal }
 		let tmpAllExpressions = [];
 
 		for (let s = 0; s < tmpManifest.Sections.length; s++)
@@ -1336,15 +1383,21 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				for (let i = 0; i < tmpSection.Solvers.length; i++)
 				{
 					let tmpSolver = tmpSection.Solvers[i];
-					let tmpExpr = (typeof tmpSolver === 'string') ? tmpSolver : ((tmpSolver && tmpSolver.Expression) || '');
-					if (tmpExpr)
+					if (typeof tmpSolver === 'string')
 					{
-						tmpAllExpressions.push(tmpExpr);
+						if (tmpSolver)
+						{
+							tmpAllExpressions.push({ Expression: tmpSolver, Ordinal: 1 });
+						}
+					}
+					else if (tmpSolver && tmpSolver.Expression)
+					{
+						tmpAllExpressions.push({ Expression: tmpSolver.Expression, Ordinal: tmpSolver.Ordinal || 1 });
 					}
 				}
 			}
 
-			// Group solvers
+			// Group RecordSetSolvers
 			if (Array.isArray(tmpSection.Groups))
 			{
 				for (let g = 0; g < tmpSection.Groups.length; g++)
@@ -1355,10 +1408,16 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 						for (let i = 0; i < tmpGroup.RecordSetSolvers.length; i++)
 						{
 							let tmpSolver = tmpGroup.RecordSetSolvers[i];
-							let tmpExpr = (typeof tmpSolver === 'string') ? tmpSolver : ((tmpSolver && tmpSolver.Expression) || '');
-							if (tmpExpr)
+							if (typeof tmpSolver === 'string')
 							{
-								tmpAllExpressions.push(tmpExpr);
+								if (tmpSolver)
+								{
+									tmpAllExpressions.push({ Expression: tmpSolver, Ordinal: 1 });
+								}
+							}
+							else if (tmpSolver && tmpSolver.Expression)
+							{
+								tmpAllExpressions.push({ Expression: tmpSolver.Expression, Ordinal: tmpSolver.Ordinal || 1 });
 							}
 						}
 					}
@@ -1366,7 +1425,10 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			}
 		}
 
-		// For each Descriptor hash, find the first expression that contains it
+		// Sort all expressions by Ordinal ascending
+		tmpAllExpressions.sort(function (a, b) { return a.Ordinal - b.Ordinal; });
+
+		// For each Descriptor hash, scan all expressions to find assignment and references
 		if (tmpManifest.Descriptors && typeof tmpManifest.Descriptors === 'object')
 		{
 			let tmpAddresses = Object.keys(tmpManifest.Descriptors);
@@ -1379,14 +1441,32 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 					continue;
 				}
 
+				let tmpEntry = { assignment: null, references: [] };
+
 				for (let e = 0; e < tmpAllExpressions.length; e++)
 				{
-					if (tmpAllExpressions[e].indexOf(tmpHash) >= 0)
+					let tmpExprObj = tmpAllExpressions[e];
+					if (tmpExprObj.Expression.indexOf(tmpHash) < 0)
 					{
-						tmpMap[tmpHash] = tmpAllExpressions[e];
-						break;
+						continue;
 					}
+
+					// Check if this is an assignment (hash is on the left side of '=')
+					let tmpEqIndex = tmpExprObj.Expression.indexOf('=');
+					if (tmpEqIndex >= 0)
+					{
+						let tmpLeftSide = tmpExprObj.Expression.substring(0, tmpEqIndex).trim();
+						if (tmpLeftSide === tmpHash && !tmpEntry.assignment)
+						{
+							tmpEntry.assignment = { Expression: tmpExprObj.Expression, Ordinal: tmpExprObj.Ordinal };
+							continue;
+						}
+					}
+
+					tmpEntry.references.push({ Expression: tmpExprObj.Expression, Ordinal: tmpExprObj.Ordinal });
 				}
+
+				tmpMap[tmpHash] = tmpEntry;
 			}
 		}
 
@@ -1413,6 +1493,41 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		tmpRefList.innerHTML = this._renderSolverModalReference(pSearchText);
+	}
+
+	/**
+	 * Toggle the expanded detail view for a reference item in the solver modal.
+	 * If the given hash is already expanded, collapse it. Otherwise expand it
+	 * (collapsing any previously expanded item).
+	 *
+	 * @param {string} pHash - The hash of the reference item to toggle
+	 */
+	toggleSolverReferenceDetail(pHash)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		// Toggle: if already expanded, collapse; otherwise expand
+		if (this._SolverModalExpandedHash === pHash)
+		{
+			this._SolverModalExpandedHash = null;
+		}
+		else
+		{
+			this._SolverModalExpandedHash = pHash;
+		}
+
+		// Read the current search filter and re-render the reference list
+		let tmpSearchInput = document.getElementById('PictFE-SolverModal-RefSearch');
+		let tmpFilterText = tmpSearchInput ? tmpSearchInput.value : '';
+
+		let tmpRefList = document.getElementById('PictFE-SolverModal-RefList');
+		if (tmpRefList)
+		{
+			tmpRefList.innerHTML = this._renderSolverModalReference(tmpFilterText);
+		}
 	}
 
 	/**
@@ -1454,6 +1569,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	closeSolverModal()
 	{
 		this._SolverModalContext = null;
+		this._SolverModalExpandedHash = null;
 
 		if (typeof document === 'undefined')
 		{
@@ -2604,6 +2720,733 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Re-render the parent's visual editor (which also re-renders this panel)
 		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*          Options Tab                                                       */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Render the full content for the Options tab.
+	 * Section A: Input Options (only if an input is selected)
+	 * Section B: Named Option Lists (always shown)
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderOptionsTab()
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpHTML = '';
+
+		// Section A: Input Options
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (tmpResolved && tmpResolved.Descriptor)
+		{
+			let tmpDescriptor = tmpResolved.Descriptor;
+			let tmpPictForm = tmpDescriptor.PictForm || {};
+			let tmpSelectOptions = Array.isArray(tmpPictForm.SelectOptions) ? tmpPictForm.SelectOptions : [];
+
+			// Determine if this input uses a named list
+			let tmpManifest = this._ParentFormEditor._resolveManifestData();
+			let tmpStaticLists = (tmpManifest && Array.isArray(tmpManifest.StaticOptionLists)) ? tmpManifest.StaticOptionLists : [];
+			let tmpLinkedList = tmpPictForm.StaticOptionListHash || '';
+			let tmpIsNamedSource = (tmpLinkedList && tmpLinkedList.length > 0);
+
+			tmpHTML += '<div class="pict-fe-props-section-header">INPUT OPTIONS</div>';
+			tmpHTML += '<div class="pict-fe-props-body">';
+
+			// Source toggle
+			tmpHTML += '<div class="pict-fe-option-source-toggle">';
+			tmpHTML += '<span class="pict-fe-props-label" style="margin-bottom:0">Source:</span>';
+			tmpHTML += `<label class="pict-fe-option-source-radio"><input type="radio" name="pict-fe-option-source" value="inline" ${!tmpIsNamedSource ? 'checked' : ''} onchange="${tmpPanelViewRef}.setInputOptionSource('inline')" /> Inline</label>`;
+			tmpHTML += `<label class="pict-fe-option-source-radio"><input type="radio" name="pict-fe-option-source" value="named" ${tmpIsNamedSource ? 'checked' : ''} onchange="${tmpPanelViewRef}.setInputOptionSource('named')" /> Named List</label>`;
+
+			if (tmpIsNamedSource)
+			{
+				tmpHTML += '<select class="pict-fe-props-input" style="margin-left:4px;flex:1" onchange="' + tmpPanelViewRef + '.assignNamedListToInput(this.value)">';
+				tmpHTML += '<option value="">— Select a list —</option>';
+				for (let i = 0; i < tmpStaticLists.length; i++)
+				{
+					let tmpList = tmpStaticLists[i];
+					let tmpSelected = (tmpList.Hash === tmpLinkedList) ? ' selected' : '';
+					tmpHTML += `<option value="${this._escapeAttr(tmpList.Hash)}"${tmpSelected}>${this._escapeHTML(tmpList.Name || tmpList.Hash)}</option>`;
+				}
+				tmpHTML += '</select>';
+			}
+
+			tmpHTML += '</div>';
+
+			if (tmpIsNamedSource)
+			{
+				// Read-only preview of the linked named list's entries
+				let tmpLinkedListObj = null;
+				for (let i = 0; i < tmpStaticLists.length; i++)
+				{
+					if (tmpStaticLists[i].Hash === tmpLinkedList)
+					{
+						tmpLinkedListObj = tmpStaticLists[i];
+						break;
+					}
+				}
+
+				if (tmpLinkedListObj && Array.isArray(tmpLinkedListObj.Options))
+				{
+					tmpHTML += '<div class="pict-fe-option-entries">';
+					for (let j = 0; j < tmpLinkedListObj.Options.length; j++)
+					{
+						let tmpOpt = tmpLinkedListObj.Options[j];
+						tmpHTML += '<div class="pict-fe-option-entry pict-fe-option-entry-readonly">';
+						tmpHTML += `<span class="pict-fe-option-id-preview">${this._escapeHTML(tmpOpt.id || '')}</span>`;
+						tmpHTML += `<span class="pict-fe-option-text-preview">${this._escapeHTML(tmpOpt.text || '')}</span>`;
+						tmpHTML += '</div>';
+					}
+					tmpHTML += '</div>';
+				}
+				else
+				{
+					tmpHTML += '<div class="pict-fe-props-placeholder">No named list selected, or list has no entries.</div>';
+				}
+			}
+			else
+			{
+				// Inline editable entries
+				tmpHTML += this._renderOptionEntries(tmpSelectOptions, 'inline', tmpPanelViewRef);
+			}
+
+			tmpHTML += '</div>';
+		}
+		else
+		{
+			tmpHTML += '<div class="pict-fe-props-section-header">INPUT OPTIONS</div>';
+			tmpHTML += '<div class="pict-fe-props-placeholder">Select an input to manage its options.</div>';
+		}
+
+		// Section B: Named Option Lists
+		tmpHTML += this._renderNamedOptionListsSection(tmpPanelViewRef);
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Render the option entries editor rows.
+	 * Used for both inline input options and named list option editing.
+	 *
+	 * @param {Array} pOptions - Array of {id, text} objects
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {string} pPanelViewRef - Browser view reference string
+	 * @returns {string} HTML string
+	 */
+	_renderOptionEntries(pOptions, pContext, pPanelViewRef)
+	{
+		let tmpHTML = '';
+		let tmpEscapedContext = this._escapeAttr(pContext).replace(/'/g, "\\'");
+
+		tmpHTML += '<div class="pict-fe-option-entries">';
+
+		for (let i = 0; i < pOptions.length; i++)
+		{
+			let tmpOpt = pOptions[i];
+			let tmpIdVal = this._escapeAttr(tmpOpt.id || '');
+			let tmpTextVal = this._escapeAttr(tmpOpt.text || '');
+
+			tmpHTML += `<div class="pict-fe-option-entry" draggable="true" data-index="${i}" ondragstart="${pPanelViewRef}.onOptionDragStart('${tmpEscapedContext}',${i},event)" ondragover="${pPanelViewRef}.onOptionDragOver('${tmpEscapedContext}',${i},event)" ondrop="${pPanelViewRef}.onOptionDrop('${tmpEscapedContext}',${i},event)" ondragend="${pPanelViewRef}.onOptionDragEnd(event)">`;
+			tmpHTML += '<span class="pict-fe-option-drag-handle">\u2807</span>';
+			tmpHTML += `<input class="pict-fe-option-id" type="text" value="${tmpIdVal}" placeholder="id" onchange="${pPanelViewRef}.updateOption('${tmpEscapedContext}',${i},'id',this.value)" />`;
+			tmpHTML += `<input class="pict-fe-option-text" type="text" value="${tmpTextVal}" placeholder="text" onchange="${pPanelViewRef}.updateOption('${tmpEscapedContext}',${i},'text',this.value)" />`;
+			tmpHTML += `<button class="pict-fe-option-remove" onclick="if(this.dataset.armed){${pPanelViewRef}.removeOption('${tmpEscapedContext}',${i})}else{this.dataset.armed='1';this.textContent='Sure?';this.classList.add('pict-fe-option-remove-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='\\u2715';b.classList.remove('pict-fe-option-remove-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='\\u2715';this.classList.remove('pict-fe-option-remove-armed');clearTimeout(this._armTimer)}">\u2715</button>`;
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += '</div>';
+
+		tmpHTML += `<button class="pict-fe-option-add-btn" onclick="${pPanelViewRef}.addOption('${tmpEscapedContext}')">+ Add Option</button>`;
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Render the Named Option Lists section.
+	 *
+	 * @param {string} pPanelViewRef - Browser view reference string
+	 * @returns {string} HTML string
+	 */
+	_renderNamedOptionListsSection(pPanelViewRef)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		let tmpStaticLists = (tmpManifest && Array.isArray(tmpManifest.StaticOptionLists)) ? tmpManifest.StaticOptionLists : [];
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">NAMED OPTION LISTS</div>';
+
+		if (tmpStaticLists.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No named option lists defined yet.</div>';
+		}
+
+		for (let i = 0; i < tmpStaticLists.length; i++)
+		{
+			let tmpList = tmpStaticLists[i];
+			let tmpListHash = tmpList.Hash || '';
+			let tmpListName = tmpList.Name || tmpListHash;
+			let tmpOptions = Array.isArray(tmpList.Options) ? tmpList.Options : [];
+			let tmpIsExpanded = (this._ExpandedNamedList === tmpListHash);
+			let tmpEscapedHash = this._escapeAttr(tmpListHash).replace(/'/g, "\\'");
+
+			tmpHTML += '<div class="pict-fe-named-list-card">';
+
+			// Header (clickable to expand/collapse)
+			tmpHTML += `<div class="pict-fe-named-list-header${tmpIsExpanded ? ' pict-fe-named-list-header-expanded' : ''}" onclick="${pPanelViewRef}.toggleNamedListExpand('${tmpEscapedHash}')">`;
+			tmpHTML += `<span class="pict-fe-named-list-arrow">${tmpIsExpanded ? '\u25BE' : '\u25B8'}</span>`;
+			tmpHTML += `<span class="pict-fe-named-list-name">${this._escapeHTML(tmpListName)}</span>`;
+			tmpHTML += `<span class="pict-fe-named-list-count">(${tmpOptions.length} option${tmpOptions.length !== 1 ? 's' : ''})</span>`;
+			tmpHTML += '</div>';
+
+			if (tmpIsExpanded)
+			{
+				tmpHTML += '<div class="pict-fe-named-list-body">';
+
+				// Option entries editor
+				tmpHTML += this._renderOptionEntries(tmpOptions, `named:${tmpListHash}`, pPanelViewRef);
+
+				// Name and Hash fields
+				tmpHTML += '<div class="pict-fe-named-list-props">';
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Name</div>';
+				tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpListName)}" onchange="${pPanelViewRef}.updateNamedListProperty('${tmpEscapedHash}','Name',this.value)" />`;
+				tmpHTML += '</div>';
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Hash</div>';
+				tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpListHash)}" onchange="${pPanelViewRef}.updateNamedListProperty('${tmpEscapedHash}','Hash',this.value)" />`;
+				tmpHTML += '</div>';
+				tmpHTML += '</div>';
+
+				// Delete list button
+				tmpHTML += `<button class="pict-fe-named-list-delete-btn" onclick="if(this.dataset.armed){${pPanelViewRef}.removeNamedList('${tmpEscapedHash}')}else{this.dataset.armed='1';this.textContent='Sure? Delete List';this.classList.add('pict-fe-named-list-delete-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='Delete List';b.classList.remove('pict-fe-named-list-delete-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='Delete List';this.classList.remove('pict-fe-named-list-delete-btn-armed');clearTimeout(this._armTimer)}">Delete List</button>`;
+
+				tmpHTML += '</div>';
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += `<button class="pict-fe-named-list-add-btn" onclick="${pPanelViewRef}.addNamedList()">+ New List</button>`;
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Add a new option entry to either inline input options or a named list.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 */
+	addOption(pContext)
+	{
+		let tmpOptions = this._resolveOptionArray(pContext);
+		if (!tmpOptions)
+		{
+			return;
+		}
+
+		tmpOptions.push({ id: '', text: '' });
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Update a single field (id or text) of an option entry.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pIndex - Index of the option entry
+	 * @param {string} pField - 'id' or 'text'
+	 * @param {string} pValue - New value
+	 */
+	updateOption(pContext, pIndex, pField, pValue)
+	{
+		let tmpOptions = this._resolveOptionArray(pContext);
+		if (!tmpOptions || pIndex < 0 || pIndex >= tmpOptions.length)
+		{
+			return;
+		}
+
+		tmpOptions[pIndex][pField] = pValue;
+
+		// If this is a named list and there are linked inputs, sync them
+		if (pContext.indexOf('named:') === 0)
+		{
+			this._syncLinkedInputs(pContext.substring(6));
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Remove an option entry from inline input options or a named list.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pIndex - Index of the option entry to remove
+	 */
+	removeOption(pContext, pIndex)
+	{
+		let tmpOptions = this._resolveOptionArray(pContext);
+		if (!tmpOptions || pIndex < 0 || pIndex >= tmpOptions.length)
+		{
+			return;
+		}
+
+		tmpOptions.splice(pIndex, 1);
+
+		if (pContext.indexOf('named:') === 0)
+		{
+			this._syncLinkedInputs(pContext.substring(6));
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Reorder an option entry within its array.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pFromIndex - Source index
+	 * @param {number} pToIndex - Destination index
+	 */
+	reorderOption(pContext, pFromIndex, pToIndex)
+	{
+		let tmpOptions = this._resolveOptionArray(pContext);
+		if (!tmpOptions || pFromIndex < 0 || pFromIndex >= tmpOptions.length || pToIndex < 0 || pToIndex >= tmpOptions.length)
+		{
+			return;
+		}
+
+		let tmpItem = tmpOptions.splice(pFromIndex, 1)[0];
+		tmpOptions.splice(pToIndex, 0, tmpItem);
+
+		if (pContext.indexOf('named:') === 0)
+		{
+			this._syncLinkedInputs(pContext.substring(6));
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Resolve the options array for the given context.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @returns {Array|null} Reference to the options array, or null
+	 */
+	_resolveOptionArray(pContext)
+	{
+		if (pContext === 'inline')
+		{
+			let tmpResolved = this._resolveSelectedDescriptor();
+			if (!tmpResolved || !tmpResolved.Descriptor)
+			{
+				return null;
+			}
+
+			if (!tmpResolved.Descriptor.PictForm)
+			{
+				tmpResolved.Descriptor.PictForm = {};
+			}
+
+			if (!Array.isArray(tmpResolved.Descriptor.PictForm.SelectOptions))
+			{
+				tmpResolved.Descriptor.PictForm.SelectOptions = [];
+			}
+
+			return tmpResolved.Descriptor.PictForm.SelectOptions;
+		}
+		else if (pContext.indexOf('named:') === 0)
+		{
+			let tmpListHash = pContext.substring(6);
+			let tmpManifest = this._ParentFormEditor._resolveManifestData();
+			if (!tmpManifest || !Array.isArray(tmpManifest.StaticOptionLists))
+			{
+				return null;
+			}
+
+			for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+			{
+				if (tmpManifest.StaticOptionLists[i].Hash === tmpListHash)
+				{
+					if (!Array.isArray(tmpManifest.StaticOptionLists[i].Options))
+					{
+						tmpManifest.StaticOptionLists[i].Options = [];
+					}
+					return tmpManifest.StaticOptionLists[i].Options;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Sync all inputs linked to a named list after the list is modified.
+	 * Copies the named list's Options into each input's SelectOptions.
+	 *
+	 * @param {string} pListHash - Hash of the named list
+	 */
+	_syncLinkedInputs(pListHash)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Descriptors || !Array.isArray(tmpManifest.StaticOptionLists))
+		{
+			return;
+		}
+
+		// Find the named list
+		let tmpList = null;
+		for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+		{
+			if (tmpManifest.StaticOptionLists[i].Hash === pListHash)
+			{
+				tmpList = tmpManifest.StaticOptionLists[i];
+				break;
+			}
+		}
+
+		if (!tmpList)
+		{
+			return;
+		}
+
+		let tmpOptionsCopy = Array.isArray(tmpList.Options) ? JSON.parse(JSON.stringify(tmpList.Options)) : [];
+
+		// Scan all descriptors for inputs linked to this named list
+		let tmpAddresses = Object.keys(tmpManifest.Descriptors);
+		for (let i = 0; i < tmpAddresses.length; i++)
+		{
+			let tmpDescriptor = tmpManifest.Descriptors[tmpAddresses[i]];
+			if (tmpDescriptor && tmpDescriptor.PictForm && tmpDescriptor.PictForm.StaticOptionListHash === pListHash)
+			{
+				tmpDescriptor.PictForm.SelectOptions = JSON.parse(JSON.stringify(tmpOptionsCopy));
+			}
+		}
+	}
+
+	/**
+	 * Add a new named option list to the manifest.
+	 */
+	addNamedList()
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest)
+		{
+			return;
+		}
+
+		if (!Array.isArray(tmpManifest.StaticOptionLists))
+		{
+			tmpManifest.StaticOptionLists = [];
+		}
+
+		// Generate a unique hash
+		let tmpIndex = tmpManifest.StaticOptionLists.length + 1;
+		let tmpHash = 'OptionList' + tmpIndex;
+
+		// Ensure uniqueness
+		let tmpExists = true;
+		while (tmpExists)
+		{
+			tmpExists = false;
+			for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+			{
+				if (tmpManifest.StaticOptionLists[i].Hash === tmpHash)
+				{
+					tmpIndex++;
+					tmpHash = 'OptionList' + tmpIndex;
+					tmpExists = true;
+					break;
+				}
+			}
+		}
+
+		tmpManifest.StaticOptionLists.push({
+			Hash: tmpHash,
+			Name: 'New Option List',
+			Options: []
+		});
+
+		this._ExpandedNamedList = tmpHash;
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Update a property (Name or Hash) on a named option list.
+	 *
+	 * @param {string} pListHash - Current hash of the list
+	 * @param {string} pProperty - 'Name' or 'Hash'
+	 * @param {string} pValue - New value
+	 */
+	updateNamedListProperty(pListHash, pProperty, pValue)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.StaticOptionLists))
+		{
+			return;
+		}
+
+		for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+		{
+			if (tmpManifest.StaticOptionLists[i].Hash === pListHash)
+			{
+				let tmpOldHash = tmpManifest.StaticOptionLists[i].Hash;
+				tmpManifest.StaticOptionLists[i][pProperty] = pValue;
+
+				// If the Hash was changed, update linked inputs and expanded state
+				if (pProperty === 'Hash' && tmpOldHash !== pValue)
+				{
+					// Update any inputs linked to the old hash
+					if (tmpManifest.Descriptors)
+					{
+						let tmpAddresses = Object.keys(tmpManifest.Descriptors);
+						for (let d = 0; d < tmpAddresses.length; d++)
+						{
+							let tmpDescriptor = tmpManifest.Descriptors[tmpAddresses[d]];
+							if (tmpDescriptor && tmpDescriptor.PictForm && tmpDescriptor.PictForm.StaticOptionListHash === tmpOldHash)
+							{
+								tmpDescriptor.PictForm.StaticOptionListHash = pValue;
+							}
+						}
+					}
+
+					if (this._ExpandedNamedList === tmpOldHash)
+					{
+						this._ExpandedNamedList = pValue;
+					}
+				}
+
+				break;
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Remove a named option list from the manifest.
+	 *
+	 * @param {string} pListHash - Hash of the list to remove
+	 */
+	removeNamedList(pListHash)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.StaticOptionLists))
+		{
+			return;
+		}
+
+		for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+		{
+			if (tmpManifest.StaticOptionLists[i].Hash === pListHash)
+			{
+				tmpManifest.StaticOptionLists.splice(i, 1);
+				break;
+			}
+		}
+
+		// Clear any inputs linked to this list
+		if (tmpManifest.Descriptors)
+		{
+			let tmpAddresses = Object.keys(tmpManifest.Descriptors);
+			for (let d = 0; d < tmpAddresses.length; d++)
+			{
+				let tmpDescriptor = tmpManifest.Descriptors[tmpAddresses[d]];
+				if (tmpDescriptor && tmpDescriptor.PictForm && tmpDescriptor.PictForm.StaticOptionListHash === pListHash)
+				{
+					delete tmpDescriptor.PictForm.StaticOptionListHash;
+				}
+			}
+		}
+
+		if (this._ExpandedNamedList === pListHash)
+		{
+			this._ExpandedNamedList = null;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Toggle the expanded/collapsed state of a named option list.
+	 *
+	 * @param {string} pListHash - Hash of the list to toggle
+	 */
+	toggleNamedListExpand(pListHash)
+	{
+		if (this._ExpandedNamedList === pListHash)
+		{
+			this._ExpandedNamedList = null;
+		}
+		else
+		{
+			this._ExpandedNamedList = pListHash;
+		}
+
+		if (this._ParentFormEditor._PropertiesPanelView)
+		{
+			this._ParentFormEditor._PropertiesPanelView.renderPanel();
+		}
+	}
+
+	/**
+	 * Set the option source for the currently selected input.
+	 *
+	 * @param {string} pSource - 'inline' or 'named'
+	 */
+	setInputOptionSource(pSource)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		if (pSource === 'inline')
+		{
+			// Remove the named list link
+			delete tmpResolved.Descriptor.PictForm.StaticOptionListHash;
+		}
+		else if (pSource === 'named')
+		{
+			// Set a placeholder; the user will pick from the dropdown
+			if (!tmpResolved.Descriptor.PictForm.StaticOptionListHash)
+			{
+				tmpResolved.Descriptor.PictForm.StaticOptionListHash = '';
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Assign a named option list to the currently selected input.
+	 * Copies the list's Options into the input's SelectOptions.
+	 *
+	 * @param {string} pListHash - Hash of the named list to assign
+	 */
+	assignNamedListToInput(pListHash)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		tmpResolved.Descriptor.PictForm.StaticOptionListHash = pListHash;
+
+		// Copy the named list's options to SelectOptions
+		if (pListHash)
+		{
+			let tmpManifest = this._ParentFormEditor._resolveManifestData();
+			if (tmpManifest && Array.isArray(tmpManifest.StaticOptionLists))
+			{
+				for (let i = 0; i < tmpManifest.StaticOptionLists.length; i++)
+				{
+					if (tmpManifest.StaticOptionLists[i].Hash === pListHash)
+					{
+						let tmpListOptions = tmpManifest.StaticOptionLists[i].Options || [];
+						tmpResolved.Descriptor.PictForm.SelectOptions = JSON.parse(JSON.stringify(tmpListOptions));
+						break;
+					}
+				}
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Handle drag start for option entry reordering.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pIndex - Index of the dragged entry
+	 * @param {object} pEvent - The dragstart event
+	 */
+	onOptionDragStart(pContext, pIndex, pEvent)
+	{
+		this._OptionsDragState = { Context: pContext, FromIndex: pIndex };
+		if (pEvent && pEvent.dataTransfer)
+		{
+			pEvent.dataTransfer.effectAllowed = 'move';
+			pEvent.dataTransfer.setData('text/plain', String(pIndex));
+		}
+		if (pEvent && pEvent.target)
+		{
+			pEvent.target.style.opacity = '0.5';
+		}
+	}
+
+	/**
+	 * Handle drag over for option entry reordering.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pIndex - Index of the drop target
+	 * @param {object} pEvent - The dragover event
+	 */
+	onOptionDragOver(pContext, pIndex, pEvent)
+	{
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+			if (pEvent.dataTransfer)
+			{
+				pEvent.dataTransfer.dropEffect = 'move';
+			}
+		}
+	}
+
+	/**
+	 * Handle drop for option entry reordering.
+	 *
+	 * @param {string} pContext - 'inline' or 'named:ListHash'
+	 * @param {number} pIndex - Index of the drop target
+	 * @param {object} pEvent - The drop event
+	 */
+	onOptionDrop(pContext, pIndex, pEvent)
+	{
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+		}
+
+		if (!this._OptionsDragState || this._OptionsDragState.Context !== pContext)
+		{
+			return;
+		}
+
+		let tmpFromIndex = this._OptionsDragState.FromIndex;
+		this._OptionsDragState = null;
+
+		if (tmpFromIndex !== pIndex)
+		{
+			this.reorderOption(pContext, tmpFromIndex, pIndex);
+		}
+	}
+
+	/**
+	 * Handle drag end for option entry reordering.
+	 *
+	 * @param {object} pEvent - The dragend event
+	 */
+	onOptionDragEnd(pEvent)
+	{
+		this._OptionsDragState = null;
+		if (pEvent && pEvent.target)
+		{
+			pEvent.target.style.opacity = '';
+		}
 	}
 
 	/* -------------------------------------------------------------------------- */
