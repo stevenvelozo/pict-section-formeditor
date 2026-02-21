@@ -191,16 +191,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += `<input class="pict-fe-props-input" type="number" min="1" max="12" value="${this._escapeAttr(String(tmpWidth))}" placeholder="auto" onchange="${tmpPanelViewRef}.commitPropertyChange('Width', this.value)" />`;
 		tmpHTML += '</div>';
 
-		// InputType-specific properties placeholder
+		// InputType-specific properties section
 		tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
-		if (tmpInputType)
-		{
-			tmpHTML += `<div class="pict-fe-props-placeholder">Additional properties for <strong>${this._escapeHTML(tmpInputType)}</strong> will appear here.</div>`;
-		}
-		else
-		{
-			tmpHTML += '<div class="pict-fe-props-placeholder">Select an InputType to see additional properties.</div>';
-		}
+		tmpHTML += this._renderInputTypeProperties(tmpInputType, tmpDescriptor, tmpPanelViewRef);
 
 		tmpHTML += '</div>'; // pict-fe-props-body
 
@@ -336,6 +329,218 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	}
 
 	/**
+	 * Re-key an input address in the manifest (Descriptors map and Row.Inputs array).
+	 *
+	 * @param {object} pResolved - The resolved descriptor context from _resolveSelectedDescriptor()
+	 * @param {string} pNewHash - The new hash/address to use
+	 */
+	_reKeyAddress(pResolved, pNewHash)
+	{
+		if (!pResolved || !pResolved.Manifest || !pResolved.Address)
+		{
+			return;
+		}
+
+		let tmpOldAddress = pResolved.Address;
+		let tmpNewAddress = pNewHash;
+		if (tmpNewAddress === tmpOldAddress)
+		{
+			return;
+		}
+
+		let tmpManifest = pResolved.Manifest;
+
+		// Re-key the Descriptor in the Descriptors map
+		if (tmpManifest.Descriptors && tmpManifest.Descriptors[tmpOldAddress])
+		{
+			tmpManifest.Descriptors[tmpNewAddress] = tmpManifest.Descriptors[tmpOldAddress];
+			delete tmpManifest.Descriptors[tmpOldAddress];
+		}
+
+		// Update the address in the Row.Inputs array
+		let tmpRow = pResolved.Row;
+		if (tmpRow && Array.isArray(tmpRow.Inputs))
+		{
+			let tmpIdx = tmpRow.Inputs.indexOf(tmpOldAddress);
+			if (tmpIdx >= 0)
+			{
+				tmpRow.Inputs[tmpIdx] = tmpNewAddress;
+			}
+		}
+	}
+
+	/**
+	 * Render the InputType-specific properties section.
+	 *
+	 * Looks up the Manifest for the current InputType and renders an editable
+	 * field for each descriptor in it.
+	 *
+	 * @param {string} pInputType - The current InputType hash (e.g. 'Option')
+	 * @param {object} pDescriptor - The full Descriptor object for the selected input
+	 * @param {string} pPanelViewRef - The browser-accessible view reference string
+	 * @return {string} HTML string for the InputType properties section
+	 */
+	_renderInputTypeProperties(pInputType, pDescriptor, pPanelViewRef)
+	{
+		if (!pInputType)
+		{
+			return '<div class="pict-fe-props-placeholder">Select an InputType to see additional properties.</div>';
+		}
+
+		let tmpManifest = this._ParentFormEditor._getInputTypeManifest(pInputType);
+		if (!tmpManifest || !tmpManifest.Descriptors || Object.keys(tmpManifest.Descriptors).length === 0)
+		{
+			return '<div class="pict-fe-props-placeholder">No additional properties for ' + this._escapeHTML(pInputType) + '.</div>';
+		}
+
+		let tmpPictForm = (pDescriptor && pDescriptor.PictForm) ? pDescriptor.PictForm : {};
+		let tmpHTML = '';
+
+		tmpHTML += `<div class="pict-fe-props-section-header">${this._escapeHTML(pInputType)} Properties</div>`;
+
+		let tmpDescriptorKeys = Object.keys(tmpManifest.Descriptors);
+		for (let i = 0; i < tmpDescriptorKeys.length; i++)
+		{
+			let tmpPropHash = tmpDescriptorKeys[i];
+			let tmpPropDescriptor = tmpManifest.Descriptors[tmpPropHash];
+			let tmpPropName = tmpPropDescriptor.Name || tmpPropHash;
+			let tmpPropDataType = tmpPropDescriptor.DataType || 'String';
+			let tmpPropDescription = tmpPropDescriptor.Description || '';
+			let tmpCurrentValue = tmpPictForm.hasOwnProperty(tmpPropHash) ? tmpPictForm[tmpPropHash] : '';
+
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += `<div class="pict-fe-props-label" title="${this._escapeAttr(tmpPropDescription)}">${this._escapeHTML(tmpPropName)}</div>`;
+
+			if (tmpPropDataType === 'Boolean')
+			{
+				let tmpChecked = tmpCurrentValue ? ' checked' : '';
+				tmpHTML += `<label class="pict-fe-props-checkbox-label">`;
+				tmpHTML += `<input type="checkbox" class="pict-fe-props-checkbox"${tmpChecked} onchange="${pPanelViewRef}.commitPictFormChange('${tmpPropHash}', this.checked, 'Boolean')" />`;
+				tmpHTML += ` ${this._escapeHTML(tmpPropDescription)}</label>`;
+			}
+			else if (tmpPropDataType === 'Number')
+			{
+				let tmpDisplayValue = (typeof tmpCurrentValue === 'number') ? String(tmpCurrentValue) : '';
+				tmpHTML += `<input class="pict-fe-props-input" type="number" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitPictFormChange('${tmpPropHash}', this.value, 'Number')" />`;
+			}
+			else
+			{
+				// String — use a textarea for values that describe JSON arrays or templates
+				let tmpIsMultiline = (tmpPropDescription.indexOf('JSON') >= 0) || (tmpPropHash === 'Template');
+				if (tmpIsMultiline)
+				{
+					let tmpDisplayValue = '';
+					if (typeof tmpCurrentValue === 'string')
+					{
+						tmpDisplayValue = tmpCurrentValue;
+					}
+					else if (tmpCurrentValue !== null && tmpCurrentValue !== undefined && typeof tmpCurrentValue !== 'string')
+					{
+						// Stringify arrays/objects for display
+						try { tmpDisplayValue = JSON.stringify(tmpCurrentValue, null, 2); }
+						catch (e) { tmpDisplayValue = String(tmpCurrentValue); }
+					}
+					tmpHTML += `<textarea class="pict-fe-props-textarea" rows="4" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitPictFormChange('${tmpPropHash}', this.value, 'String')">${this._escapeHTML(tmpDisplayValue)}</textarea>`;
+				}
+				else
+				{
+					let tmpDisplayValue = (typeof tmpCurrentValue === 'string') ? tmpCurrentValue : (tmpCurrentValue !== null && tmpCurrentValue !== undefined ? String(tmpCurrentValue) : '');
+					tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpPropDescription)}" onchange="${pPanelViewRef}.commitPictFormChange('${tmpPropHash}', this.value, 'String')" />`;
+				}
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Commit a PictForm property change for the currently selected input.
+	 *
+	 * @param {string} pPropertyHash - The PictForm property key (e.g. 'SelectOptions', 'ChartType')
+	 * @param {*} pValue - The new value from the form control
+	 * @param {string} pDataType - The Manyfest DataType ('String', 'Number', 'Boolean')
+	 */
+	commitPictFormChange(pPropertyHash, pValue, pDataType)
+	{
+		if (!this._SelectedInput || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		let tmpDescriptor = tmpResolved.Descriptor;
+
+		if (!tmpDescriptor.PictForm)
+		{
+			tmpDescriptor.PictForm = {};
+		}
+
+		switch (pDataType)
+		{
+			case 'Boolean':
+			{
+				tmpDescriptor.PictForm[pPropertyHash] = !!pValue;
+				break;
+			}
+
+			case 'Number':
+			{
+				let tmpNumValue = parseFloat(pValue);
+				if (isNaN(tmpNumValue) || pValue === '')
+				{
+					delete tmpDescriptor.PictForm[pPropertyHash];
+				}
+				else
+				{
+					tmpDescriptor.PictForm[pPropertyHash] = tmpNumValue;
+				}
+				break;
+			}
+
+			default: // String
+			{
+				if (typeof pValue === 'string' && pValue.length > 0)
+				{
+					// Try to parse JSON for array/object properties
+					let tmpTrimmed = pValue.trim();
+					if ((tmpTrimmed.charAt(0) === '[' && tmpTrimmed.charAt(tmpTrimmed.length - 1) === ']') ||
+						(tmpTrimmed.charAt(0) === '{' && tmpTrimmed.charAt(tmpTrimmed.length - 1) === '}'))
+					{
+						try
+						{
+							tmpDescriptor.PictForm[pPropertyHash] = JSON.parse(tmpTrimmed);
+						}
+						catch (e)
+						{
+							// Not valid JSON — store as raw string
+							tmpDescriptor.PictForm[pPropertyHash] = pValue;
+						}
+					}
+					else
+					{
+						tmpDescriptor.PictForm[pPropertyHash] = pValue;
+					}
+				}
+				else
+				{
+					delete tmpDescriptor.PictForm[pPropertyHash];
+				}
+				break;
+			}
+		}
+
+		// Re-render the parent's visual editor (which also re-renders this panel)
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
 	 * Commit a property change from the properties panel.
 	 *
 	 * @param {string} pProperty - The property to update ('Name', 'Hash', 'DataType', 'Width')
@@ -359,8 +564,28 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		switch (pProperty)
 		{
 			case 'Name':
+			{
+				let tmpOldHash = tmpDescriptor.Hash || '';
 				tmpDescriptor.Name = pValue;
+
+				// Auto-update Hash if it still matches the auto-generated
+				// pattern (ends with _I{n}).  If the user has manually
+				// edited the hash, leave it alone.
+				if (this._ParentFormEditor._isAutoGeneratedInputHash(tmpOldHash))
+				{
+					// Build new hash: keep the prefix (everything up to the last _I segment), replace with sanitized name
+					let tmpPrefixMatch = tmpOldHash.match(/^(.+_R\d+_)Input\d+$/);
+					if (tmpPrefixMatch)
+					{
+						let tmpNewHash = tmpPrefixMatch[1] + this._ParentFormEditor.sanitizeObjectKey(pValue);
+						tmpDescriptor.Hash = tmpNewHash;
+
+						// Also re-key the address in the manifest
+						this._reKeyAddress(tmpResolved, tmpNewHash);
+					}
+				}
 				break;
+			}
 
 			case 'Hash':
 				tmpDescriptor.Hash = pValue;

@@ -137,6 +137,49 @@ suite
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Name).to.equal('My Section');
 					}
 				);
+				test
+				(
+					'Should create a code editor child view on initialize',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestCodeEditorView',
+						{
+							ViewIdentifier: 'TestCodeEditorView',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						Expect(tmpView._CodeEditorView).to.be.an('object');
+						Expect(tmpView._CodeEditorView.options.Language).to.equal('json');
+						Expect(tmpView._CodeEditorView.options.LineNumbers).to.equal(true);
+						Expect(tmpView._CodeEditorView.options.ReadOnly).to.equal(false);
+					}
+				);
+				test
+				(
+					'Should update code editor content via _updateCodeEditor',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData = {};
+
+						let tmpView = tmpPict.addView('TestUpdateCodeEditor',
+						{
+							ViewIdentifier: 'TestUpdateCodeEditor',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+
+						// Without a DOM, codeJar won't be initialized,
+						// so _updateCodeEditor should not throw
+						tmpView._updateCodeEditor();
+					}
+				);
 			}
 		);
 		suite
@@ -163,13 +206,13 @@ suite
 						tmpView.addSection();
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						Expect(tmpManifest.Sections.length).to.equal(1);
-						Expect(tmpManifest.Sections[0].Hash).to.equal('Section_1');
+						Expect(tmpManifest.Sections[0].Hash).to.equal('S1');
 						Expect(tmpManifest.Sections[0].Name).to.equal('Section 1');
 						Expect(tmpManifest.Sections[0].Groups).to.be.an('array');
 
 						tmpView.addSection();
 						Expect(tmpManifest.Sections.length).to.equal(2);
-						Expect(tmpManifest.Sections[1].Hash).to.equal('Section_2');
+						Expect(tmpManifest.Sections[1].Hash).to.equal('S2');
 					}
 				);
 				test
@@ -195,8 +238,8 @@ suite
 
 						tmpView.removeSection(1);
 						Expect(tmpPict.AppData.FormConfig.Sections.length).to.equal(2);
-						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('Section_1');
-						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('Section_3');
+						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
+						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S3');
 					}
 				);
 				test
@@ -220,13 +263,13 @@ suite
 
 						// Move section at index 2 up
 						tmpView.moveSectionUp(2);
-						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('Section_3');
-						Expect(tmpPict.AppData.FormConfig.Sections[2].Hash).to.equal('Section_2');
+						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S3');
+						Expect(tmpPict.AppData.FormConfig.Sections[2].Hash).to.equal('S2');
 
 						// Move section at index 0 down
 						tmpView.moveSectionDown(0);
-						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('Section_3');
-						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('Section_1');
+						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S3');
+						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S1');
 					}
 				);
 				test
@@ -272,11 +315,11 @@ suite
 
 						// Moving up at index 0 should be a no-op
 						tmpView.moveSectionUp(0);
-						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('Section_1');
+						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
 
 						// Moving down at last index should be a no-op
 						tmpView.moveSectionDown(0);
-						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('Section_1');
+						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
 
 						// Removing at invalid index should be a no-op
 						tmpView.removeSection(5);
@@ -313,12 +356,12 @@ suite
 						// addSection creates a default group, so we already have one
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups.length).to.equal(1);
-						Expect(tmpSection.Groups[0].Hash).to.equal('Section_1Group_1');
+						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
 						Expect(tmpSection.Groups[0].Layout).to.equal('Record');
 
 						tmpView.addGroup(0);
 						Expect(tmpSection.Groups.length).to.equal(2);
-						Expect(tmpSection.Groups[1].Hash).to.equal('Section_1Group_2');
+						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G2');
 					}
 				);
 				test
@@ -346,8 +389,8 @@ suite
 
 						tmpView.removeGroup(0, 1);
 						Expect(tmpSection.Groups.length).to.equal(2);
-						Expect(tmpSection.Groups[0].Hash).to.equal('Section_1Group_1');
-						Expect(tmpSection.Groups[1].Hash).to.equal('Section_1Group_3');
+						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
+						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G3');
 					}
 				);
 				test
@@ -373,12 +416,12 @@ suite
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 
 						tmpView.moveGroupUp(0, 2);
-						Expect(tmpSection.Groups[1].Hash).to.equal('Section_1Group_3');
-						Expect(tmpSection.Groups[2].Hash).to.equal('Section_1Group_2');
+						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G3');
+						Expect(tmpSection.Groups[2].Hash).to.equal('S1_G2');
 
 						tmpView.moveGroupDown(0, 0);
-						Expect(tmpSection.Groups[0].Hash).to.equal('Section_1Group_3');
-						Expect(tmpSection.Groups[1].Hash).to.equal('Section_1Group_1');
+						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G3');
+						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G1');
 					}
 				);
 				test
@@ -459,13 +502,13 @@ suite
 						tmpView.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
-						Expect(tmpSection.Groups[0].Hash).to.equal('Section_1Group_1');
-						Expect(tmpSection.Groups[1].Hash).to.equal('Section_1Group_2');
+						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
+						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G2');
 
 						// Rename the section hash; groups should cascade
 						tmpView.updateSectionProperty(0, 'Hash', 'CustomerInfo');
-						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfoGroup_1');
-						Expect(tmpSection.Groups[1].Hash).to.equal('CustomerInfoGroup_2');
+						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfo_G1');
+						Expect(tmpSection.Groups[1].Hash).to.equal('CustomerInfo_G2');
 					}
 				);
 				test
@@ -488,13 +531,13 @@ suite
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 
-						// Manually customize the second group's hash (no Group_ prefix)
+						// Manually customize the second group's hash (no _G prefix)
 						tmpSection.Groups[1].Hash = 'MyCustomHash';
 
 						// Rename the section hash; only auto-generated groups
-						// (those with the Group_ prefix) should cascade
+						// (those with the _G prefix) should cascade
 						tmpView.updateSectionProperty(0, 'Hash', 'CustomerInfo');
-						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfoGroup_1');
+						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfo_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('MyCustomHash');
 					}
 				);
@@ -525,9 +568,9 @@ suite
 
 						// Change section hash; groups 0 and 2 should update, group 1 stays
 						tmpView.updateSectionProperty(0, 'Hash', 'NewSection');
-						Expect(tmpSection.Groups[0].Hash).to.equal('NewSectionGroup_1');
+						Expect(tmpSection.Groups[0].Hash).to.equal('NewSection_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('CustomMiddle');
-						Expect(tmpSection.Groups[2].Hash).to.equal('NewSectionGroup_3');
+						Expect(tmpSection.Groups[2].Hash).to.equal('NewSection_G3');
 					}
 				);
 			}
@@ -672,8 +715,8 @@ suite
 						Expect(tmpDescriptor1.Name).to.be.a('string');
 						Expect(tmpDescriptor1.Hash).to.be.a('string');
 						Expect(tmpDescriptor1.PictForm).to.be.an('object');
-						Expect(tmpDescriptor1.PictForm.Section).to.equal('Section_1');
-						Expect(tmpDescriptor1.PictForm.Group).to.equal('Section_1Group_1');
+						Expect(tmpDescriptor1.PictForm.Section).to.equal('S1');
+						Expect(tmpDescriptor1.PictForm.Group).to.equal('S1_G1');
 						Expect(tmpDescriptor1.PictForm.Row).to.equal(1);
 
 						tmpView.addInput(0, 0, 0);
@@ -2480,6 +2523,220 @@ suite
 
 						tmpView.deselectInput();
 						Expect(tmpView._SelectedInput).to.equal(null);
+					}
+				);
+			}
+		);
+		suite
+		(
+			'InputType Manifests',
+			function ()
+			{
+				test
+				(
+					'InputType definitions with manifests should have valid Descriptor structures',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestManifestStructure',
+						{
+							ViewIdentifier: 'TestManifestStructure',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						let tmpTypesWithManifests = ['Option', 'PreciseNumberReadOnly', 'Chart', 'TabSectionSelector', 'TabGroupSelector', 'Templated', 'TemplatedEntityLookup'];
+
+						for (let i = 0; i < tmpView._InputTypeDefinitions.length; i++)
+						{
+							let tmpDef = tmpView._InputTypeDefinitions[i];
+							if (tmpDef.Manifest)
+							{
+								Expect(tmpDef.Manifest).to.be.an('object');
+								Expect(tmpDef.Manifest.Descriptors).to.be.an('object');
+
+								let tmpKeys = Object.keys(tmpDef.Manifest.Descriptors);
+								Expect(tmpKeys.length).to.be.greaterThan(0);
+
+								for (let j = 0; j < tmpKeys.length; j++)
+								{
+									let tmpDesc = tmpDef.Manifest.Descriptors[tmpKeys[j]];
+									Expect(tmpDesc).to.be.an('object');
+									Expect(tmpDesc.Name).to.be.a('string');
+									Expect(tmpDesc.Hash).to.be.a('string');
+									Expect(tmpDesc.DataType).to.be.a('string');
+									Expect(tmpDesc.Description).to.be.a('string');
+								}
+							}
+						}
+					}
+				);
+				test
+				(
+					'_getInputTypeManifest should return manifest for types that have one',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestGetManifest',
+						{
+							ViewIdentifier: 'TestGetManifest',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						let tmpOptionManifest = tmpView._getInputTypeManifest('Option');
+						Expect(tmpOptionManifest).to.be.an('object');
+						Expect(tmpOptionManifest.Descriptors).to.be.an('object');
+						Expect(tmpOptionManifest.Descriptors['SelectOptions']).to.be.an('object');
+						Expect(tmpOptionManifest.Descriptors['SelectOptionsPickList']).to.be.an('object');
+
+						let tmpChartManifest = tmpView._getInputTypeManifest('Chart');
+						Expect(tmpChartManifest).to.be.an('object');
+						Expect(tmpChartManifest.Descriptors['ChartType']).to.be.an('object');
+
+						let tmpPNROManifest = tmpView._getInputTypeManifest('PreciseNumberReadOnly');
+						Expect(tmpPNROManifest).to.be.an('object');
+						Expect(tmpPNROManifest.Descriptors['DecimalPrecision']).to.be.an('object');
+						Expect(tmpPNROManifest.Descriptors['AddCommas']).to.be.an('object');
+						Expect(tmpPNROManifest.Descriptors['DigitsPrefix']).to.be.an('object');
+						Expect(tmpPNROManifest.Descriptors['DigitsPostfix']).to.be.an('object');
+					}
+				);
+				test
+				(
+					'_getInputTypeManifest should return null for types without a manifest',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestGetManifestNull',
+						{
+							ViewIdentifier: 'TestGetManifestNull',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						Expect(tmpView._getInputTypeManifest('TextArea')).to.equal(null);
+						Expect(tmpView._getInputTypeManifest('Boolean')).to.equal(null);
+						Expect(tmpView._getInputTypeManifest('Hidden')).to.equal(null);
+						Expect(tmpView._getInputTypeManifest('Link')).to.equal(null);
+						Expect(tmpView._getInputTypeManifest('')).to.equal(null);
+						Expect(tmpView._getInputTypeManifest(null)).to.equal(null);
+						Expect(tmpView._getInputTypeManifest('NonExistent')).to.equal(null);
+					}
+				);
+				test
+				(
+					'commitPictFormChange should update PictForm properties on the Descriptor',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpPropertiesPanel = require('../source/views/PictView-FormEditor-PropertiesPanel.js');
+
+						let tmpView = tmpPict.addView('TestCommitPictForm',
+						{
+							ViewIdentifier: 'TestCommitPictForm'
+						}, tmpPropertiesPanel);
+
+						// Create a mock parent form editor
+						let tmpFormEditor = tmpPict.addView('TestCommitPictFormParent',
+						{
+							ViewIdentifier: 'TestCommitPictFormParent',
+							ManifestDataAddress: 'AppData.TestCommitManifest'
+						}, libPictSectionFormEditor);
+						tmpFormEditor.initialize();
+
+						// Set up manifest data with a section/group/row/input
+						tmpFormEditor.addSection();
+						tmpFormEditor.addGroup(0);
+						tmpFormEditor.addRow(0, 0);
+						tmpFormEditor.addInput(0, 0, 0);
+
+						// Wire the properties panel to the form editor
+						tmpView._ParentFormEditor = tmpFormEditor;
+						tmpView.selectInput(0, 0, 0, 0);
+
+						// Test String property
+						tmpView.commitPictFormChange('Template', 'Hello {~D:Name~}', 'String');
+						let tmpManifest = tmpFormEditor._resolveManifestData();
+						let tmpAddress = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
+						let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+						Expect(tmpDescriptor.PictForm.Template).to.equal('Hello {~D:Name~}');
+
+						// Test Number property
+						tmpView.commitPictFormChange('DecimalPrecision', '2', 'Number');
+						Expect(tmpDescriptor.PictForm.DecimalPrecision).to.equal(2);
+
+						// Test Boolean property
+						tmpView.commitPictFormChange('AddCommas', true, 'Boolean');
+						Expect(tmpDescriptor.PictForm.AddCommas).to.equal(true);
+
+						// Test empty Number removes property
+						tmpView.commitPictFormChange('DecimalPrecision', '', 'Number');
+						Expect(tmpDescriptor.PictForm.hasOwnProperty('DecimalPrecision')).to.equal(false);
+
+						// Test empty String removes property
+						tmpView.commitPictFormChange('Template', '', 'String');
+						Expect(tmpDescriptor.PictForm.hasOwnProperty('Template')).to.equal(false);
+
+						// Test JSON string auto-parsing
+						tmpView.commitPictFormChange('SelectOptions', '[{"id":"1","text":"One"}]', 'String');
+						Expect(Array.isArray(tmpDescriptor.PictForm.SelectOptions)).to.equal(true);
+						Expect(tmpDescriptor.PictForm.SelectOptions[0].id).to.equal('1');
+					}
+				);
+				test
+				(
+					'TabGroupSelector and TabSectionSelector should have correct manifest properties',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestTabManifests',
+						{
+							ViewIdentifier: 'TestTabManifests',
+							ManifestDataAddress: 'AppData.FormConfig'
+						}, libPictSectionFormEditor);
+
+						let tmpTabGroupManifest = tmpView._getInputTypeManifest('TabGroupSelector');
+						Expect(tmpTabGroupManifest.Descriptors['TabGroupSet']).to.be.an('object');
+						Expect(tmpTabGroupManifest.Descriptors['DefaultTabGroupHash']).to.be.an('object');
+						Expect(tmpTabGroupManifest.Descriptors['DefaultFromData']).to.be.an('object');
+						Expect(tmpTabGroupManifest.Descriptors['DefaultFromData'].DataType).to.equal('Boolean');
+
+						let tmpTabSectionManifest = tmpView._getInputTypeManifest('TabSectionSelector');
+						Expect(tmpTabSectionManifest.Descriptors['TabSectionSet']).to.be.an('object');
+						Expect(tmpTabSectionManifest.Descriptors['DefaultTabSectionHash']).to.be.an('object');
+						Expect(tmpTabSectionManifest.Descriptors['DefaultFromData']).to.be.an('object');
+					}
+				);
+				test
+				(
+					'Custom InputType definitions with manifests should merge correctly',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestCustomManifests',
+						{
+							ViewIdentifier: 'TestCustomManifests',
+							ManifestDataAddress: 'AppData.FormConfig',
+							InputTypeDefinitions:
+							[
+								{
+									Hash: 'CustomWidget',
+									Name: 'Custom Widget',
+									Description: 'A custom widget',
+									Category: 'Custom',
+									Manifest:
+									{
+										Descriptors:
+										{
+											'WidgetColor': { Name: 'Widget Color', Hash: 'WidgetColor', DataType: 'String', Description: 'The color of the widget' }
+										}
+									}
+								}
+							]
+						}, libPictSectionFormEditor);
+
+						let tmpCustomManifest = tmpView._getInputTypeManifest('CustomWidget');
+						Expect(tmpCustomManifest).to.be.an('object');
+						Expect(tmpCustomManifest.Descriptors['WidgetColor']).to.be.an('object');
+						Expect(tmpCustomManifest.Descriptors['WidgetColor'].DataType).to.equal('String');
 					}
 				);
 			}

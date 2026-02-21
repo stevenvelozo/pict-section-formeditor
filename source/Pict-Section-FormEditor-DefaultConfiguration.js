@@ -23,6 +23,9 @@ module.exports = (
 	border: 1px solid #E8E3DA;
 	border-radius: 6px;
 	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	min-height: calc(100vh - 120px);
 }
 
 /* ---- Tab Bar ---- */
@@ -64,10 +67,14 @@ module.exports = (
 {
 	display: none;
 	padding: 16px;
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
 }
 .pict-fe-tabcontent-active
 {
-	display: block;
+	display: flex;
+	flex-direction: column;
 }
 
 /* ---- Visual Editor ---- */
@@ -774,6 +781,49 @@ module.exports = (
 	text-align: center;
 	padding: 8px;
 }
+.pict-fe-props-section-header
+{
+	font-size: 11px;
+	font-weight: 600;
+	color: #9E6B47;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin-bottom: 10px;
+}
+.pict-fe-props-textarea
+{
+	width: 100%;
+	padding: 6px 8px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-family: monospace;
+	font-size: 12px;
+	color: #3D3229;
+	background: #FFF;
+	resize: vertical;
+	box-sizing: border-box;
+}
+.pict-fe-props-textarea:focus
+{
+	border-color: #9E6B47;
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.12);
+}
+.pict-fe-props-checkbox-label
+{
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	font-size: 11px;
+	color: #5A5048;
+	cursor: pointer;
+	line-height: 1.4;
+}
+.pict-fe-props-checkbox
+{
+	margin-top: 2px;
+	flex-shrink: 0;
+}
 
 /* ---- InputType Picker Overlay ---- */
 .pict-fe-inputtype-overlay
@@ -898,21 +948,11 @@ module.exports = (
 	font-style: italic;
 }
 
-/* ---- JSON Tab ---- */
-.pict-fe-json-textarea
+/* ---- JSON Tab (Code Editor) ---- */
+.pict-fe-tabcontent .pict-code-editor-wrap
 {
-	width: 100%;
-	min-height: 400px;
-	font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
-	font-size: 12px;
-	line-height: 1.5;
-	padding: 12px;
-	border: 1px solid #E8E3DA;
-	border-radius: 4px;
-	background: #FAFAF8;
-	color: #3D3229;
-	resize: vertical;
-	box-sizing: border-box;
+	flex: 1;
+	min-height: 200px;
 }
 `,
 

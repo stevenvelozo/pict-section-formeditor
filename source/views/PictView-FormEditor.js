@@ -1,5 +1,6 @@
 const libPictView = require('pict-view');
 const libPictSectionObjectEditor = require('pict-section-objecteditor');
+const libPictSectionCode = require('pict-section-code');
 
 const _DefaultConfiguration = require('../Pict-Section-FormEditor-DefaultConfiguration.js');
 const libFormEditorIconography = require('../providers/Pict-Provider-FormEditorIconography.js');
@@ -21,6 +22,7 @@ class PictViewFormEditor extends libPictView
 
 		// Child view references
 		this._ObjectEditorView = null;
+		this._CodeEditorView = null;
 
 		// Supported Manyfest DataTypes
 		this._ManyfestDataTypes =
@@ -124,6 +126,50 @@ class PictViewFormEditor extends libPictView
 		);
 		this._PropertiesPanelView._ParentFormEditor = this;
 		this._PropertiesPanelView.initialize();
+
+		// Create the code editor child view (pict-section-code for JSON tab)
+		let tmpCodeEditorHash = `${this.Hash}-CodeEditor`;
+		this._CodeEditorView = this.pict.addView(
+			tmpCodeEditorHash,
+			{
+				ViewIdentifier: tmpCodeEditorHash,
+				TargetElementAddress: `#FormEditor-CodeEditor-Container-${this.Hash}`,
+				Language: 'json',
+				ReadOnly: false,
+				LineNumbers: true,
+				DefaultCode: '{}',
+				AutoRender: false,
+				RenderOnLoad: false,
+				DefaultRenderable: 'CodeEditor-Wrap',
+				DefaultDestinationAddress: `#FormEditor-CodeEditor-Container-${this.Hash}`,
+				Renderables:
+				[
+					{
+						RenderableHash: 'CodeEditor-Wrap',
+						TemplateHash: 'CodeEditor-Container',
+						DestinationAddress: `#FormEditor-CodeEditor-Container-${this.Hash}`
+					}
+				]
+			},
+			libPictSectionCode
+		);
+		this._CodeEditorView.initialize();
+
+		// Override onCodeChange to sync edits back to manifest
+		let tmpSelf = this;
+		this._CodeEditorView.onCodeChange = function(pCode)
+		{
+			// Try to parse; silently ignore invalid JSON while user is typing
+			try
+			{
+				let tmpParsed = JSON.parse(pCode);
+				tmpSelf._setManifestData(tmpParsed);
+			}
+			catch (e)
+			{
+				// JSON not yet valid — no-op until user finishes editing
+			}
+		};
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -169,9 +215,9 @@ class PictViewFormEditor extends libPictView
 		tmpHTML += `<div id="FormEditor-ObjectEditor-Container-${tmpHash}"></div>`;
 		tmpHTML += '</div>';
 
-		// JSON panel
+		// JSON panel — uses pict-section-code
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-JSON-${tmpHash}">`;
-		tmpHTML += `<textarea class="pict-fe-json-textarea" id="FormEditor-JSONTextarea-${tmpHash}" readonly></textarea>`;
+		tmpHTML += `<div id="FormEditor-CodeEditor-Container-${this.Hash}"></div>`;
 		tmpHTML += '</div>';
 
 		this.pict.ContentAssignment.assignContent(`#FormEditor-Wrap-${tmpHash}`, tmpHTML);
@@ -194,7 +240,7 @@ class PictViewFormEditor extends libPictView
 		}
 		else if (pTabName === 'json')
 		{
-			this._updateJSONTextarea();
+			this._updateCodeEditor();
 		}
 		else if (pTabName === 'visual')
 		{
@@ -754,10 +800,11 @@ class PictViewFormEditor extends libPictView
 		}
 
 		let tmpIndex = tmpManifest.Sections.length;
-		let tmpSectionName = `Section ${tmpIndex + 1}`;
-		let tmpSectionHash = this.sanitizeObjectKey(tmpSectionName);
+		let tmpSectionNum = tmpIndex + 1;
+		let tmpSectionName = `Section ${tmpSectionNum}`;
+		let tmpSectionHash = `S${tmpSectionNum}`;
 		let tmpGroupName = 'Group 1';
-		let tmpGroupHash = tmpSectionHash + 'Group_1';
+		let tmpGroupHash = `${tmpSectionHash}_G1`;
 
 		tmpManifest.Sections.push(
 		{
@@ -837,13 +884,13 @@ class PictViewFormEditor extends libPictView
 
 			// When the section Hash changes, cascade to group hashes that
 			// are still auto-generated.  Auto-generated group hashes follow
-			// the pattern {SectionHash}Group_{...}.  If the user has
-			// overridden a group hash the "Group_" prefix after the old
-			// section hash will no longer be present, so it is skipped.
+			// the pattern {SectionHash}_G{...}.  If the user has overridden
+			// a group hash the "_G" prefix after the old section hash will
+			// no longer be present, so it is skipped.
 			if (pProperty === 'Hash' && tmpOldValue !== pValue && Array.isArray(tmpSection.Groups))
 			{
-				let tmpOldPrefix = tmpOldValue + 'Group_';
-				let tmpNewPrefix = pValue + 'Group_';
+				let tmpOldPrefix = tmpOldValue + '_G';
+				let tmpNewPrefix = pValue + '_G';
 				for (let i = 0; i < tmpSection.Groups.length; i++)
 				{
 					let tmpGroup = tmpSection.Groups[i];
@@ -881,8 +928,9 @@ class PictViewFormEditor extends libPictView
 
 		let tmpIndex = tmpSection.Groups.length;
 		let tmpSectionHash = tmpSection.Hash || '';
-		let tmpGroupName = `Group ${tmpIndex + 1}`;
-		let tmpGroupHash = `${tmpSectionHash}Group_${tmpIndex + 1}`;
+		let tmpGroupNum = tmpIndex + 1;
+		let tmpGroupName = `Group ${tmpGroupNum}`;
+		let tmpGroupHash = `${tmpSectionHash}_G${tmpGroupNum}`;
 
 		tmpSection.Groups.push(
 		{
@@ -1151,22 +1199,23 @@ class PictViewFormEditor extends libPictView
 			tmpManifest.Descriptors = {};
 		}
 
-		// Generate a unique address for this input
-		let tmpInputIndex = tmpRow.Inputs.length + 1;
-		let tmpSectionHash = tmpSection.Hash || 'Section';
-		let tmpGroupHash = tmpGroup.Hash || 'Group';
-		let tmpInputHash = `${tmpGroupHash}Input_${tmpInputIndex}`;
+		// Generate a unique address for this input using short format
+		let tmpInputNum = tmpRow.Inputs.length + 1;
+		let tmpSectionHash = tmpSection.Hash || 'S';
+		let tmpGroupHash = tmpGroup.Hash || 'G';
+		let tmpRowNum = pRowIndex + 1;
+		let tmpInputHash = `${tmpGroupHash}_R${tmpRowNum}_Input${tmpInputNum}`;
 		let tmpAddress = tmpInputHash;
 
 		// Ensure the address is unique in the Descriptors
 		while (tmpManifest.Descriptors.hasOwnProperty(tmpAddress))
 		{
-			tmpInputIndex++;
-			tmpInputHash = `${tmpGroupHash}Input_${tmpInputIndex}`;
+			tmpInputNum++;
+			tmpInputHash = `${tmpGroupHash}_R${tmpRowNum}_Input${tmpInputNum}`;
 			tmpAddress = tmpInputHash;
 		}
 
-		let tmpInputName = `Input ${tmpInputIndex}`;
+		let tmpInputName = `Input ${tmpInputNum}`;
 
 		// Create the Descriptor entry
 		tmpManifest.Descriptors[tmpAddress] =
@@ -1178,7 +1227,7 @@ class PictViewFormEditor extends libPictView
 			{
 				Section: tmpSectionHash,
 				Group: tmpGroupHash,
-				Row: pRowIndex + 1
+				Row: tmpRowNum
 			}
 		};
 
@@ -1937,35 +1986,30 @@ class PictViewFormEditor extends libPictView
 
 		if (pType === 'Section')
 		{
-			// Capture the old name before updating, so we can detect
-			// whether the hash was auto-generated from it.
-			let tmpOldSectionName = null;
+			// Capture the old hash before updating, so we can detect
+			// whether the hash was auto-generated.
+			let tmpOldHash = null;
 			if (pProperty === 'Name')
 			{
 				let tmpSection = this._resolveManifestData().Sections[pSectionIndex];
 				if (tmpSection)
 				{
-					tmpOldSectionName = tmpSection.Name || '';
+					tmpOldHash = tmpSection.Hash || '';
 				}
 			}
 
 			this.updateSectionProperty(pSectionIndex, pProperty, tmpNewValue);
 
 			// When the user edits the Name, auto-generate the Hash if the
-			// current hash still matches what the old name would have
-			// generated.  If the user has manually overridden the hash it
-			// will no longer match and we leave it alone.
-			if (pProperty === 'Name' && tmpOldSectionName !== null)
+			// current hash still matches the auto-generated format (S{n}).
+			// If the user has manually overridden the hash it will no
+			// longer match and we leave it alone.
+			if (pProperty === 'Name' && tmpOldHash !== null)
 			{
-				let tmpSection = this._resolveManifestData().Sections[pSectionIndex];
-				if (tmpSection)
+				if (this._isAutoGeneratedSectionHash(tmpOldHash))
 				{
-					let tmpExpectedHash = this.sanitizeObjectKey(tmpOldSectionName);
-					if (tmpSection.Hash === tmpExpectedHash)
-					{
-						let tmpAutoHash = this.sanitizeObjectKey(tmpNewValue);
-						this.updateSectionProperty(pSectionIndex, 'Hash', tmpAutoHash);
-					}
+					let tmpAutoHash = this.sanitizeObjectKey(tmpNewValue);
+					this.updateSectionProperty(pSectionIndex, 'Hash', tmpAutoHash);
 				}
 			}
 		}
@@ -1974,7 +2018,7 @@ class PictViewFormEditor extends libPictView
 			this.updateGroupProperty(pSectionIndex, pGroupIndex, pProperty, tmpNewValue);
 
 			// When the user edits the Name, auto-generate the Hash if it
-			// still follows the auto-generated pattern ({SectionHash}Group_...).
+			// still follows the auto-generated pattern ({SectionHash}_G...).
 			if (pProperty === 'Name')
 			{
 				let tmpManifest = this._resolveManifestData();
@@ -1983,7 +2027,7 @@ class PictViewFormEditor extends libPictView
 				if (tmpGroup)
 				{
 					let tmpSectionHash = tmpSection.Hash || '';
-					let tmpAutoPrefix = tmpSectionHash + 'Group_';
+					let tmpAutoPrefix = tmpSectionHash + '_G';
 					if (tmpGroup.Hash && tmpGroup.Hash.indexOf(tmpAutoPrefix) === 0)
 					{
 						let tmpAutoHash = tmpAutoPrefix + this.sanitizeObjectKey(tmpNewValue);
@@ -2492,14 +2536,28 @@ class PictViewFormEditor extends libPictView
 	/*                     Code Section: JSON Tab                                 */
 	/* -------------------------------------------------------------------------- */
 
-	_updateJSONTextarea()
+	_updateCodeEditor()
 	{
 		let tmpManifest = this._resolveManifestData();
-		let tmpTextareaSet = this.pict.ContentAssignment.getElement(`#FormEditor-JSONTextarea-${this.Hash}`);
-		let tmpTextarea = (Array.isArray(tmpTextareaSet) && tmpTextareaSet.length > 0) ? tmpTextareaSet[0] : tmpTextareaSet;
-		if (tmpTextarea && tmpTextarea.value !== undefined)
+		let tmpJSON = JSON.stringify(tmpManifest, null, '\t');
+
+		if (this._CodeEditorView)
 		{
-			tmpTextarea.value = JSON.stringify(tmpManifest, null, '\t');
+			if (this._CodeEditorView.codeJar)
+			{
+				// Code editor already initialized — just update the code
+				this._CodeEditorView.setCode(tmpJSON);
+			}
+			else
+			{
+				// First time switching to JSON tab — render the code editor
+				this._CodeEditorView.render();
+				// After render, setCode with current manifest
+				if (this._CodeEditorView.codeJar)
+				{
+					this._CodeEditorView.setCode(tmpJSON);
+				}
+			}
 		}
 	}
 
@@ -2688,7 +2746,9 @@ class PictViewFormEditor extends libPictView
 	 */
 	_buildInputTypeDefinitions(pOptions)
 	{
-		// Built-in InputType definitions categorized by function
+		// Built-in InputType definitions categorized by function.
+		// Each definition can include a Manifest with Descriptors for
+		// InputType-specific PictForm properties, rendered in the properties panel.
 		let tmpDefaults =
 		[
 			// Text & Content
@@ -2697,25 +2757,99 @@ class PictViewFormEditor extends libPictView
 			{ Hash: 'HTML', Name: 'HTML', Description: 'Rich HTML content block', Category: 'Text & Content' },
 
 			// Selection
-			{ Hash: 'Option', Name: 'Option', Description: 'Dropdown select from a set of choices', Category: 'Selection' },
+			{
+				Hash: 'Option', Name: 'Option', Description: 'Dropdown select from a set of choices', Category: 'Selection',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'SelectOptions': { Name: 'Select Options', Hash: 'SelectOptions', DataType: 'String', Description: 'JSON array of {id, text} option objects' },
+						'SelectOptionsPickList': { Name: 'Pick List Name', Hash: 'SelectOptionsPickList', DataType: 'String', Description: 'Dynamic pick list name from AppData' }
+					}
+				}
+			},
 			{ Hash: 'Boolean', Name: 'Boolean', Description: 'Checkbox or toggle for true/false values', Category: 'Selection' },
 			{ Hash: 'Color', Name: 'Color', Description: 'Color picker input', Category: 'Selection' },
 
 			// Display
 			{ Hash: 'DisplayOnly', Name: 'Display Only', Description: 'Read-only display of the value with no input control', Category: 'Display', Prominent: true },
 			{ Hash: 'ReadOnly', Name: 'Read Only', Description: 'Input-styled read-only field', Category: 'Display', Prominent: true },
-			{ Hash: 'PreciseNumberReadOnly', Name: 'Precise Number (Read Only)', Description: 'Formatted precise number display with optional prefix/postfix', Category: 'Display', Prominent: true },
+			{
+				Hash: 'PreciseNumberReadOnly', Name: 'Precise Number (Read Only)', Description: 'Formatted precise number display with optional prefix/postfix', Category: 'Display', Prominent: true,
+				Manifest:
+				{
+					Descriptors:
+					{
+						'DecimalPrecision': { Name: 'Decimal Precision', Hash: 'DecimalPrecision', DataType: 'Number', Description: 'Number of decimal places to display' },
+						'AddCommas': { Name: 'Add Commas', Hash: 'AddCommas', DataType: 'Boolean', Description: 'Add thousand-separator commas to the number' },
+						'DigitsPrefix': { Name: 'Prefix', Hash: 'DigitsPrefix', DataType: 'String', Description: 'Prefix string prepended to the value (e.g. "$")' },
+						'DigitsPostfix': { Name: 'Postfix', Hash: 'DigitsPostfix', DataType: 'String', Description: 'Postfix string appended to the value (e.g. " USD")' }
+					}
+				}
+			},
 			{ Hash: 'Hidden', Name: 'Hidden', Description: 'Hidden input, not visible to the user', Category: 'Display' },
-			{ Hash: 'Chart', Name: 'Chart', Description: 'Data visualization chart', Category: 'Display' },
+			{
+				Hash: 'Chart', Name: 'Chart', Description: 'Data visualization chart', Category: 'Display',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'ChartType': { Name: 'Chart Type', Hash: 'ChartType', DataType: 'String', Description: 'Chart.js type (bar, line, pie, doughnut, radar, polarArea)' },
+						'ChartLabelsAddress': { Name: 'Labels Address', Hash: 'ChartLabelsAddress', DataType: 'String', Description: 'AppData address to resolve chart labels from' },
+						'ChartLabelsSolver': { Name: 'Labels Solver', Hash: 'ChartLabelsSolver', DataType: 'String', Description: 'Fable solver expression for chart labels' },
+						'ChartDatasetsAddress': { Name: 'Datasets Address', Hash: 'ChartDatasetsAddress', DataType: 'String', Description: 'AppData address to resolve datasets from' }
+					}
+				}
+			},
 			{ Hash: 'Link', Name: 'Link', Description: 'Clickable hyperlink display', Category: 'Display' },
 
 			// Navigation
-			{ Hash: 'TabSectionSelector', Name: 'Tab Section Selector', Description: 'Selector that controls which sections are displayed as tabs', Category: 'Navigation' },
-			{ Hash: 'TabGroupSelector', Name: 'Tab Group Selector', Description: 'Selector that controls which groups are displayed as tabs', Category: 'Navigation' },
+			{
+				Hash: 'TabSectionSelector', Name: 'Tab Section Selector', Description: 'Selector that controls which sections are displayed as tabs', Category: 'Navigation',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'TabSectionSet': { Name: 'Section Set', Hash: 'TabSectionSet', DataType: 'String', Description: 'JSON array of section hashes to show as tabs' },
+						'DefaultTabSectionHash': { Name: 'Default Tab', Hash: 'DefaultTabSectionHash', DataType: 'String', Description: 'Hash of the initially selected tab' },
+						'DefaultFromData': { Name: 'Default From Data', Hash: 'DefaultFromData', DataType: 'Boolean', Description: 'Use the data value to determine the default tab' }
+					}
+				}
+			},
+			{
+				Hash: 'TabGroupSelector', Name: 'Tab Group Selector', Description: 'Selector that controls which groups are displayed as tabs', Category: 'Navigation',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'TabGroupSet': { Name: 'Group Set', Hash: 'TabGroupSet', DataType: 'String', Description: 'JSON array of group hashes to show as tabs' },
+						'DefaultTabGroupHash': { Name: 'Default Tab', Hash: 'DefaultTabGroupHash', DataType: 'String', Description: 'Hash of the initially selected tab' },
+						'DefaultFromData': { Name: 'Default From Data', Hash: 'DefaultFromData', DataType: 'Boolean', Description: 'Use the data value to determine the default tab' }
+					}
+				}
+			},
 
 			// Advanced
-			{ Hash: 'Templated', Name: 'Templated', Description: 'Custom template-driven input rendering', Category: 'Advanced' },
-			{ Hash: 'TemplatedEntityLookup', Name: 'Templated Entity Lookup', Description: 'Template-driven entity search and selection', Category: 'Advanced' }
+			{
+				Hash: 'Templated', Name: 'Templated', Description: 'Custom template-driven input rendering', Category: 'Advanced',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'Template': { Name: 'Template', Hash: 'Template', DataType: 'String', Description: 'Template string for custom rendering' }
+					}
+				}
+			},
+			{
+				Hash: 'TemplatedEntityLookup', Name: 'Templated Entity Lookup', Description: 'Template-driven entity search and selection', Category: 'Advanced',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'Template': { Name: 'Template', Hash: 'Template', DataType: 'String', Description: 'Template string for rendering the entity display' }
+					}
+				}
+			}
 		];
 
 		// If the embedder provided custom InputTypeDefinitions, merge them
@@ -2783,6 +2917,33 @@ class PictViewFormEditor extends libPictView
 	}
 
 	/**
+	 * Get the Manifest for a given InputType hash.
+	 *
+	 * Returns the Manifest object (with Descriptors) or null if the InputType
+	 * has no configurable PictForm properties.
+	 *
+	 * @param {string} pInputTypeHash - The InputType hash (e.g. 'Option', 'Chart')
+	 * @return {object|null} The Manifest object or null
+	 */
+	_getInputTypeManifest(pInputTypeHash)
+	{
+		if (!pInputTypeHash || typeof pInputTypeHash !== 'string')
+		{
+			return null;
+		}
+
+		for (let i = 0; i < this._InputTypeDefinitions.length; i++)
+		{
+			if (this._InputTypeDefinitions[i].Hash === pInputTypeHash)
+			{
+				return this._InputTypeDefinitions[i].Manifest || null;
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Get InputType definitions filtered by a search query.
 	 *
 	 * The search is case-insensitive and matches against Hash, Name,
@@ -2831,6 +2992,31 @@ class PictViewFormEditor extends libPictView
 			.replace(/[^a-zA-Z0-9_]/g, '_')
 			.replace(/_+/g, '_')
 			.replace(/^_|_$/g, '');
+	}
+
+	/**
+	 * Check whether a hash is an auto-generated section hash (S{n}).
+	 */
+	_isAutoGeneratedSectionHash(pHash)
+	{
+		if (typeof pHash !== 'string')
+		{
+			return false;
+		}
+		return /^S\d+$/.test(pHash);
+	}
+
+	/**
+	 * Check whether a hash is an auto-generated input hash.
+	 * Auto-generated input hashes end with _Input{n}.
+	 */
+	_isAutoGeneratedInputHash(pHash)
+	{
+		if (typeof pHash !== 'string')
+		{
+			return false;
+		}
+		return /_Input\d+$/.test(pHash);
 	}
 
 	_escapeHTML(pString)
