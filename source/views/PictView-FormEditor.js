@@ -216,12 +216,30 @@ class PictViewFormEditor extends libPictView
 		// Tab bar
 		tmpHTML += '<div class="pict-fe-tabbar">';
 		tmpHTML += `<button class="pict-fe-tab pict-fe-tab-active" id="FormEditor-Tab-Visual-${tmpHash}" onclick="${tmpViewRef}.switchTab('visual')">Visual Editor</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ListData-${tmpHash}" onclick="${tmpViewRef}.switchTab('listdata')">List Data</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-EntityData-${tmpHash}" onclick="${tmpViewRef}.switchTab('entitydata')">Entity Data</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ObjectEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('objecteditor')">Object Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-JSON-${tmpHash}" onclick="${tmpViewRef}.switchTab('json')">JSON</button>`;
 		tmpHTML += '</div>';
 
+		// Editor layout: tab content panels + resize handle + properties panel
+		tmpHTML += '<div class="pict-fe-editor-layout">';
+
+		// Tab content panels (stacked, only one active at a time)
+		tmpHTML += '<div class="pict-fe-editor-content">';
+
 		// Visual editor panel
 		tmpHTML += `<div class="pict-fe-tabcontent pict-fe-tabcontent-active" id="FormEditor-Panel-Visual-${tmpHash}"></div>`;
+
+		// List Data tab panel — picklists, option lists, filter rules
+		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-ListData-${tmpHash}">`;
+		tmpHTML += `<div id="FormEditor-ListDataTab-Container-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
+
+		// Entity Data tab panel — providers, entity bundles, triggers
+		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-EntityData-${tmpHash}">`;
+		tmpHTML += `<div id="FormEditor-EntityDataTab-Container-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
 
 		// Object editor panel
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-ObjectEditor-${tmpHash}">`;
@@ -232,6 +250,20 @@ class PictViewFormEditor extends libPictView
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-JSON-${tmpHash}">`;
 		tmpHTML += `<div id="FormEditor-CodeEditor-Container-${this.Hash}"></div>`;
 		tmpHTML += '</div>';
+
+		tmpHTML += '</div>'; // pict-fe-editor-content
+
+		// Resize handle / collapse toggle (double-click to toggle)
+		tmpHTML += `<div class="pict-fe-panel-toggle" onmousedown="${tmpViewRef}.onPanelResizeStart(event)" ondblclick="${tmpViewRef}.togglePropertiesPanel()">`;
+		tmpHTML += '<div class="pict-fe-panel-toggle-grip"></div>';
+		tmpHTML += '</div>';
+
+		// Properties panel container — always present, visibility via CSS class
+		let tmpPanelOpenClass = this._PanelCollapsed ? '' : ' pict-fe-properties-panel-open';
+		let tmpPanelStyle = this._PanelCollapsed ? '' : ` style="width: ${this._PanelWidth}px;"`;
+		tmpHTML += `<div class="pict-fe-properties-panel${tmpPanelOpenClass}"${tmpPanelStyle} id="FormEditor-PropertiesPanel-${tmpHash}"></div>`;
+
+		tmpHTML += '</div>'; // pict-fe-editor-layout
 
 		this.pict.ContentAssignment.assignContent(`#FormEditor-Wrap-${tmpHash}`, tmpHTML);
 	}
@@ -259,13 +291,27 @@ class PictViewFormEditor extends libPictView
 		{
 			this.renderVisualEditor();
 		}
+		else if (pTabName === 'listdata')
+		{
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderListDataTabPanel();
+			}
+		}
+		else if (pTabName === 'entitydata')
+		{
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderEntityDataTabPanel();
+			}
+		}
 	}
 
 	_syncTabState()
 	{
 		let tmpHash = this.Hash;
-		let tmpTabs = ['visual', 'objecteditor', 'json'];
-		let tmpTabNames = ['Visual', 'ObjectEditor', 'JSON'];
+		let tmpTabs = ['visual', 'listdata', 'entitydata', 'objecteditor', 'json'];
+		let tmpTabNames = ['Visual', 'ListData', 'EntityData', 'ObjectEditor', 'JSON'];
 
 		for (let i = 0; i < tmpTabs.length; i++)
 		{
@@ -491,12 +537,7 @@ class PictViewFormEditor extends libPictView
 
 		let tmpHTML = '';
 
-		tmpHTML += '<div class="pict-fe-visual-layout">';
-
-		// Main content area
-		tmpHTML += '<div class="pict-fe-visual-main">';
-
-		// Header with Add Section button — inside main so it spans only the content column
+		// Header with Add Section button
 		tmpHTML += '<div class="pict-fe-visual-header">';
 		tmpHTML += '<h3>Form Sections</h3>';
 		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-primary" onclick="${this._browserViewRef()}.addSection()"><span class="pict-fe-icon pict-fe-icon-add">${this._IconographyProvider.getIcon('Action', 'Add', 12)}</span> Add Section</button>`;
@@ -517,21 +558,6 @@ class PictViewFormEditor extends libPictView
 			tmpHTML += '</div>';
 		}
 
-		tmpHTML += '</div>'; // pict-fe-visual-main
-
-		// Resize handle / collapse toggle (double-click to toggle)
-		let tmpViewRef = this._browserViewRef();
-		tmpHTML += `<div class="pict-fe-panel-toggle" onmousedown="${tmpViewRef}.onPanelResizeStart(event)" ondblclick="${tmpViewRef}.togglePropertiesPanel()">`;
-		tmpHTML += '<div class="pict-fe-panel-toggle-grip"></div>';
-		tmpHTML += '</div>';
-
-		// Properties panel container — always present, visibility via CSS class
-		let tmpPanelOpenClass = this._PanelCollapsed ? '' : ' pict-fe-properties-panel-open';
-		let tmpPanelStyle = this._PanelCollapsed ? '' : ` style="width: ${this._PanelWidth}px;"`;
-		tmpHTML += `<div class="pict-fe-properties-panel${tmpPanelOpenClass}"${tmpPanelStyle} id="FormEditor-PropertiesPanel-${this.Hash}"></div>`;
-
-		tmpHTML += '</div>'; // pict-fe-visual-layout
-
 		// Preserve the main content scroll position across the DOM replacement
 		let tmpPreviousMainScroll = 0;
 		if (typeof document !== 'undefined')
@@ -539,11 +565,7 @@ class PictViewFormEditor extends libPictView
 			let tmpVisualPanel = document.getElementById(`FormEditor-Panel-Visual-${this.Hash}`);
 			if (tmpVisualPanel)
 			{
-				let tmpOldMain = tmpVisualPanel.querySelector('.pict-fe-visual-main');
-				if (tmpOldMain)
-				{
-					tmpPreviousMainScroll = tmpOldMain.scrollTop;
-				}
+				tmpPreviousMainScroll = tmpVisualPanel.scrollTop;
 			}
 		}
 
@@ -555,11 +577,7 @@ class PictViewFormEditor extends libPictView
 			let tmpVisualPanel = document.getElementById(`FormEditor-Panel-Visual-${this.Hash}`);
 			if (tmpVisualPanel)
 			{
-				let tmpNewMain = tmpVisualPanel.querySelector('.pict-fe-visual-main');
-				if (tmpNewMain)
-				{
-					tmpNewMain.scrollTop = tmpPreviousMainScroll;
-				}
+				tmpVisualPanel.scrollTop = tmpPreviousMainScroll;
 			}
 		}
 
@@ -567,6 +585,16 @@ class PictViewFormEditor extends libPictView
 		if (this._PropertiesPanelView)
 		{
 			this._PropertiesPanelView.renderPanel();
+
+			// Keep the top-level data tab content in sync
+			if (this._ActiveTab === 'listdata')
+			{
+				this._PropertiesPanelView.renderListDataTabPanel();
+			}
+			else if (this._ActiveTab === 'entitydata')
+			{
+				this._PropertiesPanelView.renderEntityDataTabPanel();
+			}
 		}
 	}
 
@@ -2372,7 +2400,24 @@ class PictViewFormEditor extends libPictView
 	togglePropertiesPanel()
 	{
 		this._PanelCollapsed = !this._PanelCollapsed;
-		this.renderVisualEditor();
+
+		if (typeof document !== 'undefined')
+		{
+			let tmpPanelEl = document.getElementById('FormEditor-PropertiesPanel-' + this.Hash);
+			if (tmpPanelEl)
+			{
+				if (this._PanelCollapsed)
+				{
+					tmpPanelEl.className = 'pict-fe-properties-panel';
+					tmpPanelEl.style.width = '';
+				}
+				else
+				{
+					tmpPanelEl.className = 'pict-fe-properties-panel pict-fe-properties-panel-open';
+					tmpPanelEl.style.width = this._PanelWidth + 'px';
+				}
+			}
+		}
 	}
 
 	/**
@@ -4094,7 +4139,8 @@ class PictViewFormEditor extends libPictView
 			Sections: [],
 			Descriptors: {},
 			ReferenceManifests: {},
-			StaticOptionLists: []
+			StaticOptionLists: [],
+			PickLists: []
 		});
 	}
 

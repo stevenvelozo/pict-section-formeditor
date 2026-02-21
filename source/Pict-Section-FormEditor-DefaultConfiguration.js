@@ -697,8 +697,8 @@ module.exports = (
 	background: rgba(158, 107, 71, 0.05);
 }
 
-/* ---- Two-column Visual Editor Layout ---- */
-.pict-fe-visual-layout
+/* ---- Editor Layout: tab content + toggle + properties panel ---- */
+.pict-fe-editor-layout
 {
 	display: flex;
 	gap: 0;
@@ -706,12 +706,13 @@ module.exports = (
 	min-height: 0;
 	overflow: hidden;
 }
-.pict-fe-visual-main
+.pict-fe-editor-content
 {
 	flex: 1;
 	min-width: 0;
-	overflow-y: auto;
-	padding-right: 16px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 .pict-fe-panel-toggle
 {
@@ -725,7 +726,7 @@ module.exports = (
 	background: #F0ECE4;
 	border: 1px solid #E8E3DA;
 	border-radius: 6px;
-	margin: 72px 0 6px 0;
+	margin: 6px 0;
 	color: #B0A89E;
 	font-size: 10px;
 	user-select: none;
@@ -765,7 +766,8 @@ module.exports = (
 }
 .pict-fe-properties-panel-open
 {
-	overflow: hidden;
+	overflow-y: auto;
+	overflow-x: hidden;
 	border-left-color: #E8E3DA;
 }
 
@@ -1955,6 +1957,13 @@ module.exports = (
 	min-height: 200px;
 }
 
+/* ---- Object Editor Tab ---- */
+.pict-fe-tabcontent .pict-objecteditor
+{
+	flex: 1;
+	min-height: 200px;
+}
+
 /* ---- Options Tab: Option Entries ---- */
 .pict-fe-option-entries
 {
@@ -2223,6 +2232,173 @@ module.exports = (
 {
 	background: #FAF8F5;
 	border-color: #9E6B47;
+}
+
+/* ---- Data Tab: Section Dividers ---- */
+.pict-fe-data-section-divider
+{
+	height: 1px;
+	background: #E8E3DA;
+	margin: 14px 0;
+}
+
+/* ---- Data Tab: Scope Selector ---- */
+.pict-fe-data-scope-selector
+{
+	margin-bottom: 10px;
+}
+
+/* ---- Data Tab: PickList Cards ---- */
+.pict-fe-picklist-card
+{
+	border: 1px solid #E8E3DA;
+	border-radius: 6px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+.pict-fe-picklist-header
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 10px;
+	cursor: pointer;
+	background: #FAF8F5;
+	transition: background 0.1s;
+	user-select: none;
+}
+.pict-fe-picklist-header:hover
+{
+	background: #F5F0E8;
+}
+.pict-fe-picklist-header-expanded
+{
+	background: #F5F0E8;
+	border-bottom: 1px solid #E8E3DA;
+	border-left: 3px solid #9E6B47;
+	padding-left: 7px;
+}
+.pict-fe-picklist-name
+{
+	font-size: 13px;
+	font-weight: 500;
+	color: #3D3229;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pict-fe-picklist-body
+{
+	padding: 10px;
+}
+
+/* ---- Data Tab: Provider Entries ---- */
+.pict-fe-provider-entry
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	margin-bottom: 4px;
+	background: #FDFCFA;
+	cursor: grab;
+	transition: background 0.1s, box-shadow 0.1s;
+}
+.pict-fe-provider-entry:hover
+{
+	background: #FAF8F5;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.pict-fe-provider-drag-handle
+{
+	color: #C4B9A8;
+	font-size: 14px;
+	cursor: grab;
+	user-select: none;
+	flex-shrink: 0;
+}
+.pict-fe-provider-drag-handle:active
+{
+	cursor: grabbing;
+}
+.pict-fe-provider-name
+{
+	font-size: 12px;
+	font-weight: 500;
+	color: #3D3229;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pict-fe-provider-remove
+{
+	background: none;
+	border: none;
+	color: #C4B9A8;
+	font-size: 13px;
+	cursor: pointer;
+	padding: 2px 4px;
+	border-radius: 3px;
+	transition: color 0.1s, background 0.1s;
+	flex-shrink: 0;
+}
+.pict-fe-provider-entry:hover .pict-fe-provider-remove
+{
+	color: #8A7F72;
+}
+.pict-fe-provider-remove:hover
+{
+	color: #C0392B;
+	background: #FDF2F2;
+}
+.pict-fe-provider-remove-armed
+{
+	background: #C0392B !important;
+	color: #FFF !important;
+	font-size: 10px;
+	font-weight: 600;
+}
+.pict-fe-provider-add-select
+{
+	width: 100%;
+	padding: 6px 8px;
+	margin-top: 4px;
+	border: 1px dashed #C4B9A8;
+	border-radius: 4px;
+	background: transparent;
+	color: #9E6B47;
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.1s, border-color 0.1s;
+}
+.pict-fe-provider-add-select:hover
+{
+	background: #FAF8F5;
+	border-color: #9E6B47;
+}
+
+/* ---- Data Tab: Entity Bundle ---- */
+.pict-fe-entity-bundle-card
+{
+	border: 1px solid #E8E3DA;
+	border-radius: 6px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+.pict-fe-entity-bundle-triggers
+{
+	margin-top: 10px;
+	padding: 10px;
+	border: 1px solid #E8E3DA;
+	border-radius: 6px;
+	background: #FAF8F5;
 }
 `,
 

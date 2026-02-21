@@ -44,6 +44,23 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Currently expanded named option list (by Hash)
 		this._ExpandedNamedList = null;
+
+		// Data tab: PickList state
+		this._ExpandedPickList = null;
+		this._PickListScope = 'manifest';
+
+		// Data tab: Providers drag state
+		this._ProvidersDragState = null;
+
+		// Data tab: Entity Bundle state
+		this._ExpandedEntityBundleStep = null;
+		this._EntityBundleDragState = null;
+
+		// Data tab: Autofill Trigger Group state
+		this._ExpandedAutofillTrigger = null;
+
+		// Data tab: List Filter Rules state
+		this._ExpandedFilterRule = null;
 	}
 
 	/**
@@ -2821,9 +2838,6 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			tmpHTML += '<div class="pict-fe-props-placeholder">Select an input to manage its options.</div>';
 		}
 
-		// Section B: Named Option Lists
-		tmpHTML += this._renderNamedOptionListsSection(tmpPanelViewRef);
-
 		return tmpHTML;
 	}
 
@@ -2975,7 +2989,8 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			this._syncLinkedInputs(pContext.substring(6));
 		}
 
-		this._ParentFormEditor.renderVisualEditor();
+		// Don't re-render — the data is mutated in-place and the input
+		// retains focus so the user can Tab to the next field.
 	}
 
 	/**
@@ -3215,13 +3230,16 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 					{
 						this._ExpandedNamedList = pValue;
 					}
+
+					// Hash changes require a full re-render to update references
+					this._ParentFormEditor.renderVisualEditor();
 				}
 
 				break;
 			}
 		}
 
-		this._ParentFormEditor.renderVisualEditor();
+		// Name changes don't need re-render — data is mutated in-place
 	}
 
 	/**
@@ -3284,10 +3302,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			this._ExpandedNamedList = pListHash;
 		}
 
-		if (this._ParentFormEditor._PropertiesPanelView)
-		{
-			this._ParentFormEditor._PropertiesPanelView.renderPanel();
-		}
+		this.renderListDataTabPanel();
 	}
 
 	/**
@@ -3447,6 +3462,1583 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		{
 			pEvent.target.style.opacity = '';
 		}
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*          Data Tab                                                          */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Render the Data tab content into the top-level Data tab panel container.
+	 * Called by the FormEditor when switching to the Data tab.
+	 */
+	renderListDataTabPanel()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpContainerEl = `#FormEditor-ListDataTab-Container-${tmpHash}`;
+		let tmpHTML = this._renderListDataTab();
+		this.pict.ContentAssignment.assignContent(tmpContainerEl, tmpHTML);
+
+		// Wire up the PickList scope searchable selector
+		this._wireSearchableSelector('PickListScope');
+	}
+
+	renderEntityDataTabPanel()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpContainerEl = `#FormEditor-EntityDataTab-Container-${tmpHash}`;
+		let tmpHTML = this._renderEntityDataTab();
+		this.pict.ContentAssignment.assignContent(tmpContainerEl, tmpHTML);
+	}
+
+	/**
+	 * Render the List Data tab content.
+	 * Sections: PickLists, Static Option Lists, List Filter Rules (per-input).
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderListDataTab()
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpHTML = '';
+
+		// Section 1: PickLists
+		tmpHTML += this._renderPickListsSection(tmpPanelViewRef);
+
+		tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+
+		// Section 2: Static Option Lists
+		tmpHTML += this._renderNamedOptionListsSection(tmpPanelViewRef);
+
+		// Section 3: List Filter Rules (per-input, conditional)
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (tmpResolved && tmpResolved.Descriptor)
+		{
+			let tmpDescriptor = tmpResolved.Descriptor;
+			let tmpInputType = (tmpDescriptor.PictForm && tmpDescriptor.PictForm.InputType) ? tmpDescriptor.PictForm.InputType : '';
+			let tmpHasFilterRules = (tmpDescriptor.PictForm && Array.isArray(tmpDescriptor.PictForm.ListFilterRules));
+			if (tmpInputType === 'Option' || tmpHasFilterRules)
+			{
+				tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+				tmpHTML += this._renderListFilterRulesSection(tmpPanelViewRef, tmpDescriptor);
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Render the Entity Data tab content.
+	 * Sections: Providers, Entity Bundle (conditional), Autofill Trigger Group (conditional).
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderEntityDataTab()
+	{
+		let tmpPanelViewRef = this._browserViewRef();
+		let tmpHTML = '';
+
+		// Per-input sections
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (tmpResolved && tmpResolved.Descriptor)
+		{
+			let tmpDescriptor = tmpResolved.Descriptor;
+			let tmpProviders = (tmpDescriptor.PictForm && Array.isArray(tmpDescriptor.PictForm.Providers))
+				? tmpDescriptor.PictForm.Providers : [];
+
+			// Section 1: Providers
+			tmpHTML += this._renderProvidersSection(tmpPanelViewRef);
+
+			// Section 2: Entity Bundle (conditional on provider)
+			if (tmpProviders.indexOf('Pict-Input-EntityBundleRequest') >= 0)
+			{
+				tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+				tmpHTML += this._renderEntityBundleSection(tmpPanelViewRef, tmpDescriptor);
+			}
+
+			// Section 3: Autofill Trigger Group (conditional on provider)
+			if (tmpProviders.indexOf('Pict-Input-AutofillTriggerGroup') >= 0)
+			{
+				tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+				tmpHTML += this._renderAutofillTriggerSection(tmpPanelViewRef, tmpDescriptor);
+			}
+		}
+		else
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">Select an input to see Providers, Entity Bundles, and Triggers.</div>';
+		}
+
+		return tmpHTML;
+	}
+
+	/* ---- PickLists ---- */
+
+	/**
+	 * Resolve the PickList array for the current scope.
+	 *
+	 * @returns {Array|null}
+	 */
+	_resolvePickListArray()
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifest)
+		{
+			return null;
+		}
+
+		if (this._PickListScope === 'manifest')
+		{
+			if (!Array.isArray(tmpManifest.PickLists))
+			{
+				tmpManifest.PickLists = [];
+			}
+			return tmpManifest.PickLists;
+		}
+		else if (this._PickListScope.indexOf('section:') === 0)
+		{
+			let tmpIndex = parseInt(this._PickListScope.substring(8), 10);
+			if (!tmpManifest.Sections || !tmpManifest.Sections[tmpIndex])
+			{
+				return null;
+			}
+			let tmpSection = tmpManifest.Sections[tmpIndex];
+			if (!Array.isArray(tmpSection.PickLists))
+			{
+				tmpSection.PickLists = [];
+			}
+			return tmpSection.PickLists;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Render the PickLists section of the Data tab.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @returns {string} HTML string
+	 */
+	_renderPickListsSection(pPanelViewRef)
+	{
+		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		let tmpHTML = '';
+
+		tmpHTML += '<div class="pict-fe-props-section-header">PICKLISTS</div>';
+
+		// Scope selector — searchable dropdown
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+		let tmpScopeLabel = 'Global (Manifest)';
+		if (this._PickListScope !== 'manifest' && tmpManifest && Array.isArray(tmpManifest.Sections))
+		{
+			let tmpParts = this._PickListScope.split(':');
+			let tmpIdx = parseInt(tmpParts[1], 10);
+			if (tmpManifest.Sections[tmpIdx])
+			{
+				tmpScopeLabel = tmpManifest.Sections[tmpIdx].Name || ('Section ' + tmpIdx);
+			}
+		}
+
+		tmpHTML += `<div class="pict-fe-searchable-selector pict-fe-data-scope-selector" id="FormEditor-PickListScopeSelector-Wrap-${tmpEditorHash}">`;
+		tmpHTML += `<input class="pict-fe-searchable-selector-input" id="FormEditor-PickListScopeSelector-${tmpEditorHash}" type="text" placeholder="\u2014 Select scope \u2014" value="${this._escapeAttr(tmpScopeLabel)}" autocomplete="off" />`;
+		tmpHTML += `<div class="pict-fe-searchable-selector-list" id="FormEditor-PickListScopeSelector-List-${tmpEditorHash}">`;
+
+		// Global (Manifest) always first
+		let tmpGlobalActive = (this._PickListScope === 'manifest') ? ' pict-fe-searchable-selector-item-active' : '';
+		tmpHTML += `<div class="pict-fe-searchable-selector-item${tmpGlobalActive}" data-value="manifest" data-label="Global Manifest" onclick="${pPanelViewRef}.setPickListScope('manifest')">Global (Manifest)</div>`;
+
+		// Section-level scopes
+		if (tmpManifest && Array.isArray(tmpManifest.Sections))
+		{
+			for (let s = 0; s < tmpManifest.Sections.length; s++)
+			{
+				let tmpSection = tmpManifest.Sections[s];
+				let tmpScopeName = tmpSection.Name || ('Section ' + s);
+				let tmpScopeValue = 'section:' + s;
+				let tmpActiveClass = (this._PickListScope === tmpScopeValue) ? ' pict-fe-searchable-selector-item-active' : '';
+				tmpHTML += `<div class="pict-fe-searchable-selector-item${tmpActiveClass}" data-value="${this._escapeAttr(tmpScopeValue)}" data-label="${this._escapeAttr(tmpScopeName)}" onclick="${pPanelViewRef}.setPickListScope('${this._escapeAttr(tmpScopeValue)}')">${this._escapeHTML(tmpScopeName)}</div>`;
+			}
+		}
+
+		tmpHTML += '</div>'; // list
+		tmpHTML += '</div>'; // wrap
+
+		// PickList cards
+		let tmpPickLists = this._resolvePickListArray();
+		if (!tmpPickLists || tmpPickLists.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No PickLists in this scope.</div>';
+		}
+		else
+		{
+			for (let i = 0; i < tmpPickLists.length; i++)
+			{
+				let tmpPL = tmpPickLists[i];
+				let tmpHash = tmpPL.Hash || '';
+				let tmpIsExpanded = (this._ExpandedPickList === tmpHash);
+				let tmpEscapedHash = this._escapeAttr(tmpHash).replace(/'/g, "\\'");
+
+				// Build tag list for collapsed view
+				let tmpTags = [];
+				if (tmpPL.Dynamic) tmpTags.push('Dynamic');
+				if (tmpPL.Sorted) tmpTags.push('Sorted');
+				if (tmpPL.Unique) tmpTags.push('Unique');
+
+				tmpHTML += '<div class="pict-fe-picklist-card">';
+
+				// Header
+				tmpHTML += `<div class="pict-fe-picklist-header${tmpIsExpanded ? ' pict-fe-picklist-header-expanded' : ''}" onclick="${pPanelViewRef}.togglePickListExpand('${tmpEscapedHash}')">`;
+				tmpHTML += `<span class="pict-fe-named-list-arrow">${tmpIsExpanded ? '\u25BE' : '\u25B8'}</span>`;
+				tmpHTML += `<span class="pict-fe-picklist-name">${this._escapeHTML(tmpHash)}</span>`;
+				if (tmpTags.length > 0)
+				{
+					tmpHTML += `<span class="pict-fe-named-list-count">(${tmpTags.join(', ')})</span>`;
+				}
+				tmpHTML += '</div>';
+
+				if (tmpIsExpanded)
+				{
+					tmpHTML += '<div class="pict-fe-picklist-body">';
+
+					// Hash
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Hash</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpHash)}" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','Hash',this.value)" />`;
+					tmpHTML += '</div>';
+
+					// ListAddress
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">List Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpPL.ListAddress || '')}" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','ListAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					// ListSourceAddress
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">List Source Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpPL.ListSourceAddress || '')}" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','ListSourceAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					// TextTemplate
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Text Template</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpPL.TextTemplate || '')}" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','TextTemplate',this.value)" />`;
+					tmpHTML += '</div>';
+
+					// IDTemplate
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">ID Template</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpPL.IDTemplate || '')}" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','IDTemplate',this.value)" />`;
+					tmpHTML += '</div>';
+
+					// Checkboxes row
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPL.Unique ? 'checked' : ''} onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','Unique',this.checked)" /> Unique</label>`;
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPL.Sorted ? 'checked' : ''} onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','Sorted',this.checked)" /> Sorted</label>`;
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPL.Dynamic ? 'checked' : ''} onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','Dynamic',this.checked)" /> Dynamic</label>`;
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPL.ExplicitSourceAddress ? 'checked' : ''} onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','ExplicitSourceAddress',this.checked)" /> Explicit Source</label>`;
+					tmpHTML += '</div>';
+
+					// UpdateFrequency
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Update Frequency</div>';
+					let tmpFreq = tmpPL.UpdateFrequency || 'Always';
+					tmpHTML += `<select class="pict-fe-props-input" onchange="${pPanelViewRef}.updatePickListProperty('${tmpEscapedHash}','UpdateFrequency',this.value)">`;
+					tmpHTML += `<option value="Always"${tmpFreq === 'Always' ? ' selected' : ''}>Always</option>`;
+					tmpHTML += `<option value="Once"${tmpFreq === 'Once' ? ' selected' : ''}>Once</option>`;
+					tmpHTML += '</select>';
+					tmpHTML += '</div>';
+
+					// Delete
+					tmpHTML += `<button class="pict-fe-named-list-delete-btn" onclick="if(this.dataset.armed){${pPanelViewRef}.removePickList('${tmpEscapedHash}')}else{this.dataset.armed='1';this.textContent='Sure? Delete PickList';this.classList.add('pict-fe-named-list-delete-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='Delete PickList';b.classList.remove('pict-fe-named-list-delete-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='Delete PickList';this.classList.remove('pict-fe-named-list-delete-btn-armed');clearTimeout(this._armTimer)}">Delete PickList</button>`;
+
+					tmpHTML += '</div>';
+				}
+
+				tmpHTML += '</div>';
+			}
+		}
+
+		tmpHTML += `<button class="pict-fe-named-list-add-btn" onclick="${pPanelViewRef}.addPickList()">+ New PickList</button>`;
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Set the scope for PickList editing.
+	 *
+	 * @param {string} pScope - 'manifest' or 'section:N'
+	 */
+	setPickListScope(pScope)
+	{
+		this._PickListScope = pScope;
+		this._ExpandedPickList = null;
+		this.renderListDataTabPanel();
+	}
+
+	/**
+	 * Toggle the expanded/collapsed state of a PickList card.
+	 *
+	 * @param {string} pHash
+	 */
+	togglePickListExpand(pHash)
+	{
+		this._ExpandedPickList = (this._ExpandedPickList === pHash) ? null : pHash;
+		this.renderListDataTabPanel();
+	}
+
+	/**
+	 * Add a new PickList to the current scope.
+	 */
+	addPickList()
+	{
+		let tmpPickLists = this._resolvePickListArray();
+		if (!tmpPickLists)
+		{
+			return;
+		}
+
+		let tmpIndex = tmpPickLists.length + 1;
+		let tmpHash = 'PickList' + tmpIndex;
+
+		let tmpExists = true;
+		while (tmpExists)
+		{
+			tmpExists = false;
+			for (let i = 0; i < tmpPickLists.length; i++)
+			{
+				if (tmpPickLists[i].Hash === tmpHash)
+				{
+					tmpIndex++;
+					tmpHash = 'PickList' + tmpIndex;
+					tmpExists = true;
+					break;
+				}
+			}
+		}
+
+		tmpPickLists.push({
+			Hash: tmpHash,
+			ListAddress: '',
+			ListSourceAddress: '',
+			TextTemplate: '{~Data:text~}',
+			IDTemplate: '{~Data:id~}',
+			Unique: false,
+			Sorted: false,
+			Dynamic: false,
+			UpdateFrequency: 'Always'
+		});
+
+		this._ExpandedPickList = tmpHash;
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Update a property on a PickList.
+	 *
+	 * @param {string} pHash - Current hash of the PickList
+	 * @param {string} pProperty - Property name
+	 * @param {*} pValue - New value
+	 */
+	updatePickListProperty(pHash, pProperty, pValue)
+	{
+		let tmpPickLists = this._resolvePickListArray();
+		if (!tmpPickLists)
+		{
+			return;
+		}
+
+		for (let i = 0; i < tmpPickLists.length; i++)
+		{
+			if (tmpPickLists[i].Hash === pHash)
+			{
+				let tmpOldHash = tmpPickLists[i].Hash;
+
+				// Boolean properties
+				if (pProperty === 'Unique' || pProperty === 'Sorted' || pProperty === 'Dynamic' || pProperty === 'ExplicitSourceAddress')
+				{
+					tmpPickLists[i][pProperty] = !!pValue;
+				}
+				else
+				{
+					tmpPickLists[i][pProperty] = pValue;
+				}
+
+				// If Hash changed, update expanded state and re-render
+				if (pProperty === 'Hash' && tmpOldHash !== pValue)
+				{
+					if (this._ExpandedPickList === tmpOldHash)
+					{
+						this._ExpandedPickList = pValue;
+					}
+					this._ParentFormEditor.renderVisualEditor();
+				}
+
+				break;
+			}
+		}
+
+		// Non-Hash property changes don't need re-render — data is mutated in-place
+	}
+
+	/**
+	 * Remove a PickList from the current scope.
+	 *
+	 * @param {string} pHash
+	 */
+	removePickList(pHash)
+	{
+		let tmpPickLists = this._resolvePickListArray();
+		if (!tmpPickLists)
+		{
+			return;
+		}
+
+		for (let i = 0; i < tmpPickLists.length; i++)
+		{
+			if (tmpPickLists[i].Hash === pHash)
+			{
+				tmpPickLists.splice(i, 1);
+				break;
+			}
+		}
+
+		if (this._ExpandedPickList === pHash)
+		{
+			this._ExpandedPickList = null;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* ---- Providers ---- */
+
+	/**
+	 * Return the list of known provider hashes and names.
+	 *
+	 * @returns {Array} Array of { Hash, Name }
+	 */
+	_getKnownProviders()
+	{
+		return [
+			{ Hash: 'Pict-Input-Select', Name: 'Select (Dropdown)' },
+			{ Hash: 'Pict-Input-AutofillTriggerGroup', Name: 'Autofill Trigger Group' },
+			{ Hash: 'Pict-Input-EntityBundleRequest', Name: 'Entity Bundle Request' },
+			{ Hash: 'Pict-Input-TemplatedEntityLookup', Name: 'Templated Entity Lookup' },
+			{ Hash: 'Pict-Input-DateTime', Name: 'Date/Time' },
+			{ Hash: 'Pict-Input-Chart', Name: 'Chart' },
+			{ Hash: 'Pict-Input-PreciseNumber', Name: 'Precise Number' },
+			{ Hash: 'Pict-Input-HTML', Name: 'HTML' },
+			{ Hash: 'Pict-Input-Markdown', Name: 'Markdown' },
+			{ Hash: 'Pict-Input-Link', Name: 'Link' }
+		];
+	}
+
+	/**
+	 * Render the Providers section of the Data tab.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @returns {string} HTML string
+	 */
+	_renderProvidersSection(pPanelViewRef)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return '';
+		}
+
+		let tmpDescriptor = tmpResolved.Descriptor;
+		let tmpProviders = (tmpDescriptor.PictForm && Array.isArray(tmpDescriptor.PictForm.Providers))
+			? tmpDescriptor.PictForm.Providers : [];
+		let tmpKnown = this._getKnownProviders();
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">PROVIDERS</div>';
+
+		// Current providers list
+		if (tmpProviders.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No providers configured.</div>';
+		}
+		else
+		{
+			for (let i = 0; i < tmpProviders.length; i++)
+			{
+				let tmpProvHash = tmpProviders[i];
+				let tmpProvName = tmpProvHash;
+				for (let k = 0; k < tmpKnown.length; k++)
+				{
+					if (tmpKnown[k].Hash === tmpProvHash)
+					{
+						tmpProvName = tmpKnown[k].Name;
+						break;
+					}
+				}
+
+				tmpHTML += `<div class="pict-fe-provider-entry" draggable="true" data-index="${i}" ondragstart="${pPanelViewRef}.onProviderDragStart(${i},event)" ondragover="${pPanelViewRef}.onProviderDragOver(${i},event)" ondrop="${pPanelViewRef}.onProviderDrop(${i},event)" ondragend="${pPanelViewRef}.onProviderDragEnd(event)">`;
+				tmpHTML += '<span class="pict-fe-provider-drag-handle">\u2807</span>';
+				tmpHTML += `<span class="pict-fe-provider-name">${this._escapeHTML(tmpProvName)}</span>`;
+				tmpHTML += `<button class="pict-fe-provider-remove" onclick="if(this.dataset.armed){${pPanelViewRef}.removeProvider(${i})}else{this.dataset.armed='1';this.textContent='Sure?';this.classList.add('pict-fe-provider-remove-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='\\u2715';b.classList.remove('pict-fe-provider-remove-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='\\u2715';this.classList.remove('pict-fe-provider-remove-armed');clearTimeout(this._armTimer)}">\u2715</button>`;
+				tmpHTML += '</div>';
+			}
+		}
+
+		// Add provider dropdown
+		let tmpAvailable = [];
+		for (let k = 0; k < tmpKnown.length; k++)
+		{
+			if (tmpProviders.indexOf(tmpKnown[k].Hash) < 0)
+			{
+				tmpAvailable.push(tmpKnown[k]);
+			}
+		}
+
+		tmpHTML += `<select class="pict-fe-provider-add-select" onchange="if(this.value){${pPanelViewRef}.addProvider(this.value);this.value=''}">`;
+		tmpHTML += '<option value="">+ Add Provider\u2026</option>';
+		for (let a = 0; a < tmpAvailable.length; a++)
+		{
+			tmpHTML += `<option value="${this._escapeAttr(tmpAvailable[a].Hash)}">${this._escapeHTML(tmpAvailable[a].Name)}</option>`;
+		}
+		tmpHTML += '</select>';
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Add a provider to the current input's Providers array.
+	 *
+	 * @param {string} pProviderHash
+	 */
+	addProvider(pProviderHash)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		if (!Array.isArray(tmpResolved.Descriptor.PictForm.Providers))
+		{
+			tmpResolved.Descriptor.PictForm.Providers = [];
+		}
+
+		if (tmpResolved.Descriptor.PictForm.Providers.indexOf(pProviderHash) >= 0)
+		{
+			return;
+		}
+
+		tmpResolved.Descriptor.PictForm.Providers.push(pProviderHash);
+
+		// Auto-create stub configurations
+		if (pProviderHash === 'Pict-Input-EntityBundleRequest')
+		{
+			if (!Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+			{
+				tmpResolved.Descriptor.PictForm.EntitiesBundle = [];
+			}
+		}
+		else if (pProviderHash === 'Pict-Input-AutofillTriggerGroup')
+		{
+			if (!tmpResolved.Descriptor.PictForm.AutofillTriggerGroup)
+			{
+				tmpResolved.Descriptor.PictForm.AutofillTriggerGroup = { TriggerGroupHash: '' };
+			}
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Remove a provider from the current input's Providers array.
+	 *
+	 * @param {number} pIndex
+	 */
+	removeProvider(pIndex)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.Providers))
+		{
+			return;
+		}
+
+		tmpResolved.Descriptor.PictForm.Providers.splice(pIndex, 1);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Reorder a provider in the current input's Providers array.
+	 *
+	 * @param {number} pFromIndex
+	 * @param {number} pToIndex
+	 */
+	reorderProvider(pFromIndex, pToIndex)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.Providers))
+		{
+			return;
+		}
+
+		let tmpProviders = tmpResolved.Descriptor.PictForm.Providers;
+		if (pFromIndex < 0 || pFromIndex >= tmpProviders.length || pToIndex < 0 || pToIndex >= tmpProviders.length)
+		{
+			return;
+		}
+
+		let tmpItem = tmpProviders.splice(pFromIndex, 1)[0];
+		tmpProviders.splice(pToIndex, 0, tmpItem);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	onProviderDragStart(pIndex, pEvent)
+	{
+		this._ProvidersDragState = { FromIndex: pIndex };
+		if (pEvent && pEvent.dataTransfer)
+		{
+			pEvent.dataTransfer.effectAllowed = 'move';
+			pEvent.dataTransfer.setData('text/plain', String(pIndex));
+		}
+		if (pEvent && pEvent.target)
+		{
+			pEvent.target.style.opacity = '0.5';
+		}
+	}
+
+	onProviderDragOver(pIndex, pEvent)
+	{
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+		}
+	}
+
+	onProviderDrop(pIndex, pEvent)
+	{
+		if (pEvent)
+		{
+			pEvent.preventDefault();
+		}
+
+		if (!this._ProvidersDragState)
+		{
+			return;
+		}
+
+		let tmpFromIndex = this._ProvidersDragState.FromIndex;
+		this._ProvidersDragState = null;
+
+		if (tmpFromIndex !== pIndex)
+		{
+			this.reorderProvider(tmpFromIndex, pIndex);
+		}
+	}
+
+	onProviderDragEnd(pEvent)
+	{
+		this._ProvidersDragState = null;
+		if (pEvent && pEvent.target)
+		{
+			pEvent.target.style.opacity = '';
+		}
+	}
+
+	/* ---- Entity Bundle ---- */
+
+	/**
+	 * Return metadata for all supported Entity Bundle step types.
+	 * Each entry has: Type (string), Name (display label), Fields (array of field defs).
+	 * Field defs: { Key, Label, InputType ('text'|'number'|'checkbox'|'json') }
+	 *
+	 * @returns {Array}
+	 */
+	_getEntityBundleStepTypes()
+	{
+		return [
+			{
+				Type: 'MeadowEntity',
+				Name: 'Meadow Entity',
+				Fields:
+				[
+					{ Key: 'Entity', Label: 'Entity', InputType: 'text' },
+					{ Key: 'Filter', Label: 'Filter', InputType: 'text' },
+					{ Key: 'FilterData', Label: 'Filter Data (JSON)', InputType: 'json' },
+					{ Key: 'Destination', Label: 'Destination', InputType: 'text' },
+					{ Key: 'SingleRecord', Label: 'Single Record', InputType: 'checkbox' },
+					{ Key: 'RecordCount', Label: 'Record Count', InputType: 'number' },
+					{ Key: 'RecordStartCursor', Label: 'Record Start Cursor', InputType: 'number' }
+				]
+			},
+			{
+				Type: 'MeadowEntityCount',
+				Name: 'Entity Count',
+				Fields:
+				[
+					{ Key: 'Entity', Label: 'Entity', InputType: 'text' },
+					{ Key: 'Filter', Label: 'Filter', InputType: 'text' },
+					{ Key: 'Destination', Label: 'Destination', InputType: 'text' }
+				]
+			},
+			{
+				Type: 'Custom',
+				Name: 'Custom URL',
+				Fields:
+				[
+					{ Key: 'URL', Label: 'URL', InputType: 'text' },
+					{ Key: 'Host', Label: 'Host', InputType: 'text' },
+					{ Key: 'Protocol', Label: 'Protocol', InputType: 'text' },
+					{ Key: 'Port', Label: 'Port', InputType: 'number' },
+					{ Key: 'Destination', Label: 'Destination', InputType: 'text' }
+				]
+			},
+			{
+				Type: 'MapJoin',
+				Name: 'Map Join',
+				Fields:
+				[
+					{ Key: 'Joins', Label: 'Joins', InputType: 'json' },
+					{ Key: 'JoinRecordSetAddress', Label: 'Join Record Set Address', InputType: 'text' },
+					{ Key: 'DestinationRecordSetAddress', Label: 'Dest Record Set Address', InputType: 'text' },
+					{ Key: 'DestinationRecordAddress', Label: 'Dest Record Address', InputType: 'text' },
+					{ Key: 'DestinationJoinValue', Label: 'Dest Join Value', InputType: 'text' },
+					{ Key: 'JoinValue', Label: 'Join Value', InputType: 'text' },
+					{ Key: 'JoinJoinValueLHS', Label: 'Join Value LHS', InputType: 'text' },
+					{ Key: 'JoinJoinValueRHS', Label: 'Join Value RHS', InputType: 'text' },
+					{ Key: 'RecordDestinationAddress', Label: 'Record Dest Address', InputType: 'text' },
+					{ Key: 'BucketBy', Label: 'Bucket By', InputType: 'text' },
+					{ Key: 'BucketByTemplate', Label: 'Bucket By Template', InputType: 'text' },
+					{ Key: 'SingleRecord', Label: 'Single Record', InputType: 'checkbox' }
+				]
+			},
+			{
+				Type: 'ProjectDataset',
+				Name: 'Project Dataset',
+				Fields:
+				[
+					{ Key: 'InputRecordsetAddress', Label: 'Input Recordset Address', InputType: 'text' },
+					{ Key: 'OutputRecordsetAddress', Label: 'Output Recordset Address', InputType: 'text' },
+					{ Key: 'RecordPrototypeAddress', Label: 'Record Prototype Address', InputType: 'text' },
+					{ Key: 'RecordFieldMapping', Label: 'Record Field Mapping (JSON)', InputType: 'json' },
+					{ Key: 'OutputRecordsetAddressMapping', Label: 'Output Recordset Mapping (JSON)', InputType: 'json' }
+				]
+			},
+			{
+				Type: 'SetStateAddress',
+				Name: 'Set State Address',
+				Fields:
+				[
+					{ Key: 'StateAddress', Label: 'State Address', InputType: 'text' }
+				]
+			},
+			{
+				Type: 'PopState',
+				Name: 'Pop State',
+				Fields: []
+			}
+		];
+	}
+
+	/**
+	 * Render a single field for an Entity Bundle step based on field metadata.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @param {number} pStepIndex
+	 * @param {object} pStep - The step data object
+	 * @param {object} pFieldDef - { Key, Label, InputType }
+	 * @returns {string} HTML string
+	 */
+	_renderEntityBundleStepField(pPanelViewRef, pStepIndex, pStep, pFieldDef)
+	{
+		let tmpHTML = '';
+		let tmpKey = pFieldDef.Key;
+		let tmpLabel = pFieldDef.Label;
+		let tmpInputType = pFieldDef.InputType;
+
+		tmpHTML += '<div class="pict-fe-props-field">';
+
+		if (tmpInputType === 'checkbox')
+		{
+			tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${pStep[tmpKey] ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleStep(${pStepIndex},'${tmpKey}',this.checked)" /> ${this._escapeHTML(tmpLabel)}</label>`;
+		}
+		else if (tmpInputType === 'json')
+		{
+			let tmpValue = '';
+			if (pStep[tmpKey] !== undefined && pStep[tmpKey] !== null)
+			{
+				if (typeof pStep[tmpKey] === 'object')
+				{
+					try { tmpValue = JSON.stringify(pStep[tmpKey], null, 2); }
+					catch (e) { tmpValue = ''; }
+				}
+				else
+				{
+					tmpValue = String(pStep[tmpKey]);
+				}
+			}
+			tmpHTML += `<div class="pict-fe-props-label">${this._escapeHTML(tmpLabel)}</div>`;
+			tmpHTML += `<textarea class="pict-fe-props-input pict-fe-props-textarea" rows="3" onchange="${pPanelViewRef}.updateEntityBundleStepJSON(${pStepIndex},'${tmpKey}',this.value)">${this._escapeHTML(tmpValue)}</textarea>`;
+		}
+		else if (tmpInputType === 'number')
+		{
+			tmpHTML += `<div class="pict-fe-props-label">${this._escapeHTML(tmpLabel)}</div>`;
+			tmpHTML += `<input class="pict-fe-props-input" type="number" value="${this._escapeAttr(pStep[tmpKey] !== undefined ? String(pStep[tmpKey]) : '')}" onchange="${pPanelViewRef}.updateEntityBundleStep(${pStepIndex},'${tmpKey}',this.value)" />`;
+		}
+		else
+		{
+			// text
+			tmpHTML += `<div class="pict-fe-props-label">${this._escapeHTML(tmpLabel)}</div>`;
+			tmpHTML += `<input class="pict-fe-props-input${tmpKey === 'Filter' || tmpKey === 'Destination' ? ' pict-fe-hash-input' : ''}" type="text" value="${this._escapeAttr(pStep[tmpKey] || '')}" onchange="${pPanelViewRef}.updateEntityBundleStep(${pStepIndex},'${tmpKey}',this.value)" />`;
+		}
+
+		tmpHTML += '</div>';
+		return tmpHTML;
+	}
+
+	/**
+	 * Render the Entity Bundle section of the Entity Data tab.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @param {object} pDescriptor
+	 * @returns {string} HTML string
+	 */
+	_renderEntityBundleSection(pPanelViewRef, pDescriptor)
+	{
+		let tmpPictForm = pDescriptor.PictForm || {};
+		let tmpSteps = Array.isArray(tmpPictForm.EntitiesBundle) ? tmpPictForm.EntitiesBundle : [];
+		let tmpStepTypes = this._getEntityBundleStepTypes();
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">ENTITY BUNDLE</div>';
+
+		if (tmpSteps.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No entity steps defined.</div>';
+		}
+
+		for (let i = 0; i < tmpSteps.length; i++)
+		{
+			let tmpStep = tmpSteps[i];
+			let tmpIsExpanded = (this._ExpandedEntityBundleStep === i);
+			let tmpStepType = tmpStep.Type || 'MeadowEntity';
+			let tmpStepTypeDef = tmpStepTypes.find(function(t) { return t.Type === tmpStepType; });
+			let tmpStepTypeName = tmpStepTypeDef ? tmpStepTypeDef.Name : tmpStepType;
+
+			tmpHTML += '<div class="pict-fe-entity-bundle-card">';
+
+			// Header — shows "Step N (Type Name)" and entity/URL summary
+			let tmpHeaderLabel = 'Step ' + (i + 1) + ' (' + tmpStepTypeName + ')';
+			if (tmpStepType === 'Custom' && tmpStep.URL)
+			{
+				tmpHeaderLabel += ': ' + tmpStep.URL;
+			}
+			else if (tmpStep.Entity)
+			{
+				tmpHeaderLabel += ': ' + tmpStep.Entity;
+			}
+			if (tmpStep.Destination)
+			{
+				tmpHeaderLabel += ' \u2192 ' + tmpStep.Destination;
+			}
+
+			tmpHTML += `<div class="pict-fe-picklist-header${tmpIsExpanded ? ' pict-fe-picklist-header-expanded' : ''}" onclick="${pPanelViewRef}.toggleEntityBundleStepExpand(${i})">`;
+			tmpHTML += `<span class="pict-fe-named-list-arrow">${tmpIsExpanded ? '\u25BE' : '\u25B8'}</span>`;
+			tmpHTML += `<span class="pict-fe-picklist-name">${this._escapeHTML(tmpHeaderLabel)}</span>`;
+			tmpHTML += '</div>';
+
+			if (tmpIsExpanded)
+			{
+				tmpHTML += '<div class="pict-fe-picklist-body">';
+
+				// Type selector dropdown
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Step Type</div>';
+				tmpHTML += `<select class="pict-fe-props-input" onchange="${pPanelViewRef}.updateEntityBundleStepType(${i},this.value)">`;
+				for (let t = 0; t < tmpStepTypes.length; t++)
+				{
+					let tmpSelected = (tmpStepTypes[t].Type === tmpStepType) ? ' selected' : '';
+					tmpHTML += `<option value="${tmpStepTypes[t].Type}"${tmpSelected}>${this._escapeHTML(tmpStepTypes[t].Name)}</option>`;
+				}
+				tmpHTML += '</select>';
+				tmpHTML += '</div>';
+
+				// Dynamic fields from step type metadata
+				if (tmpStepTypeDef && tmpStepTypeDef.Fields.length > 0)
+				{
+					for (let f = 0; f < tmpStepTypeDef.Fields.length; f++)
+					{
+						tmpHTML += this._renderEntityBundleStepField(pPanelViewRef, i, tmpStep, tmpStepTypeDef.Fields[f]);
+					}
+				}
+				else if (!tmpStepTypeDef)
+				{
+					tmpHTML += '<div class="pict-fe-props-placeholder">Unknown step type. Select a type above.</div>';
+				}
+
+				// Delete step
+				tmpHTML += `<button class="pict-fe-named-list-delete-btn" onclick="if(this.dataset.armed){${pPanelViewRef}.removeEntityBundleStep(${i})}else{this.dataset.armed='1';this.textContent='Sure? Delete Step';this.classList.add('pict-fe-named-list-delete-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='Delete Step';b.classList.remove('pict-fe-named-list-delete-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='Delete Step';this.classList.remove('pict-fe-named-list-delete-btn-armed');clearTimeout(this._armTimer)}">Delete Step</button>`;
+
+				tmpHTML += '</div>';
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += `<button class="pict-fe-named-list-add-btn" onclick="${pPanelViewRef}.addEntityBundleStep()">+ Add Step</button>`;
+
+		// Trigger configuration
+		tmpHTML += '<div class="pict-fe-entity-bundle-triggers">';
+		tmpHTML += '<div class="pict-fe-props-field">';
+		tmpHTML += '<div class="pict-fe-props-label">Trigger Group (fire when done)</div>';
+		tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpPictForm.EntityBundleTriggerGroup || '')}" onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerGroup',this.value)" />`;
+		tmpHTML += '</div>';
+
+		tmpHTML += '<div class="pict-fe-props-field">';
+		tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPictForm.EntityBundleTriggerOnDataChange ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerOnDataChange',this.checked)" /> On Data Change</label>`;
+		tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPictForm.EntityBundleTriggerOnInitialize ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerOnInitialize',this.checked)" /> On Initialize</label>`;
+		tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPictForm.EntityBundleTriggerWithoutValue ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerWithoutValue',this.checked)" /> Without Value</label>`;
+		tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPictForm.EntityBundleTriggerMetacontrollerSolve ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerMetacontrollerSolve',this.checked)" /> Metacontroller Solve</label>`;
+		tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpPictForm.EntityBundleTriggerMetacontrollerRender ? 'checked' : ''} onchange="${pPanelViewRef}.updateEntityBundleTriggerProperty('EntityBundleTriggerMetacontrollerRender',this.checked)" /> Metacontroller Render</label>`;
+		tmpHTML += '</div>';
+		tmpHTML += '</div>';
+
+		return tmpHTML;
+	}
+
+	toggleEntityBundleStepExpand(pIndex)
+	{
+		this._ExpandedEntityBundleStep = (this._ExpandedEntityBundleStep === pIndex) ? null : pIndex;
+		this.renderEntityDataTabPanel();
+	}
+
+	addEntityBundleStep()
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		if (!Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+		{
+			tmpResolved.Descriptor.PictForm.EntitiesBundle = [];
+		}
+
+		let tmpNewIndex = tmpResolved.Descriptor.PictForm.EntitiesBundle.length;
+		tmpResolved.Descriptor.PictForm.EntitiesBundle.push({
+			Type: 'MeadowEntity',
+			Entity: '',
+			Filter: '',
+			Destination: '',
+			SingleRecord: false
+		});
+
+		this._ExpandedEntityBundleStep = tmpNewIndex;
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	updateEntityBundleStep(pIndex, pProperty, pValue)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+		{
+			return;
+		}
+
+		let tmpSteps = tmpResolved.Descriptor.PictForm.EntitiesBundle;
+		if (pIndex < 0 || pIndex >= tmpSteps.length)
+		{
+			return;
+		}
+
+		// Determine field type from step type metadata
+		let tmpStep = tmpSteps[pIndex];
+		let tmpStepType = tmpStep.Type || 'MeadowEntity';
+		let tmpStepTypes = this._getEntityBundleStepTypes();
+		let tmpTypeDef = tmpStepTypes.find(function(t) { return t.Type === tmpStepType; });
+		let tmpFieldDef = tmpTypeDef ? tmpTypeDef.Fields.find(function(f) { return f.Key === pProperty; }) : null;
+		let tmpInputType = tmpFieldDef ? tmpFieldDef.InputType : 'text';
+
+		if (tmpInputType === 'checkbox')
+		{
+			tmpStep[pProperty] = !!pValue;
+		}
+		else if (tmpInputType === 'number')
+		{
+			let tmpNum = Number(pValue);
+			tmpStep[pProperty] = isNaN(tmpNum) ? 0 : tmpNum;
+		}
+		else
+		{
+			tmpStep[pProperty] = pValue;
+		}
+
+		// Don't re-render — data is mutated in-place
+	}
+
+	/**
+	 * Update the Type of an Entity Bundle step. Triggers a re-render to
+	 * show/hide the correct fields for the new type.
+	 *
+	 * @param {number} pIndex
+	 * @param {string} pType
+	 */
+	updateEntityBundleStepType(pIndex, pType)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+		{
+			return;
+		}
+
+		let tmpSteps = tmpResolved.Descriptor.PictForm.EntitiesBundle;
+		if (pIndex < 0 || pIndex >= tmpSteps.length)
+		{
+			return;
+		}
+
+		tmpSteps[pIndex].Type = pType;
+
+		// Re-render to show/hide fields for the new type
+		this.renderEntityDataTabPanel();
+	}
+
+	/**
+	 * Update a JSON-type field on an Entity Bundle step.
+	 * Attempts to parse the value as JSON; stores the parsed object on success
+	 * or stores the raw string on parse failure.
+	 *
+	 * @param {number} pIndex
+	 * @param {string} pProperty
+	 * @param {string} pValue - Raw string from textarea
+	 */
+	updateEntityBundleStepJSON(pIndex, pProperty, pValue)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+		{
+			return;
+		}
+
+		let tmpSteps = tmpResolved.Descriptor.PictForm.EntitiesBundle;
+		if (pIndex < 0 || pIndex >= tmpSteps.length)
+		{
+			return;
+		}
+
+		let tmpTrimmed = pValue.trim();
+		if (tmpTrimmed === '')
+		{
+			delete tmpSteps[pIndex][pProperty];
+			return;
+		}
+
+		try
+		{
+			tmpSteps[pIndex][pProperty] = JSON.parse(tmpTrimmed);
+		}
+		catch (e)
+		{
+			// Store as raw string if not valid JSON
+			tmpSteps[pIndex][pProperty] = tmpTrimmed;
+		}
+
+		// Don't re-render — data is mutated in-place
+	}
+
+	removeEntityBundleStep(pIndex)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.EntitiesBundle))
+		{
+			return;
+		}
+
+		tmpResolved.Descriptor.PictForm.EntitiesBundle.splice(pIndex, 1);
+
+		if (this._ExpandedEntityBundleStep === pIndex)
+		{
+			this._ExpandedEntityBundleStep = null;
+		}
+		else if (this._ExpandedEntityBundleStep !== null && this._ExpandedEntityBundleStep > pIndex)
+		{
+			this._ExpandedEntityBundleStep--;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	updateEntityBundleTriggerProperty(pProperty, pValue)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		if (pProperty === 'EntityBundleTriggerOnDataChange' || pProperty === 'EntityBundleTriggerOnInitialize' || pProperty === 'EntityBundleTriggerWithoutValue' || pProperty === 'EntityBundleTriggerMetacontrollerSolve' || pProperty === 'EntityBundleTriggerMetacontrollerRender')
+		{
+			tmpResolved.Descriptor.PictForm[pProperty] = !!pValue;
+		}
+		else
+		{
+			if (pValue === '')
+			{
+				delete tmpResolved.Descriptor.PictForm[pProperty];
+			}
+			else
+			{
+				tmpResolved.Descriptor.PictForm[pProperty] = pValue;
+			}
+		}
+
+		// Don't re-render — data is mutated in-place
+	}
+
+	/* ---- Autofill Trigger Group ---- */
+
+	/**
+	 * Normalize AutofillTriggerGroup to an array.
+	 *
+	 * @param {object} pDescriptor
+	 * @returns {Array}
+	 */
+	_resolveAutofillTriggerArray(pDescriptor)
+	{
+		if (!pDescriptor || !pDescriptor.PictForm)
+		{
+			return [];
+		}
+
+		let tmpConfig = pDescriptor.PictForm.AutofillTriggerGroup;
+
+		if (Array.isArray(tmpConfig))
+		{
+			return tmpConfig;
+		}
+		else if (tmpConfig && typeof tmpConfig === 'object')
+		{
+			// Wrap single object in array — but keep the reference intact by converting in-place
+			pDescriptor.PictForm.AutofillTriggerGroup = [tmpConfig];
+			return pDescriptor.PictForm.AutofillTriggerGroup;
+		}
+
+		return [];
+	}
+
+	/**
+	 * Render the Autofill Trigger Group section of the Data tab.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @param {object} pDescriptor
+	 * @returns {string} HTML string
+	 */
+	_renderAutofillTriggerSection(pPanelViewRef, pDescriptor)
+	{
+		let tmpTriggers = this._resolveAutofillTriggerArray(pDescriptor);
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">AUTOFILL TRIGGER GROUP</div>';
+
+		if (tmpTriggers.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No trigger groups configured.</div>';
+		}
+
+		for (let i = 0; i < tmpTriggers.length; i++)
+		{
+			let tmpTrigger = tmpTriggers[i];
+			let tmpIsExpanded = (this._ExpandedAutofillTrigger === i);
+
+			let tmpHeaderLabel = 'Trigger ' + (i + 1);
+			if (tmpTrigger.TriggerGroupHash)
+			{
+				tmpHeaderLabel += ': ' + tmpTrigger.TriggerGroupHash;
+			}
+
+			tmpHTML += '<div class="pict-fe-picklist-card">';
+
+			tmpHTML += `<div class="pict-fe-picklist-header${tmpIsExpanded ? ' pict-fe-picklist-header-expanded' : ''}" onclick="${pPanelViewRef}.toggleAutofillTriggerExpand(${i})">`;
+			tmpHTML += `<span class="pict-fe-named-list-arrow">${tmpIsExpanded ? '\u25BE' : '\u25B8'}</span>`;
+			tmpHTML += `<span class="pict-fe-picklist-name">${this._escapeHTML(tmpHeaderLabel)}</span>`;
+			tmpHTML += '</div>';
+
+			if (tmpIsExpanded)
+			{
+				tmpHTML += '<div class="pict-fe-picklist-body">';
+
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Trigger Group Hash</div>';
+				tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpTrigger.TriggerGroupHash || '')}" onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'TriggerGroupHash',this.value)" />`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Trigger Address</div>';
+				tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpTrigger.TriggerAddress || '')}" onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'TriggerAddress',this.value)" />`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpTrigger.MarshalEmptyValues ? 'checked' : ''} onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'MarshalEmptyValues',this.checked)" /> Marshal Empty Values</label>`;
+				tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpTrigger.SelectOptionsRefresh ? 'checked' : ''} onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'SelectOptionsRefresh',this.checked)" /> Select Options Refresh</label>`;
+				tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpTrigger.TriggerAllInputs ? 'checked' : ''} onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'TriggerAllInputs',this.checked)" /> Trigger All Inputs</label>`;
+				tmpHTML += '</div>';
+
+				// PreSolvers
+				let tmpPreSolvers = Array.isArray(tmpTrigger.PreSolvers) ? JSON.stringify(tmpTrigger.PreSolvers) : '[]';
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Pre-Solvers (JSON array)</div>';
+				tmpHTML += `<textarea class="pict-fe-props-textarea" rows="2" onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'PreSolvers',this.value)">${this._escapeHTML(tmpPreSolvers)}</textarea>`;
+				tmpHTML += '</div>';
+
+				// PostSolvers
+				let tmpPostSolvers = Array.isArray(tmpTrigger.PostSolvers) ? JSON.stringify(tmpTrigger.PostSolvers) : '[]';
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Post-Solvers (JSON array)</div>';
+				tmpHTML += `<textarea class="pict-fe-props-textarea" rows="2" onchange="${pPanelViewRef}.updateAutofillTriggerProperty(${i},'PostSolvers',this.value)">${this._escapeHTML(tmpPostSolvers)}</textarea>`;
+				tmpHTML += '</div>';
+
+				// Delete trigger
+				tmpHTML += `<button class="pict-fe-named-list-delete-btn" onclick="if(this.dataset.armed){${pPanelViewRef}.removeAutofillTrigger(${i})}else{this.dataset.armed='1';this.textContent='Sure? Delete Trigger';this.classList.add('pict-fe-named-list-delete-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='Delete Trigger';b.classList.remove('pict-fe-named-list-delete-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='Delete Trigger';this.classList.remove('pict-fe-named-list-delete-btn-armed');clearTimeout(this._armTimer)}">Delete Trigger</button>`;
+
+				tmpHTML += '</div>';
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += `<button class="pict-fe-named-list-add-btn" onclick="${pPanelViewRef}.addAutofillTrigger()">+ Add Trigger</button>`;
+
+		return tmpHTML;
+	}
+
+	toggleAutofillTriggerExpand(pIndex)
+	{
+		this._ExpandedAutofillTrigger = (this._ExpandedAutofillTrigger === pIndex) ? null : pIndex;
+		this.renderEntityDataTabPanel();
+	}
+
+	addAutofillTrigger()
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		let tmpTriggers = this._resolveAutofillTriggerArray(tmpResolved.Descriptor);
+		if (tmpTriggers.length === 0)
+		{
+			tmpResolved.Descriptor.PictForm.AutofillTriggerGroup = [];
+			tmpTriggers = tmpResolved.Descriptor.PictForm.AutofillTriggerGroup;
+		}
+
+		let tmpNewIndex = tmpTriggers.length;
+		tmpTriggers.push({
+			TriggerGroupHash: '',
+			TriggerAddress: '',
+			MarshalEmptyValues: false,
+			SelectOptionsRefresh: false,
+			TriggerAllInputs: false
+		});
+
+		this._ExpandedAutofillTrigger = tmpNewIndex;
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	updateAutofillTriggerProperty(pIndex, pProperty, pValue)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		let tmpTriggers = this._resolveAutofillTriggerArray(tmpResolved.Descriptor);
+		if (pIndex < 0 || pIndex >= tmpTriggers.length)
+		{
+			return;
+		}
+
+		if (pProperty === 'MarshalEmptyValues' || pProperty === 'SelectOptionsRefresh' || pProperty === 'TriggerAllInputs')
+		{
+			tmpTriggers[pIndex][pProperty] = !!pValue;
+		}
+		else if (pProperty === 'PreSolvers' || pProperty === 'PostSolvers')
+		{
+			try
+			{
+				tmpTriggers[pIndex][pProperty] = JSON.parse(pValue);
+			}
+			catch (e)
+			{
+				tmpTriggers[pIndex][pProperty] = [];
+			}
+		}
+		else
+		{
+			tmpTriggers[pIndex][pProperty] = pValue;
+		}
+
+		// Don't re-render — data is mutated in-place
+	}
+
+	removeAutofillTrigger(pIndex)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		let tmpTriggers = this._resolveAutofillTriggerArray(tmpResolved.Descriptor);
+		if (pIndex < 0 || pIndex >= tmpTriggers.length)
+		{
+			return;
+		}
+
+		tmpTriggers.splice(pIndex, 1);
+
+		// If only one left, convert back to single object
+		if (tmpTriggers.length === 1)
+		{
+			tmpResolved.Descriptor.PictForm.AutofillTriggerGroup = tmpTriggers[0];
+		}
+		else if (tmpTriggers.length === 0)
+		{
+			tmpResolved.Descriptor.PictForm.AutofillTriggerGroup = { TriggerGroupHash: '' };
+		}
+
+		if (this._ExpandedAutofillTrigger === pIndex)
+		{
+			this._ExpandedAutofillTrigger = null;
+		}
+		else if (this._ExpandedAutofillTrigger !== null && this._ExpandedAutofillTrigger > pIndex)
+		{
+			this._ExpandedAutofillTrigger--;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* ---- List Filter Rules ---- */
+
+	/**
+	 * Render the List Filter Rules section of the Data tab.
+	 *
+	 * @param {string} pPanelViewRef
+	 * @param {object} pDescriptor
+	 * @returns {string} HTML string
+	 */
+	_renderListFilterRulesSection(pPanelViewRef, pDescriptor)
+	{
+		let tmpPictForm = pDescriptor.PictForm || {};
+		let tmpRules = Array.isArray(tmpPictForm.ListFilterRules) ? tmpPictForm.ListFilterRules : [];
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">LIST FILTER RULES</div>';
+
+		if (tmpRules.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-props-placeholder">No filter rules defined.</div>';
+		}
+
+		for (let i = 0; i < tmpRules.length; i++)
+		{
+			let tmpRule = tmpRules[i];
+			let tmpIsExpanded = (this._ExpandedFilterRule === i);
+			let tmpFilterType = tmpRule.FilterType || 'Explicit';
+
+			let tmpHeaderLabel = 'Rule ' + (i + 1) + ': ' + tmpFilterType;
+
+			tmpHTML += '<div class="pict-fe-picklist-card">';
+
+			tmpHTML += `<div class="pict-fe-picklist-header${tmpIsExpanded ? ' pict-fe-picklist-header-expanded' : ''}" onclick="${pPanelViewRef}.toggleFilterRuleExpand(${i})">`;
+			tmpHTML += `<span class="pict-fe-named-list-arrow">${tmpIsExpanded ? '\u25BE' : '\u25B8'}</span>`;
+			tmpHTML += `<span class="pict-fe-picklist-name">${this._escapeHTML(tmpHeaderLabel)}</span>`;
+			tmpHTML += '</div>';
+
+			if (tmpIsExpanded)
+			{
+				tmpHTML += '<div class="pict-fe-picklist-body">';
+
+				// FilterType selector
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Filter Type</div>';
+				tmpHTML += `<select class="pict-fe-props-input" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'FilterType',this.value)">`;
+				tmpHTML += `<option value="Explicit"${tmpFilterType === 'Explicit' ? ' selected' : ''}>Explicit</option>`;
+				tmpHTML += `<option value="CrossMap"${tmpFilterType === 'CrossMap' ? ' selected' : ''}>CrossMap</option>`;
+				tmpHTML += '</select>';
+				tmpHTML += '</div>';
+
+				if (tmpFilterType === 'Explicit')
+				{
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Filter Value Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpRule.FilterValueAddress || '')}" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'FilterValueAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Comparison</div>';
+					let tmpComp = tmpRule.FilterValueComparison || '==';
+					tmpHTML += `<select class="pict-fe-props-input" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'FilterValueComparison',this.value)">`;
+					tmpHTML += `<option value="=="${tmpComp === '==' ? ' selected' : ''}>== (equals)</option>`;
+					tmpHTML += `<option value="!="${tmpComp === '!=' ? ' selected' : ''}>!= (not equals)</option>`;
+					tmpHTML += `<option value="~="${tmpComp === '~=' ? ' selected' : ''}>~= (contains)</option>`;
+					tmpHTML += '</select>';
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpRule.IgnoreEmptyValue ? 'checked' : ''} onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'IgnoreEmptyValue',this.checked)" /> Ignore Empty Value</label>`;
+					tmpHTML += '</div>';
+				}
+				else if (tmpFilterType === 'CrossMap')
+				{
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Join List Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpRule.JoinListAddress || '')}" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'JoinListAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpRule.JoinListAddressGlobal ? 'checked' : ''} onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'JoinListAddressGlobal',this.checked)" /> Join List Address Global</label>`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Join List Value Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpRule.JoinListValueAddress || '')}" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'JoinListValueAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">External Value Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpRule.ExternalValueAddress || '')}" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'ExternalValueAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += '<div class="pict-fe-props-label">Filter To Value Address</div>';
+					tmpHTML += `<input class="pict-fe-props-input pict-fe-hash-input" type="text" value="${this._escapeAttr(tmpRule.FilterToValueAddress || '')}" onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'FilterToValueAddress',this.value)" />`;
+					tmpHTML += '</div>';
+
+					tmpHTML += '<div class="pict-fe-props-field">';
+					tmpHTML += `<label class="pict-fe-props-checkbox-label"><input type="checkbox" class="pict-fe-props-checkbox" ${tmpRule.IgnoreEmpty ? 'checked' : ''} onchange="${pPanelViewRef}.updateListFilterRuleProperty(${i},'IgnoreEmpty',this.checked)" /> Ignore Empty</label>`;
+					tmpHTML += '</div>';
+				}
+
+				// Delete rule
+				tmpHTML += `<button class="pict-fe-named-list-delete-btn" onclick="if(this.dataset.armed){${pPanelViewRef}.removeListFilterRule(${i})}else{this.dataset.armed='1';this.textContent='Sure? Delete Rule';this.classList.add('pict-fe-named-list-delete-btn-armed');var b=this;clearTimeout(b._armTimer);b._armTimer=setTimeout(function(){delete b.dataset.armed;b.textContent='Delete Rule';b.classList.remove('pict-fe-named-list-delete-btn-armed');},2000)}" onmouseleave="if(this.dataset.armed){delete this.dataset.armed;this.textContent='Delete Rule';this.classList.remove('pict-fe-named-list-delete-btn-armed');clearTimeout(this._armTimer)}">Delete Rule</button>`;
+
+				tmpHTML += '</div>';
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += `<button class="pict-fe-named-list-add-btn" onclick="${pPanelViewRef}.addListFilterRule()">+ Add Rule</button>`;
+
+		return tmpHTML;
+	}
+
+	toggleFilterRuleExpand(pIndex)
+	{
+		this._ExpandedFilterRule = (this._ExpandedFilterRule === pIndex) ? null : pIndex;
+		this.renderListDataTabPanel();
+	}
+
+	addListFilterRule()
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (!tmpResolved.Descriptor.PictForm)
+		{
+			tmpResolved.Descriptor.PictForm = {};
+		}
+
+		if (!Array.isArray(tmpResolved.Descriptor.PictForm.ListFilterRules))
+		{
+			tmpResolved.Descriptor.PictForm.ListFilterRules = [];
+		}
+
+		let tmpNewIndex = tmpResolved.Descriptor.PictForm.ListFilterRules.length;
+		tmpResolved.Descriptor.PictForm.ListFilterRules.push({
+			FilterType: 'Explicit',
+			FilterValueAddress: '',
+			FilterValueComparison: '=='
+		});
+
+		this._ExpandedFilterRule = tmpNewIndex;
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	updateListFilterRuleProperty(pIndex, pProperty, pValue)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.ListFilterRules))
+		{
+			return;
+		}
+
+		let tmpRules = tmpResolved.Descriptor.PictForm.ListFilterRules;
+		if (pIndex < 0 || pIndex >= tmpRules.length)
+		{
+			return;
+		}
+
+		if (pProperty === 'IgnoreEmptyValue' || pProperty === 'IgnoreEmpty' || pProperty === 'JoinListAddressGlobal')
+		{
+			tmpRules[pIndex][pProperty] = !!pValue;
+		}
+		else
+		{
+			tmpRules[pIndex][pProperty] = pValue;
+		}
+
+		// FilterType changes the visible fields, so re-render
+		if (pProperty === 'FilterType')
+		{
+			this._ParentFormEditor.renderVisualEditor();
+		}
+		// Other property changes don't need re-render — data is mutated in-place
+	}
+
+	removeListFilterRule(pIndex)
+	{
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor || !tmpResolved.Descriptor.PictForm || !Array.isArray(tmpResolved.Descriptor.PictForm.ListFilterRules))
+		{
+			return;
+		}
+
+		tmpResolved.Descriptor.PictForm.ListFilterRules.splice(pIndex, 1);
+
+		if (this._ExpandedFilterRule === pIndex)
+		{
+			this._ExpandedFilterRule = null;
+		}
+		else if (this._ExpandedFilterRule !== null && this._ExpandedFilterRule > pIndex)
+		{
+			this._ExpandedFilterRule--;
+		}
+
+		this._ParentFormEditor.renderVisualEditor();
 	}
 
 	/* -------------------------------------------------------------------------- */
