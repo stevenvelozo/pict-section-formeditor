@@ -18,12 +18,16 @@
 			"to": "./dist/"
 		},
 		{
-			"from": "./manifests/*",
+			"from": "../../sample_manifests/*",
 			"to": "./dist/manifests/"
 		},
 		{
 			"from": "../../node_modules/pict/dist/*",
 			"to": "./dist/"
+		},
+		{
+			"from": "../../node_modules/pict-section-code/example_applications/code_editor/html/codejar.js",
+			"to": "./dist/codejar.js"
 		}
 	],
 	"dependencies": {

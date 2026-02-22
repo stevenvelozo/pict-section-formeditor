@@ -11,7 +11,8 @@ const _ManifestList =
 	{ Name: 'Complex Table', File: 'manifests/Complex-Table.json' },
 	{ Name: 'Manyfest Editor', File: 'manifests/Manyfest-Editor.json' },
 	{ Name: 'Gradebook - Student', File: 'manifests/Gradebook-Student.json' },
-	{ Name: 'Gradebook - Assignment', File: 'manifests/Gradebook-Assignment.json' }
+	{ Name: 'Gradebook - Assignment', File: 'manifests/Gradebook-Assignment.json' },
+	{ Name: 'Distill (Entity Bundles)', File: 'manifests/Distill-Example.json' }
 ];
 
 class FormEditorExampleApplication extends libPictApplication
@@ -91,7 +92,7 @@ class FormEditorExampleApplication extends libPictApplication
 
 		if (this._FormEditorView)
 		{
-			this._FormEditorView.setDragAndDropEnabled(this._DragDropEnabled);
+			this._FormEditorView._DragDropProvider.setDragAndDropEnabled(this._DragDropEnabled);
 		}
 
 		let tmpToggleBtn = document.getElementById('FormEditor-DragDropToggle');
@@ -108,7 +109,7 @@ class FormEditorExampleApplication extends libPictApplication
 
 		if (this._FormEditorView)
 		{
-			this._FormEditorView.setInputDisplayMode(this._ShowHashes ? 'hash' : 'name');
+			this._FormEditorView._UtilitiesProvider.setInputDisplayMode(this._ShowHashes ? 'hash' : 'name');
 		}
 
 		let tmpToggleBtn = document.getElementById('FormEditor-DisplayModeToggle');

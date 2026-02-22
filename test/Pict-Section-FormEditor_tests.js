@@ -177,7 +177,7 @@ suite
 
 						// Without a DOM, codeJar won't be initialized,
 						// so _updateCodeEditor should not throw
-						tmpView._updateCodeEditor();
+						tmpView._UtilitiesProvider._updateCodeEditor();
 					}
 				);
 			}
@@ -203,14 +203,14 @@ suite
 
 						tmpView.initialize();
 
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						Expect(tmpManifest.Sections.length).to.equal(1);
 						Expect(tmpManifest.Sections[0].Hash).to.equal('S1');
 						Expect(tmpManifest.Sections[0].Name).to.equal('Section 1');
 						Expect(tmpManifest.Sections[0].Groups).to.be.an('array');
 
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 						Expect(tmpManifest.Sections.length).to.equal(2);
 						Expect(tmpManifest.Sections[1].Hash).to.equal('S2');
 					}
@@ -230,13 +230,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addSection();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
 						Expect(tmpPict.AppData.FormConfig.Sections.length).to.equal(3);
 
-						tmpView.removeSection(1);
+						tmpView._ManifestOpsProvider.removeSection(1);
 						Expect(tmpPict.AppData.FormConfig.Sections.length).to.equal(2);
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
 						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S3');
@@ -257,17 +257,17 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addSection();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
 						// Move section at index 2 up
-						tmpView.moveSectionUp(2);
+						tmpView._ManifestOpsProvider.moveSectionUp(2);
 						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S3');
 						Expect(tmpPict.AppData.FormConfig.Sections[2].Hash).to.equal('S2');
 
 						// Move section at index 0 down
-						tmpView.moveSectionDown(0);
+						tmpView._ManifestOpsProvider.moveSectionDown(0);
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S3');
 						Expect(tmpPict.AppData.FormConfig.Sections[1].Hash).to.equal('S1');
 					}
@@ -287,10 +287,10 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
-						tmpView.updateSectionProperty(0, 'Name', 'Customer Info');
-						tmpView.updateSectionProperty(0, 'Hash', 'CustomerInfo');
+						tmpView._ManifestOpsProvider.updateSectionProperty(0, 'Name', 'Customer Info');
+						tmpView._ManifestOpsProvider.updateSectionProperty(0, 'Hash', 'CustomerInfo');
 
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Name).to.equal('Customer Info');
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('CustomerInfo');
@@ -311,21 +311,21 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
 						// Moving up at index 0 should be a no-op
-						tmpView.moveSectionUp(0);
+						tmpView._ManifestOpsProvider.moveSectionUp(0);
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
 
 						// Moving down at last index should be a no-op
-						tmpView.moveSectionDown(0);
+						tmpView._ManifestOpsProvider.moveSectionDown(0);
 						Expect(tmpPict.AppData.FormConfig.Sections[0].Hash).to.equal('S1');
 
 						// Removing at invalid index should be a no-op
-						tmpView.removeSection(5);
+						tmpView._ManifestOpsProvider.removeSection(5);
 						Expect(tmpPict.AppData.FormConfig.Sections.length).to.equal(1);
 
-						tmpView.removeSection(-1);
+						tmpView._ManifestOpsProvider.removeSection(-1);
 						Expect(tmpPict.AppData.FormConfig.Sections.length).to.equal(1);
 					}
 				);
@@ -351,7 +351,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
 						// addSection creates a default group, so we already have one
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
@@ -359,7 +359,7 @@ suite
 						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
 						Expect(tmpSection.Groups[0].Layout).to.equal('Record');
 
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
 						Expect(tmpSection.Groups.length).to.equal(2);
 						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G2');
 					}
@@ -379,15 +379,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 						// addSection creates a default group; add two more
-						tmpView.addGroup(0);
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups.length).to.equal(3);
 
-						tmpView.removeGroup(0, 1);
+						tmpView._ManifestOpsProvider.removeGroup(0, 1);
 						Expect(tmpSection.Groups.length).to.equal(2);
 						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G3');
@@ -408,18 +408,18 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 						// addSection creates a default group; add two more
-						tmpView.addGroup(0);
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 
-						tmpView.moveGroupUp(0, 2);
+						tmpView._ManifestOpsProvider.moveGroupUp(0, 2);
 						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G3');
 						Expect(tmpSection.Groups[2].Hash).to.equal('S1_G2');
 
-						tmpView.moveGroupDown(0, 0);
+						tmpView._ManifestOpsProvider.moveGroupDown(0, 0);
 						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G3');
 						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G1');
 					}
@@ -439,12 +439,12 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
-						tmpView.updateGroupProperty(0, 0, 'Name', 'Address Fields');
-						tmpView.updateGroupProperty(0, 0, 'Hash', 'AddressFields');
-						tmpView.updateGroupProperty(0, 0, 'Layout', 'Tabular');
+						tmpView._ManifestOpsProvider.updateGroupProperty(0, 0, 'Name', 'Address Fields');
+						tmpView._ManifestOpsProvider.updateGroupProperty(0, 0, 'Hash', 'AddressFields');
+						tmpView._ManifestOpsProvider.updateGroupProperty(0, 0, 'Layout', 'Tabular');
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 						Expect(tmpGroup.Name).to.equal('Address Fields');
@@ -471,16 +471,16 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						Expect(tmpView.sanitizeObjectKey('Section 1')).to.equal('Section_1');
-						Expect(tmpView.sanitizeObjectKey('Hello World')).to.equal('Hello_World');
-						Expect(tmpView.sanitizeObjectKey('foo--bar  baz')).to.equal('foo_bar_baz');
-						Expect(tmpView.sanitizeObjectKey('  leading spaces  ')).to.equal('leading_spaces');
-						Expect(tmpView.sanitizeObjectKey('AlreadyClean')).to.equal('AlreadyClean');
-						Expect(tmpView.sanitizeObjectKey('with_underscores')).to.equal('with_underscores');
-						Expect(tmpView.sanitizeObjectKey('')).to.equal('INVALID');
-						Expect(tmpView.sanitizeObjectKey(null)).to.equal('INVALID');
-						Expect(tmpView.sanitizeObjectKey(undefined)).to.equal('INVALID');
-						Expect(tmpView.sanitizeObjectKey(42)).to.equal('INVALID');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('Section 1')).to.equal('Section_1');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('Hello World')).to.equal('Hello_World');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('foo--bar  baz')).to.equal('foo_bar_baz');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('  leading spaces  ')).to.equal('leading_spaces');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('AlreadyClean')).to.equal('AlreadyClean');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('with_underscores')).to.equal('with_underscores');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey('')).to.equal('INVALID');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey(null)).to.equal('INVALID');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey(undefined)).to.equal('INVALID');
+						Expect(tmpView._UtilitiesProvider.sanitizeObjectKey(42)).to.equal('INVALID');
 					}
 				);
 				test
@@ -498,15 +498,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups[0].Hash).to.equal('S1_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('S1_G2');
 
 						// Rename the section hash; groups should cascade
-						tmpView.updateSectionProperty(0, 'Hash', 'CustomerInfo');
+						tmpView._ManifestOpsProvider.updateSectionProperty(0, 'Hash', 'CustomerInfo');
 						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfo_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('CustomerInfo_G2');
 					}
@@ -526,8 +526,8 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 
@@ -536,7 +536,7 @@ suite
 
 						// Rename the section hash; only auto-generated groups
 						// (those with the _G prefix) should cascade
-						tmpView.updateSectionProperty(0, 'Hash', 'CustomerInfo');
+						tmpView._ManifestOpsProvider.updateSectionProperty(0, 'Hash', 'CustomerInfo');
 						Expect(tmpSection.Groups[0].Hash).to.equal('CustomerInfo_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('MyCustomHash');
 					}
@@ -556,9 +556,9 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups.length).to.equal(3);
@@ -567,7 +567,7 @@ suite
 						tmpSection.Groups[1].Hash = 'CustomMiddle';
 
 						// Change section hash; groups 0 and 2 should update, group 1 stays
-						tmpView.updateSectionProperty(0, 'Hash', 'NewSection');
+						tmpView._ManifestOpsProvider.updateSectionProperty(0, 'Hash', 'NewSection');
 						Expect(tmpSection.Groups[0].Hash).to.equal('NewSection_G1');
 						Expect(tmpSection.Groups[1].Hash).to.equal('CustomMiddle');
 						Expect(tmpSection.Groups[2].Hash).to.equal('NewSection_G3');
@@ -595,18 +595,18 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 						Expect(tmpGroup.Rows).to.be.undefined;
 
-						tmpView.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 						Expect(tmpGroup.Rows).to.be.an('array');
 						Expect(tmpGroup.Rows.length).to.equal(1);
 						Expect(tmpGroup.Rows[0].Inputs).to.be.an('array');
 						Expect(tmpGroup.Rows[0].Inputs.length).to.equal(0);
 
-						tmpView.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 						Expect(tmpGroup.Rows.length).to.equal(2);
 					}
 				);
@@ -625,15 +625,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 						Expect(tmpGroup.Rows.length).to.equal(3);
 
-						tmpView.removeRow(0, 0, 1);
+						tmpView._ManifestOpsProvider.removeRow(0, 0, 1);
 						Expect(tmpGroup.Rows.length).to.equal(2);
 					}
 				);
@@ -652,10 +652,10 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 
@@ -664,11 +664,11 @@ suite
 						tmpGroup.Rows[1]._tag = 'B';
 						tmpGroup.Rows[2]._tag = 'C';
 
-						tmpView.moveRowUp(0, 0, 2);
+						tmpView._ManifestOpsProvider.moveRowUp(0, 0, 2);
 						Expect(tmpGroup.Rows[1]._tag).to.equal('C');
 						Expect(tmpGroup.Rows[2]._tag).to.equal('B');
 
-						tmpView.moveRowDown(0, 0, 0);
+						tmpView._ManifestOpsProvider.moveRowDown(0, 0, 0);
 						Expect(tmpGroup.Rows[0]._tag).to.equal('C');
 						Expect(tmpGroup.Rows[1]._tag).to.equal('A');
 					}
@@ -695,14 +695,14 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpRow = tmpManifest.Sections[0].Groups[0].Rows[0];
 						Expect(tmpRow.Inputs.length).to.equal(0);
 
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						Expect(tmpRow.Inputs.length).to.equal(1);
 
 						// Inputs are now address strings referencing Descriptors
@@ -719,7 +719,7 @@ suite
 						Expect(tmpDescriptor1.PictForm.Group).to.equal('S1_G1');
 						Expect(tmpDescriptor1.PictForm.Row).to.equal(1);
 
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						Expect(tmpRow.Inputs.length).to.equal(2);
 						let tmpAddress2 = tmpRow.Inputs[1];
 						Expect(tmpManifest.Descriptors).to.have.property(tmpAddress2);
@@ -741,11 +741,11 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpRow = tmpManifest.Sections[0].Groups[0].Rows[0];
@@ -756,7 +756,7 @@ suite
 						let tmpAddress3 = tmpRow.Inputs[2];
 
 						// Remove the middle input
-						tmpView.removeInput(0, 0, 0, 1);
+						tmpView._ManifestOpsProvider.removeInput(0, 0, 0, 1);
 						Expect(tmpRow.Inputs.length).to.equal(2);
 						Expect(tmpRow.Inputs[0]).to.equal(tmpAddress1);
 						Expect(tmpRow.Inputs[1]).to.equal(tmpAddress3);
@@ -783,12 +783,12 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 1);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 1);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpGroup = tmpManifest.Sections[0].Groups[0];
@@ -799,7 +799,7 @@ suite
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(3);
 
 						// Remove row 0 — its two descriptors should be deleted
-						tmpView.removeRow(0, 0, 0);
+						tmpView._ManifestOpsProvider.removeRow(0, 0, 0);
 						Expect(tmpManifest.Descriptors).to.not.have.property(tmpRow1Address1);
 						Expect(tmpManifest.Descriptors).to.not.have.property(tmpRow1Address2);
 						Expect(tmpManifest.Descriptors).to.have.property(tmpRow2Address1);
@@ -824,12 +824,12 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addRow(0, 1);
-						tmpView.addInput(0, 1, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 1);
+						tmpView._ManifestOpsProvider.addInput(0, 1, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpGroup0Address = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
@@ -838,7 +838,7 @@ suite
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(2);
 
 						// Remove group 0
-						tmpView.removeGroup(0, 0);
+						tmpView._ManifestOpsProvider.removeGroup(0, 0);
 						Expect(tmpManifest.Descriptors).to.not.have.property(tmpGroup0Address);
 						Expect(tmpManifest.Descriptors).to.have.property(tmpGroup1Address);
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(1);
@@ -859,12 +859,12 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addRow(1, 0);
-						tmpView.addInput(1, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addRow(1, 0);
+						tmpView._ManifestOpsProvider.addInput(1, 0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpSection0Address = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
@@ -873,7 +873,7 @@ suite
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(2);
 
 						// Remove section 0
-						tmpView.removeSection(0);
+						tmpView._ManifestOpsProvider.removeSection(0);
 						Expect(tmpManifest.Descriptors).to.not.have.property(tmpSection0Address);
 						Expect(tmpManifest.Descriptors).to.have.property(tmpSection1Address);
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(1);
@@ -894,13 +894,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 1);
-						tmpView.addInput(0, 0, 2);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 1);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 2);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
 						let tmpGroup = tmpManifest.Sections[0].Groups[0];
@@ -914,13 +914,13 @@ suite
 						Expect(tmpManifest.Descriptors[tmpAddr2].PictForm.Row).to.equal(3);
 
 						// Move row 2 up — swaps row 1 and row 2
-						tmpView.moveRowUp(0, 0, 2);
+						tmpView._ManifestOpsProvider.moveRowUp(0, 0, 2);
 						Expect(tmpManifest.Descriptors[tmpAddr0].PictForm.Row).to.equal(1);
 						Expect(tmpManifest.Descriptors[tmpAddr2].PictForm.Row).to.equal(2);
 						Expect(tmpManifest.Descriptors[tmpAddr1].PictForm.Row).to.equal(3);
 
 						// Move row 0 down — swaps row 0 and row 1 (which is now addr2)
-						tmpView.moveRowDown(0, 0, 0);
+						tmpView._ManifestOpsProvider.moveRowDown(0, 0, 0);
 						Expect(tmpManifest.Descriptors[tmpAddr2].PictForm.Row).to.equal(1);
 						Expect(tmpManifest.Descriptors[tmpAddr0].PictForm.Row).to.equal(2);
 						Expect(tmpManifest.Descriptors[tmpAddr1].PictForm.Row).to.equal(3);
@@ -1076,7 +1076,7 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						let tmpCategories = tmpView._getInputTypeCategories();
+						let tmpCategories = tmpView._UtilitiesProvider._getInputTypeCategories();
 						Expect(tmpCategories).to.be.an('array');
 						Expect(tmpCategories).to.include('Text & Content');
 						Expect(tmpCategories).to.include('Selection');
@@ -1098,7 +1098,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						// Search for "read" should find ReadOnly and PreciseNumberReadOnly
-						let tmpFiltered = tmpView._filterInputTypeDefinitions('read');
+						let tmpFiltered = tmpView._UtilitiesProvider._filterInputTypeDefinitions('read');
 						Expect(tmpFiltered).to.be.an('array');
 						Expect(tmpFiltered.length).to.be.at.least(2);
 						let tmpFilteredHashes = tmpFiltered.map(function(d) { return d.Hash; });
@@ -1106,11 +1106,11 @@ suite
 						Expect(tmpFilteredHashes).to.include('PreciseNumberReadOnly');
 
 						// Empty query should return all definitions
-						let tmpAll = tmpView._filterInputTypeDefinitions('');
+						let tmpAll = tmpView._UtilitiesProvider._filterInputTypeDefinitions('');
 						Expect(tmpAll.length).to.equal(16);
 
 						// Non-matching query should return empty
-						let tmpNone = tmpView._filterInputTypeDefinitions('zzzznonexistent');
+						let tmpNone = tmpView._UtilitiesProvider._filterInputTypeDefinitions('zzzznonexistent');
 						Expect(tmpNone.length).to.equal(0);
 					}
 				);
@@ -1179,7 +1179,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 						Expect(tmpGroup.Rows).to.be.an('array');
@@ -1238,7 +1238,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						// Should land in the first group (Main)
 						let tmpMainGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
@@ -1287,7 +1287,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						// Should be in the Help group, not Default
 						let tmpDefaultGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
@@ -1333,7 +1333,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups).to.be.an('array');
@@ -1383,9 +1383,9 @@ suite
 						tmpView.initialize();
 
 						// Call reconcile multiple times
-						tmpView._reconcileManifestStructure();
-						tmpView._reconcileManifestStructure();
-						tmpView._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
 						Expect(tmpGroup.Rows[0].Inputs.length).to.equal(1);
@@ -1459,10 +1459,10 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						Expect(tmpView._escapeHTML('<script>alert("xss")</script>')).to.equal('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
-						Expect(tmpView._escapeHTML('')).to.equal('');
-						Expect(tmpView._escapeHTML(null)).to.equal('');
-						Expect(tmpView._escapeHTML(undefined)).to.equal('');
+						Expect(tmpView._UtilitiesProvider._escapeHTML('<script>alert("xss")</script>')).to.equal('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+						Expect(tmpView._UtilitiesProvider._escapeHTML('')).to.equal('');
+						Expect(tmpView._UtilitiesProvider._escapeHTML(null)).to.equal('');
+						Expect(tmpView._UtilitiesProvider._escapeHTML(undefined)).to.equal('');
 					}
 				);
 				test
@@ -1477,7 +1477,7 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						Expect(tmpView._escapeAttr('value with "quotes" and \'apostrophes\'')).to.equal('value with &quot;quotes&quot; and &#39;apostrophes&#39;');
+						Expect(tmpView._UtilitiesProvider._escapeAttr('value with "quotes" and \'apostrophes\'')).to.equal('value with &quot;quotes&quot; and &#39;apostrophes&#39;');
 					}
 				);
 			}
@@ -1881,10 +1881,10 @@ suite
 
 						Expect(tmpView._DragAndDropEnabled).to.equal(false);
 
-						tmpView.setDragAndDropEnabled(true);
+						tmpView._DragDropProvider.setDragAndDropEnabled(true);
 						Expect(tmpView._DragAndDropEnabled).to.equal(true);
 
-						tmpView.setDragAndDropEnabled(false);
+						tmpView._DragDropProvider.setDragAndDropEnabled(false);
 						Expect(tmpView._DragAndDropEnabled).to.equal(false);
 
 						fDone();
@@ -1903,20 +1903,20 @@ suite
 						}, libPictSectionFormEditor);
 
 						// Disabled — should return empty string
-						var tmpAttrs = tmpView._buildDragAttributes('section', [0]);
+						var tmpAttrs = tmpView._DragDropProvider._buildDragAttributes('section', [0]);
 						Expect(tmpAttrs).to.equal('');
 
-						var tmpHandle = tmpView._buildDragHandleHTML(12);
+						var tmpHandle = tmpView._DragDropProvider._buildDragHandleHTML(12);
 						Expect(tmpHandle).to.equal('');
 
 						// Enabled — should return drag attribute string
 						tmpView._DragAndDropEnabled = true;
-						tmpAttrs = tmpView._buildDragAttributes('section', [0]);
+						tmpAttrs = tmpView._DragDropProvider._buildDragAttributes('section', [0]);
 						Expect(tmpAttrs).to.contain('draggable="true"');
 						Expect(tmpAttrs).to.contain('ondragstart');
 						Expect(tmpAttrs).to.contain('ondrop');
 
-						tmpHandle = tmpView._buildDragHandleHTML(12);
+						tmpHandle = tmpView._DragDropProvider._buildDragHandleHTML(12);
 						Expect(tmpHandle).to.contain('pict-fe-drag-handle');
 						Expect(tmpHandle).to.contain('<svg');
 					}
@@ -1934,23 +1934,23 @@ suite
 						}, libPictSectionFormEditor);
 
 						// Sections (1 index) — always share root
-						Expect(tmpView._dragIndicesShareParent([0], [1])).to.equal(true);
-						Expect(tmpView._dragIndicesShareParent([0], [2])).to.equal(true);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0], [1])).to.equal(true);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0], [2])).to.equal(true);
 
 						// Groups (2 indices) — must share section
-						Expect(tmpView._dragIndicesShareParent([0, 1], [0, 2])).to.equal(true);
-						Expect(tmpView._dragIndicesShareParent([0, 1], [1, 2])).to.equal(false);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 1], [0, 2])).to.equal(true);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 1], [1, 2])).to.equal(false);
 
 						// Rows (3 indices) — must share section + group
-						Expect(tmpView._dragIndicesShareParent([0, 0, 1], [0, 0, 3])).to.equal(true);
-						Expect(tmpView._dragIndicesShareParent([0, 0, 1], [0, 1, 3])).to.equal(false);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 0, 1], [0, 0, 3])).to.equal(true);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 0, 1], [0, 1, 3])).to.equal(false);
 
 						// Inputs (4 indices) — must share section + group + row
-						Expect(tmpView._dragIndicesShareParent([0, 0, 0, 1], [0, 0, 0, 3])).to.equal(true);
-						Expect(tmpView._dragIndicesShareParent([0, 0, 0, 1], [0, 0, 1, 3])).to.equal(false);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 0, 0, 1], [0, 0, 0, 3])).to.equal(true);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0, 0, 0, 1], [0, 0, 1, 3])).to.equal(false);
 
 						// Mismatched lengths
-						Expect(tmpView._dragIndicesShareParent([0], [0, 1])).to.equal(false);
+						Expect(tmpView._DragDropProvider._dragIndicesShareParent([0], [0, 1])).to.equal(false);
 					}
 				);
 				test
@@ -2005,7 +2005,7 @@ suite
 
 						// Move Group A2 from Section A to Section B (drop on Group B1)
 						tmpView._DragState = { Type: 'group', Indices: [0, 1] };
-						tmpView.onDrop(
+						tmpView._DragDropProvider.onDrop(
 							{ preventDefault: function() {} },
 							'group', 1, 0
 						);
@@ -2085,7 +2085,7 @@ suite
 
 						// Move Row 2 from Group A1 to Group A2 (drop on Row 1 of Group A2)
 						tmpView._DragState = { Type: 'row', Indices: [0, 0, 1] };
-						tmpView.onDrop(
+						tmpView._DragDropProvider.onDrop(
 							{ preventDefault: function() {} },
 							'row', 0, 1, 0
 						);
@@ -2170,7 +2170,7 @@ suite
 
 						// Move addrY from Section A / Group A1 / Row 0 to Section B / Group B1 / Row 0 (drop on addrZ position)
 						tmpView._DragState = { Type: 'input', Indices: [0, 0, 0, 1] };
-						tmpView.onDrop(
+						tmpView._DragDropProvider.onDrop(
 							{ preventDefault: function() {} },
 							'input', 1, 0, 0, 0
 						);
@@ -2338,10 +2338,10 @@ suite
 
 						Expect(tmpView._InputDisplayMode).to.equal('name');
 
-						tmpView.setInputDisplayMode('hash');
+						tmpView._UtilitiesProvider.setInputDisplayMode('hash');
 						Expect(tmpView._InputDisplayMode).to.equal('hash');
 
-						tmpView.setInputDisplayMode('name');
+						tmpView._UtilitiesProvider.setInputDisplayMode('name');
 						Expect(tmpView._InputDisplayMode).to.equal('name');
 					}
 				);
@@ -2357,7 +2357,7 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						tmpView.setInputDisplayMode('invalid');
+						tmpView._UtilitiesProvider.setInputDisplayMode('invalid');
 						Expect(tmpView._InputDisplayMode).to.equal('name');
 					}
 				);
@@ -2422,7 +2422,7 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						tmpView.selectInput(0, 0, 0, 0);
+						tmpView._UtilitiesProvider.selectInput(0, 0, 0, 0);
 						Expect(tmpView._SelectedInputIndices).to.be.an('array');
 						Expect(tmpView._SelectedInputIndices).to.deep.equal([0, 0, 0, 0]);
 					}
@@ -2447,7 +2447,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView._SelectedInputIndices = [0, 0, 0, 0];
-						tmpView.deselectInput();
+						tmpView._UtilitiesProvider.deselectInput();
 						Expect(tmpView._SelectedInputIndices).to.equal(null);
 					}
 				);
@@ -2534,7 +2534,7 @@ suite
 			{
 				test
 				(
-					'Should default _PanelCollapsed to false and _PanelActiveTab to stats',
+					'Should default _PanelCollapsed to false and _PanelActiveTab to form',
 					function ()
 					{
 						let tmpPict = new libPict({ Product: 'TestFormEditor' });
@@ -2545,7 +2545,7 @@ suite
 						}, libPictSectionFormEditor);
 
 						Expect(tmpView._PanelCollapsed).to.equal(false);
-						Expect(tmpView._PanelActiveTab).to.equal('stats');
+						Expect(tmpView._PanelActiveTab).to.equal('form');
 					}
 				);
 				test
@@ -2563,10 +2563,10 @@ suite
 
 						Expect(tmpView._PanelCollapsed).to.equal(false);
 
-						tmpView.togglePropertiesPanel();
+						tmpView._UtilitiesProvider.togglePropertiesPanel();
 						Expect(tmpView._PanelCollapsed).to.equal(true);
 
-						tmpView.togglePropertiesPanel();
+						tmpView._UtilitiesProvider.togglePropertiesPanel();
 						Expect(tmpView._PanelCollapsed).to.equal(false);
 					}
 				);
@@ -2583,13 +2583,13 @@ suite
 						}, libPictSectionFormEditor);
 						tmpView.initialize();
 
-						Expect(tmpView._PanelActiveTab).to.equal('stats');
+						Expect(tmpView._PanelActiveTab).to.equal('form');
 
-						tmpView.setPanelTab('properties');
+						tmpView._UtilitiesProvider.setPanelTab('properties');
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 
-						tmpView.setPanelTab('stats');
-						Expect(tmpView._PanelActiveTab).to.equal('stats');
+						tmpView._UtilitiesProvider.setPanelTab('form');
+						Expect(tmpView._PanelActiveTab).to.equal('form');
 					}
 				);
 				test
@@ -2605,16 +2605,16 @@ suite
 						}, libPictSectionFormEditor);
 						tmpView.initialize();
 
-						tmpView.setPanelTab('properties');
+						tmpView._UtilitiesProvider.setPanelTab('properties');
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 
-						tmpView.setPanelTab('invalid');
+						tmpView._UtilitiesProvider.setPanelTab('invalid');
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 
-						tmpView.setPanelTab('');
+						tmpView._UtilitiesProvider.setPanelTab('');
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 
-						tmpView.setPanelTab(null);
+						tmpView._UtilitiesProvider.setPanelTab(null);
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 					}
 				);
@@ -2631,17 +2631,17 @@ suite
 						}, libPictSectionFormEditor);
 						tmpView.initialize();
 
-						// Start with stats tab and collapsed panel
-						tmpView._PanelActiveTab = 'stats';
+						// Start with form tab and collapsed panel
+						tmpView._PanelActiveTab = 'form';
 						tmpView._PanelCollapsed = true;
 
 						// Add a section/group/row/input so selectInput has something to select
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
-						tmpView.selectInput(0, 0, 0, 0);
+						tmpView._UtilitiesProvider.selectInput(0, 0, 0, 0);
 
 						Expect(tmpView._PanelActiveTab).to.equal('properties');
 						Expect(tmpView._PanelCollapsed).to.equal(false);
@@ -2663,13 +2663,13 @@ suite
 						tmpView._PanelCollapsed = false;
 						tmpView._PanelActiveTab = 'properties';
 
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
-						tmpView.selectInput(0, 0, 0, 0);
-						tmpView.deselectInput();
+						tmpView._UtilitiesProvider.selectInput(0, 0, 0, 0);
+						tmpView._UtilitiesProvider.deselectInput();
 
 						Expect(tmpView._PanelCollapsed).to.equal(false);
 						Expect(tmpView._SelectedInputIndices).to.equal(null);
@@ -2689,24 +2689,24 @@ suite
 						tmpView.initialize();
 
 						// Empty manifest
-						let tmpStats = tmpView.getFormStats();
+						let tmpStats = tmpView._UtilitiesProvider.getFormStats();
 						Expect(tmpStats.Sections).to.equal(0);
 						Expect(tmpStats.Groups).to.equal(0);
 						Expect(tmpStats.Inputs).to.equal(0);
 						Expect(tmpStats.Descriptors).to.equal(0);
 
 						// Add content
-						tmpView.addSection();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addGroup(1);
-						tmpView.addRow(0, 0);
-						tmpView.addRow(1, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(1, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(1);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(1, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(1, 0, 0);
 
-						tmpStats = tmpView.getFormStats();
+						tmpStats = tmpView._UtilitiesProvider.getFormStats();
 						Expect(tmpStats.Sections).to.equal(2);
 						// Each addSection() creates 1 default group, + addGroup() adds 1 more each = 4 total
 						Expect(tmpStats.Groups).to.equal(4);
@@ -2730,7 +2730,7 @@ suite
 						// Clear manifest entirely
 						tmpView._setManifestData({});
 
-						let tmpStats = tmpView.getFormStats();
+						let tmpStats = tmpView._UtilitiesProvider.getFormStats();
 						Expect(tmpStats.Sections).to.equal(0);
 						Expect(tmpStats.Groups).to.equal(0);
 						Expect(tmpStats.Inputs).to.equal(0);
@@ -2751,18 +2751,18 @@ suite
 						tmpView.initialize();
 
 						// Empty manifest
-						let tmpEntries = tmpView.getAllInputEntries();
+						let tmpEntries = tmpView._UtilitiesProvider.getAllInputEntries();
 						Expect(tmpEntries).to.be.an('array');
 						Expect(tmpEntries.length).to.equal(0);
 
 						// Add content
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
-						tmpEntries = tmpView.getAllInputEntries();
+						tmpEntries = tmpView._UtilitiesProvider.getAllInputEntries();
 						Expect(tmpEntries.length).to.equal(2);
 
 						// Check structure of each entry
@@ -2792,10 +2792,10 @@ suite
 						}, libPictSectionFormEditor);
 						tmpFormEditor.initialize();
 
-						tmpFormEditor.addSection();
-						tmpFormEditor.addGroup(0);
-						tmpFormEditor.addRow(0, 0);
-						tmpFormEditor.addInput(0, 0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSection();
+						tmpFormEditor._ManifestOpsProvider.addGroup(0);
+						tmpFormEditor._ManifestOpsProvider.addRow(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addInput(0, 0, 0);
 
 						let tmpPanel = tmpPict.addView('TestSelectorPanel',
 						{
@@ -2828,10 +2828,10 @@ suite
 						}, libPictSectionFormEditor);
 						tmpFormEditor.initialize();
 
-						tmpFormEditor.addSection();
-						tmpFormEditor.addGroup(0);
-						tmpFormEditor.addRow(0, 0);
-						tmpFormEditor.addInput(0, 0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSection();
+						tmpFormEditor._ManifestOpsProvider.addGroup(0);
+						tmpFormEditor._ManifestOpsProvider.addRow(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addInput(0, 0, 0);
 
 						let tmpPanel = tmpPict.addView('TestSelectorDeselectPanel',
 						{
@@ -2840,7 +2840,7 @@ suite
 						tmpPanel._ParentFormEditor = tmpFormEditor;
 
 						// Select first, then deselect
-						tmpFormEditor.selectInput(0, 0, 0, 0);
+						tmpFormEditor._UtilitiesProvider.selectInput(0, 0, 0, 0);
 						Expect(tmpFormEditor._SelectedInputIndices).to.not.equal(null);
 
 						tmpPanel.onInputSelectorChange('');
@@ -2890,7 +2890,7 @@ suite
 						tmpView.initialize();
 
 						// Should not throw even without a DOM
-						tmpView.scrollToInput(0, 0, 0, 0);
+						tmpView._UtilitiesProvider.scrollToInput(0, 0, 0, 0);
 					}
 				);
 			}
@@ -2950,17 +2950,17 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						let tmpOptionManifest = tmpView._getInputTypeManifest('Option');
+						let tmpOptionManifest = tmpView._UtilitiesProvider._getInputTypeManifest('Option');
 						Expect(tmpOptionManifest).to.be.an('object');
 						Expect(tmpOptionManifest.Descriptors).to.be.an('object');
 						Expect(tmpOptionManifest.Descriptors['SelectOptions']).to.be.an('object');
 						Expect(tmpOptionManifest.Descriptors['SelectOptionsPickList']).to.be.an('object');
 
-						let tmpChartManifest = tmpView._getInputTypeManifest('Chart');
+						let tmpChartManifest = tmpView._UtilitiesProvider._getInputTypeManifest('Chart');
 						Expect(tmpChartManifest).to.be.an('object');
 						Expect(tmpChartManifest.Descriptors['ChartType']).to.be.an('object');
 
-						let tmpPNROManifest = tmpView._getInputTypeManifest('PreciseNumberReadOnly');
+						let tmpPNROManifest = tmpView._UtilitiesProvider._getInputTypeManifest('PreciseNumberReadOnly');
 						Expect(tmpPNROManifest).to.be.an('object');
 						Expect(tmpPNROManifest.Descriptors['DecimalPrecision']).to.be.an('object');
 						Expect(tmpPNROManifest.Descriptors['AddCommas']).to.be.an('object');
@@ -2980,13 +2980,13 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						Expect(tmpView._getInputTypeManifest('TextArea')).to.equal(null);
-						Expect(tmpView._getInputTypeManifest('Boolean')).to.equal(null);
-						Expect(tmpView._getInputTypeManifest('Hidden')).to.equal(null);
-						Expect(tmpView._getInputTypeManifest('Link')).to.equal(null);
-						Expect(tmpView._getInputTypeManifest('')).to.equal(null);
-						Expect(tmpView._getInputTypeManifest(null)).to.equal(null);
-						Expect(tmpView._getInputTypeManifest('NonExistent')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('TextArea')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('Boolean')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('Hidden')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('Link')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('')).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest(null)).to.equal(null);
+						Expect(tmpView._UtilitiesProvider._getInputTypeManifest('NonExistent')).to.equal(null);
 					}
 				);
 				test
@@ -3011,10 +3011,10 @@ suite
 						tmpFormEditor.initialize();
 
 						// Set up manifest data with a section/group/row/input
-						tmpFormEditor.addSection();
-						tmpFormEditor.addGroup(0);
-						tmpFormEditor.addRow(0, 0);
-						tmpFormEditor.addInput(0, 0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSection();
+						tmpFormEditor._ManifestOpsProvider.addGroup(0);
+						tmpFormEditor._ManifestOpsProvider.addRow(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addInput(0, 0, 0);
 
 						// Wire the properties panel to the form editor
 						tmpView._ParentFormEditor = tmpFormEditor;
@@ -3061,13 +3061,13 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						let tmpTabGroupManifest = tmpView._getInputTypeManifest('TabGroupSelector');
+						let tmpTabGroupManifest = tmpView._UtilitiesProvider._getInputTypeManifest('TabGroupSelector');
 						Expect(tmpTabGroupManifest.Descriptors['TabGroupSet']).to.be.an('object');
 						Expect(tmpTabGroupManifest.Descriptors['DefaultTabGroupHash']).to.be.an('object');
 						Expect(tmpTabGroupManifest.Descriptors['DefaultFromData']).to.be.an('object');
 						Expect(tmpTabGroupManifest.Descriptors['DefaultFromData'].DataType).to.equal('Boolean');
 
-						let tmpTabSectionManifest = tmpView._getInputTypeManifest('TabSectionSelector');
+						let tmpTabSectionManifest = tmpView._UtilitiesProvider._getInputTypeManifest('TabSectionSelector');
 						Expect(tmpTabSectionManifest.Descriptors['TabSectionSet']).to.be.an('object');
 						Expect(tmpTabSectionManifest.Descriptors['DefaultTabSectionHash']).to.be.an('object');
 						Expect(tmpTabSectionManifest.Descriptors['DefaultFromData']).to.be.an('object');
@@ -3101,7 +3101,7 @@ suite
 							]
 						}, libPictSectionFormEditor);
 
-						let tmpCustomManifest = tmpView._getInputTypeManifest('CustomWidget');
+						let tmpCustomManifest = tmpView._UtilitiesProvider._getInputTypeManifest('CustomWidget');
 						Expect(tmpCustomManifest).to.be.an('object');
 						Expect(tmpCustomManifest.Descriptors['WidgetColor']).to.be.an('object');
 						Expect(tmpCustomManifest.Descriptors['WidgetColor'].DataType).to.equal('String');
@@ -3130,7 +3130,7 @@ suite
 
 						tmpView.initialize();
 
-						let tmpName = tmpView.createReferenceManifest('MyManifest');
+						let tmpName = tmpView._ManifestOpsProvider.createReferenceManifest('MyManifest');
 						Expect(tmpName).to.equal('MyManifest');
 
 						let tmpManifest = tmpView._resolveManifestData();
@@ -3157,15 +3157,15 @@ suite
 
 						tmpView.initialize();
 
-						let tmpName1 = tmpView.createReferenceManifest('TestManifest');
-						let tmpName2 = tmpView.createReferenceManifest('TestManifest');
-						let tmpName3 = tmpView.createReferenceManifest('TestManifest');
+						let tmpName1 = tmpView._ManifestOpsProvider.createReferenceManifest('TestManifest');
+						let tmpName2 = tmpView._ManifestOpsProvider.createReferenceManifest('TestManifest');
+						let tmpName3 = tmpView._ManifestOpsProvider.createReferenceManifest('TestManifest');
 
 						Expect(tmpName1).to.equal('TestManifest');
 						Expect(tmpName2).to.equal('TestManifest_2');
 						Expect(tmpName3).to.equal('TestManifest_3');
 
-						let tmpNames = tmpView.getReferenceManifestNames();
+						let tmpNames = tmpView._ManifestOpsProvider.getReferenceManifestNames();
 						Expect(tmpNames.length).to.equal(3);
 					}
 				);
@@ -3185,14 +3185,14 @@ suite
 
 						tmpView.initialize();
 
-						let tmpNames = tmpView.getReferenceManifestNames();
+						let tmpNames = tmpView._ManifestOpsProvider.getReferenceManifestNames();
 						Expect(tmpNames).to.be.an('array');
 						Expect(tmpNames.length).to.equal(0);
 
-						tmpView.createReferenceManifest('Alpha');
-						tmpView.createReferenceManifest('Beta');
+						tmpView._ManifestOpsProvider.createReferenceManifest('Alpha');
+						tmpView._ManifestOpsProvider.createReferenceManifest('Beta');
 
-						tmpNames = tmpView.getReferenceManifestNames();
+						tmpNames = tmpView._ManifestOpsProvider.getReferenceManifestNames();
 						Expect(tmpNames.length).to.equal(2);
 						Expect(tmpNames).to.include('Alpha');
 						Expect(tmpNames).to.include('Beta');
@@ -3214,11 +3214,11 @@ suite
 
 						tmpView.initialize();
 
-						Expect(tmpView._resolveReferenceManifest('NonExistent')).to.equal(null);
+						Expect(tmpView._ManifestOpsProvider._resolveReferenceManifest('NonExistent')).to.equal(null);
 
-						tmpView.createReferenceManifest('Existing');
+						tmpView._ManifestOpsProvider.createReferenceManifest('Existing');
 
-						let tmpResolved = tmpView._resolveReferenceManifest('Existing');
+						let tmpResolved = tmpView._ManifestOpsProvider._resolveReferenceManifest('Existing');
 						Expect(tmpResolved).to.be.an('object');
 						Expect(tmpResolved.Scope).to.equal('Existing');
 					}
@@ -3238,11 +3238,11 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createReferenceManifest('TestBind');
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createReferenceManifest('TestBind');
 
-						tmpView.bindReferenceManifest(0, 0, 'TestBind');
+						tmpView._ManifestOpsProvider.bindReferenceManifest(0, 0, 'TestBind');
 
 						let tmpManifest = tmpView._resolveManifestData();
 						Expect(tmpManifest.Sections[0].Groups[0].RecordManifest).to.equal('TestBind');
@@ -3263,14 +3263,14 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createReferenceManifest('TestUnbind');
-						tmpView.bindReferenceManifest(0, 0, 'TestUnbind');
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createReferenceManifest('TestUnbind');
+						tmpView._ManifestOpsProvider.bindReferenceManifest(0, 0, 'TestUnbind');
 
 						Expect(tmpView._resolveManifestData().Sections[0].Groups[0].RecordManifest).to.equal('TestUnbind');
 
-						tmpView.unbindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.unbindReferenceManifest(0, 0);
 
 						Expect(tmpView._resolveManifestData().Sections[0].Groups[0].hasOwnProperty('RecordManifest')).to.equal(false);
 					}
@@ -3290,13 +3290,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						let tmpGroup = tmpView._resolveManifestData().Sections[0].Groups[0];
 						tmpGroup.Hash = 'TestGroup';
 
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						Expect(tmpManifest.Sections[0].Groups[0].RecordManifest).to.be.a('string');
@@ -3327,11 +3327,11 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -3361,13 +3361,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -3395,12 +3395,12 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -3409,7 +3409,7 @@ suite
 						Expect(tmpKeys.length).to.equal(2);
 
 						let tmpFirstKey = tmpKeys[0];
-						tmpView.removeSubmanifestColumn(0, 0, tmpFirstKey);
+						tmpView._ManifestOpsProvider.removeSubmanifestColumn(0, 0, tmpFirstKey);
 
 						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
 						let tmpRemainingKeys = Object.keys(tmpRef.Descriptors);
@@ -3432,13 +3432,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -3446,7 +3446,7 @@ suite
 						let tmpOriginalKeys = Object.keys(tmpRef.Descriptors);
 
 						// Move the last column up — it should swap with the middle
-						tmpView.moveSubmanifestColumnUp(0, 0, tmpOriginalKeys[2]);
+						tmpView._ManifestOpsProvider.moveSubmanifestColumnUp(0, 0, tmpOriginalKeys[2]);
 
 						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
 						let tmpNewKeys = Object.keys(tmpRef.Descriptors);
@@ -3456,7 +3456,7 @@ suite
 						Expect(tmpNewKeys[2]).to.equal(tmpOriginalKeys[1]);
 
 						// Move the first column down
-						tmpView.moveSubmanifestColumnDown(0, 0, tmpNewKeys[0]);
+						tmpView._ManifestOpsProvider.moveSubmanifestColumnDown(0, 0, tmpNewKeys[0]);
 
 						tmpRef = tmpView._resolveManifestData().ReferenceManifests[tmpRefName];
 						let tmpFinalKeys = Object.keys(tmpRef.Descriptors);
@@ -3480,15 +3480,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
-						tmpView.createAndBindReferenceManifest(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						// First select a record input
-						tmpView.selectInput(0, 0, 0, 0);
+						tmpView._UtilitiesProvider.selectInput(0, 0, 0, 0);
 						Expect(tmpView._SelectedInputIndices).to.not.equal(null);
 
 						// Now select a submanifest column
@@ -3497,7 +3497,7 @@ suite
 						let tmpRef = tmpManifest.ReferenceManifests[tmpRefName];
 						let tmpAddress = Object.keys(tmpRef.Descriptors)[0];
 
-						tmpView.selectSubmanifestColumn(0, 0, tmpAddress);
+						tmpView._ManifestOpsProvider.selectSubmanifestColumn(0, 0, tmpAddress);
 
 						Expect(tmpView._SelectedTabularColumn).to.be.an('object');
 						Expect(tmpView._SelectedTabularColumn.SectionIndex).to.equal(0);
@@ -3521,11 +3521,11 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						// No ReferenceManifest bound — should not throw
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						// Manifest should not have any ReferenceManifests
@@ -3547,15 +3547,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addGroup(0);
-						tmpView.createReferenceManifest('SharedManifest');
-						tmpView.bindReferenceManifest(0, 0, 'SharedManifest');
-						tmpView.bindReferenceManifest(0, 1, 'SharedManifest');
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createReferenceManifest('SharedManifest');
+						tmpView._ManifestOpsProvider.bindReferenceManifest(0, 0, 'SharedManifest');
+						tmpView._ManifestOpsProvider.bindReferenceManifest(0, 1, 'SharedManifest');
 
 						// Add a column via group 0
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						// Should be visible from group 1 since they share the manifest
 						let tmpManifest = tmpView._resolveManifestData();
@@ -3598,7 +3598,7 @@ suite
 							}
 						};
 
-						let tmpRows = tmpView._getSubmanifestRows(tmpRefManifest);
+						let tmpRows = tmpView._ManifestOpsProvider._getSubmanifestRows(tmpRefManifest);
 						Expect(tmpRows).to.be.an('array');
 						Expect(tmpRows.length).to.equal(2);
 						Expect(tmpRows[0].Row).to.equal(1);
@@ -3635,7 +3635,7 @@ suite
 							}
 						};
 
-						let tmpRows = tmpView._getSubmanifestRows(tmpRefManifest);
+						let tmpRows = tmpView._ManifestOpsProvider._getSubmanifestRows(tmpRefManifest);
 						Expect(tmpRows.length).to.equal(1);
 						Expect(tmpRows[0].Row).to.equal(1);
 						Expect(tmpRows[0].Columns.length).to.equal(2);
@@ -3668,11 +3668,11 @@ suite
 							}
 						};
 
-						Expect(tmpView._getSubmanifestMaxRow(tmpRefManifest)).to.equal(5);
+						Expect(tmpView._ManifestOpsProvider._getSubmanifestMaxRow(tmpRefManifest)).to.equal(5);
 
 						// Empty Descriptors should return 0
 						let tmpEmptyRef = { Scope: 'Empty', Descriptors: {} };
-						Expect(tmpView._getSubmanifestMaxRow(tmpEmptyRef)).to.equal(0);
+						Expect(tmpView._ManifestOpsProvider._getSubmanifestMaxRow(tmpEmptyRef)).to.equal(0);
 					}
 				);
 				test
@@ -3690,15 +3690,15 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
 
 						// Add first column (row 1 by default)
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						// Add a new row — should create a column with Row: 2
-						tmpView.addSubmanifestRow(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestRow(0, 0);
 
 						let tmpManifest = tmpView._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -3807,14 +3807,14 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
+						tmpView._ManifestOpsProvider.addSection();
 						// addSection() already creates one default group, so use group index 0
-						tmpView.createAndBindReferenceManifest(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
-						tmpView.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
-						let tmpStats = tmpView.getFormStats();
+						let tmpStats = tmpView._UtilitiesProvider.getFormStats();
 						Expect(tmpStats.ReferenceManifests).to.equal(1);
 						Expect(tmpStats.TabularColumns).to.equal(3);
 						Expect(tmpStats.Sections).to.equal(1);
@@ -3838,20 +3838,20 @@ suite
 						tmpView.initialize();
 
 						// Add a Record group with one input
-						tmpView.addSection();
-						tmpView.addGroup(0);
-						tmpView.addRow(0, 0);
-						tmpView.addInput(0, 0, 0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
 						// Add a Tabular group with columns
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addGroup(0);
 						let tmpManifest = tmpView._resolveManifestData();
 						tmpManifest.Sections[0].Groups[1].Layout = 'Tabular';
-						tmpView.createAndBindReferenceManifest(0, 1);
-						tmpView.addSubmanifestColumn(0, 1);
-						tmpView.addSubmanifestColumn(0, 1);
+						tmpView._ManifestOpsProvider.createAndBindReferenceManifest(0, 1);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 1);
+						tmpView._ManifestOpsProvider.addSubmanifestColumn(0, 1);
 
-						let tmpEntries = tmpView.getAllInputEntries();
+						let tmpEntries = tmpView._UtilitiesProvider.getAllInputEntries();
 						Expect(tmpEntries).to.be.an('array');
 
 						// Should have 1 record input + 2 tabular columns
@@ -3879,8 +3879,8 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView.addSection();
-						tmpView.addGroup(0);
+						tmpView._ManifestOpsProvider.addSection();
+						tmpView._ManifestOpsProvider.addGroup(0);
 
 						// The Layout property edit list should include RecordSet
 						// We verify this by checking that the view accepts RecordSet as a valid layout
@@ -3997,10 +3997,10 @@ suite
 						}, libPictSectionFormEditor);
 						tmpFormEditor.initialize();
 
-						tmpFormEditor.addSection();
-						tmpFormEditor.addGroup(0);
-						tmpFormEditor.createAndBindReferenceManifest(0, 0);
-						tmpFormEditor.addSubmanifestColumn(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSection();
+						tmpFormEditor._ManifestOpsProvider.addGroup(0);
+						tmpFormEditor._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpFormEditor._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
@@ -4046,10 +4046,10 @@ suite
 						}, libPictSectionFormEditor);
 						tmpFormEditor.initialize();
 
-						tmpFormEditor.addSection();
-						tmpFormEditor.addGroup(0);
-						tmpFormEditor.createAndBindReferenceManifest(0, 0);
-						tmpFormEditor.addSubmanifestColumn(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSection();
+						tmpFormEditor._ManifestOpsProvider.addGroup(0);
+						tmpFormEditor._ManifestOpsProvider.createAndBindReferenceManifest(0, 0);
+						tmpFormEditor._ManifestOpsProvider.addSubmanifestColumn(0, 0);
 
 						let tmpManifest = tmpFormEditor._resolveManifestData();
 						let tmpRefName = tmpManifest.Sections[0].Groups[0].RecordManifest;
