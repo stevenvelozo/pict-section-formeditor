@@ -42,6 +42,8 @@ class ChildPictManager extends libPictProvider
 
 	/**
 	 * Destroy and remove a cached child application.
+	 * Cleans up the child pict's views, providers, and application so
+	 * nothing leaks between successive preview loads.
 	 *
 	 * @param {string} pFormHash - The form hash key for the cached application
 	 */
@@ -49,10 +51,47 @@ class ChildPictManager extends libPictProvider
 	{
 		const tmpFormHash = this.fable.DataFormat.sanitizeObjectKey(pFormHash);
 
-		if (this._PictCache[tmpFormHash])
+		let tmpChildPict = this._PictCache[tmpFormHash];
+		if (!tmpChildPict)
 		{
-			delete this._PictCache[tmpFormHash];
+			return;
 		}
+
+		// Tear down all views registered on the child pict
+		let tmpViewKeys = Object.keys(tmpChildPict.views);
+		for (let i = 0; i < tmpViewKeys.length; i++)
+		{
+			try
+			{
+				let tmpView = tmpChildPict.views[tmpViewKeys[i]];
+				if (tmpView && typeof tmpView.destroy === 'function')
+				{
+					tmpView.destroy();
+				}
+			}
+			catch (pError)
+			{
+				this.log.warn('Error destroying child pict view [' + tmpViewKeys[i] + ']: ' + pError);
+			}
+		}
+
+		// Remove the application reference
+		if (tmpChildPict.PictApplication)
+		{
+			try
+			{
+				if (typeof tmpChildPict.PictApplication.destroy === 'function')
+				{
+					tmpChildPict.PictApplication.destroy();
+				}
+			}
+			catch (pError)
+			{
+				this.log.warn('Error destroying child pict application: ' + pError);
+			}
+		}
+
+		delete this._PictCache[tmpFormHash];
 	}
 
 	// Initialize a new child application
