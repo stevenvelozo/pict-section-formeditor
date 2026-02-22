@@ -12,6 +12,7 @@ const libFormEditorInputTypePicker = require('./PictView-FormEditor-InputTypePic
 const libFormEditorRendering = require('../providers/Pict-Provider-FormEditorRendering.js');
 const libFormEditorManifestOps = require('../providers/Pict-Provider-FormEditorManifestOps.js');
 const libChildPictManager = require('../providers/Pict-Provider-ChildPictManager.js');
+const libPreviewCSS = require('../providers/Pict-Provider-PreviewCSS.js');
 const libFormEditorDocumentation = require('../providers/Pict-Provider-FormEditorDocumentation.js');
 
 class PictViewFormEditor extends libPictView
@@ -60,6 +61,11 @@ class PictViewFormEditor extends libPictView
 		// Create the child pict manager provider for managing any embedded pict instances (e.g. the solver editor)
 		let tmpChildPictManagerHash = `${pServiceHash || 'FormEditor'}-ChildPictManager`;
 		this._ChildPictManager = this.pict.addProvider(tmpChildPictManagerHash, {}, libChildPictManager );
+
+		// Create the preview CSS provider so the child pict form preview
+		// injects its CSS into a dedicated <style> element rather than #PICT-CSS
+		let tmpPreviewCSSHash = `${pServiceHash || 'FormEditor'}-PreviewCSS`;
+		this._PreviewCSSProvider = this.pict.addProvider(tmpPreviewCSSHash, {}, libPreviewCSS);
 
 		// Create the drag-and-drop provider
 		let tmpDragDropHash = `${pServiceHash || 'FormEditor'}-DragDrop`;
@@ -547,13 +553,20 @@ class PictViewFormEditor extends libPictView
 				this._PropertiesPanelView.renderEntityDataTabPanel();
 			}
 		}
+		else if (pTabName === 'preview')
+		{
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderPreviewTabPanel();
+			}
+		}
 	}
 
 	_syncTabState()
 	{
 		let tmpHash = this.Hash;
-		let tmpTabs = ['visual', 'solvereditor', 'solvers', 'listdata', 'entitydata', 'objecteditor', 'json'];
-		let tmpTabNames = ['Visual', 'SolverEditor', 'Solvers', 'ListData', 'EntityData', 'ObjectEditor', 'JSON'];
+		let tmpTabs = ['visual', 'solvereditor', 'solvers', 'listdata', 'entitydata', 'objecteditor', 'json', 'preview'];
+		let tmpTabNames = ['Visual', 'SolverEditor', 'Solvers', 'ListData', 'EntityData', 'ObjectEditor', 'JSON', 'Preview'];
 
 		for (let i = 0; i < tmpTabs.length; i++)
 		{

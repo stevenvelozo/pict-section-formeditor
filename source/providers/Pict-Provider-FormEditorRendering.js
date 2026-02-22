@@ -29,6 +29,7 @@ class FormEditorRendering extends libPictProvider
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-EntityData-${tmpHash}" onclick="${tmpViewRef}.switchTab('entitydata')">Providers</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ObjectEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('objecteditor')">Object Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-JSON-${tmpHash}" onclick="${tmpViewRef}.switchTab('json')">JSON</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Preview-${tmpHash}" onclick="${tmpViewRef}.switchTab('preview')">Preview</button>`;
 		tmpHTML += '</div>';
 
 		// Editor layout: tab content panels + resize handle + properties panel
@@ -68,6 +69,11 @@ class FormEditorRendering extends libPictProvider
 		// JSON panel
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-JSON-${tmpHash}">`;
 		tmpHTML += `<div id="FormEditor-CodeEditor-Container-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
+
+		// Preview panel
+		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-Preview-${tmpHash}">`;
+		tmpHTML += `<div id="FormEditor-PreviewTab-Container-${tmpHash}"></div>`;
 		tmpHTML += '</div>';
 
 		tmpHTML += '</div>'; // pict-fe-editor-content

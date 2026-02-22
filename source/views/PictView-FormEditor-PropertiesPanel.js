@@ -3639,6 +3639,181 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	 *
 	 * @returns {string} HTML string
 	 */
+	/**
+	 * Render the Preview tab content.
+	 * Shows a button to load the form preview, or the preview container
+	 * if the preview is already loaded.
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderPreviewTab()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpViewRef = this._ParentFormEditor._browserViewRef();
+		let tmpHTML = '';
+
+		tmpHTML += `<div class="pict-fe-preview-container" id="FormEditor-Preview-Container-${tmpHash}">`;
+
+		// Action bar with Load Preview button
+		tmpHTML += '<div class="pict-fe-preview-actions">';
+		tmpHTML += `<button class="pict-fe-preview-load-btn" onclick="${tmpViewRef}._PropertiesPanelView.loadPreview()">Load Preview</button>`;
+		tmpHTML += `<span class="pict-fe-preview-status" id="FormEditor-Preview-Status-${tmpHash}"></span>`;
+		tmpHTML += '</div>';
+
+		// The container where the child pict form will render
+		tmpHTML += `<div class="pict-fe-preview-viewport" id="FormEditor-Preview-Viewport-${tmpHash}">`;
+		tmpHTML += '<div class="pict-fe-preview-placeholder">Click \u201CLoad Preview\u201D to render the form.</div>';
+		tmpHTML += '</div>';
+
+		tmpHTML += '</div>';
+		return tmpHTML;
+	}
+
+	/**
+	 * Load (or reload) the form preview.
+	 * Creates a fresh child pict application from the current manifest
+	 * and renders the form into the preview viewport.
+	 */
+	loadPreview()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpViewport = document.getElementById(`FormEditor-Preview-Viewport-${tmpHash}`);
+		let tmpStatus = document.getElementById(`FormEditor-Preview-Status-${tmpHash}`);
+
+		if (!tmpViewport)
+		{
+			return;
+		}
+
+		// Show loading state
+		tmpViewport.innerHTML = '<div class="pict-fe-preview-loading">Initializing form preview\u2026</div>';
+		if (tmpStatus)
+		{
+			tmpStatus.textContent = '';
+		}
+
+		// Get the current manifest from the form editor and deep clone it
+		// so the child pict processing does not mutate the editor's live manifest.
+		let tmpManifestSource = this._ParentFormEditor._resolveManifestData();
+		if (!tmpManifestSource)
+		{
+			tmpViewport.innerHTML = '<div class="pict-fe-preview-error">No form manifest available.</div>';
+			return;
+		}
+
+		let tmpManifest = false;
+		try
+		{
+			tmpManifest = JSON.parse(JSON.stringify(tmpManifestSource));
+		}
+		catch (pCloneError)
+		{
+			tmpViewport.innerHTML = '<div class="pict-fe-preview-error">Error cloning manifest: ' + pCloneError + '</div>';
+			return;
+		}
+
+		// The form editor mutates Section objects in the live manifest by adding
+		// Groups/Rows/Inputs arrays with internal editor state.  Strip these out
+		// so the child pict ManifestFactory rebuilds them cleanly from Descriptors.
+		if (Array.isArray(tmpManifest.Sections))
+		{
+			for (let i = 0; i < tmpManifest.Sections.length; i++)
+			{
+				delete tmpManifest.Sections[i].Groups;
+			}
+		}
+		// Also clean up any PictForm properties that the editor may have decorated
+		// onto descriptors (ViewHash, InputIndex, GroupIndex, RowIndex, etc.)
+		// so they get rebuilt fresh by the child form.
+		if (tmpManifest.Descriptors)
+		{
+			let tmpDescKeys = Object.keys(tmpManifest.Descriptors);
+			for (let i = 0; i < tmpDescKeys.length; i++)
+			{
+				let tmpDesc = tmpManifest.Descriptors[tmpDescKeys[i]];
+				if (tmpDesc && tmpDesc.PictForm)
+				{
+					delete tmpDesc.PictForm.ViewHash;
+					delete tmpDesc.PictForm.InputIndex;
+					delete tmpDesc.PictForm.GroupIndex;
+					delete tmpDesc.PictForm.RowIndex;
+					delete tmpDesc.PictForm.RowHash;
+					delete tmpDesc.PictForm.InformaryDataAddress;
+					delete tmpDesc.PictForm.InformaryContainerAddress;
+					delete tmpDesc.PictForm.RawWidth;
+				}
+			}
+		}
+
+		let tmpChildManager = this.pict.providers['FormEditor-ChildPictManager'];
+		if (!tmpChildManager)
+		{
+			tmpViewport.innerHTML = '<div class="pict-fe-preview-error">Child Pict Manager not available.</div>';
+			return;
+		}
+
+		let tmpPreviewHash = 'FormPreview';
+		let tmpBrowserAddress = 'window._ChildPict';
+		let tmpDestination = `#FormEditor-Preview-Viewport-${tmpHash}`;
+
+		let tmpPanelView = this;
+
+		tmpChildManager.initializeRenderableChildApplication(
+			tmpPreviewHash,
+			tmpManifest,
+			tmpBrowserAddress,
+			tmpDestination,
+			function (pError, pChildPict)
+			{
+				if (pError)
+				{
+					tmpViewport.innerHTML = '<div class="pict-fe-preview-error">Error initializing preview: ' + pError + '</div>';
+					return;
+				}
+
+				if (!pChildPict || !pChildPict.PictApplication)
+				{
+					tmpViewport.innerHTML = '<div class="pict-fe-preview-error">Preview application failed to initialize.</div>';
+					return;
+				}
+
+				try
+				{
+					// CSS injection is already disabled on the child pict
+					// (see initializeRenderableChildApplication).
+					pChildPict.PictApplication.render();
+
+					if (tmpStatus)
+					{
+						tmpStatus.textContent = 'Preview loaded';
+					}
+				}
+				catch (pRenderError)
+				{
+					tmpViewport.innerHTML = '<div class="pict-fe-preview-error">Error rendering preview: ' + pRenderError + '</div>';
+					tmpPanelView.log.error('Error rendering form preview: ' + pRenderError);
+				}
+			}
+		);
+	}
+
+	/**
+	 * Render the Preview tab content into its main-editor panel container.
+	 */
+	renderPreviewTabPanel()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpContainerEl = `#FormEditor-PreviewTab-Container-${tmpHash}`;
+		let tmpHTML = this._renderPreviewTab();
+		this.pict.ContentAssignment.assignContent(tmpContainerEl, tmpHTML);
+	}
+
 	_renderHelpTab()
 	{
 		let tmpHash = this._ParentFormEditor.Hash;

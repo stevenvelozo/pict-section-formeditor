@@ -3069,6 +3069,81 @@ module.exports = (
 	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.1);
 }
 
+/* ---- Preview Tab ---- */
+.pict-fe-preview-container
+{
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+.pict-fe-preview-actions
+{
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 0 0 8px 0;
+	flex-shrink: 0;
+}
+.pict-fe-preview-load-btn
+{
+	padding: 5px 14px;
+	font-size: 11px;
+	font-weight: 600;
+	font-family: inherit;
+	color: #FDFCFA;
+	background: #9E6B47;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: background 0.12s;
+}
+.pict-fe-preview-load-btn:hover
+{
+	background: #7D5436;
+}
+.pict-fe-preview-status
+{
+	font-size: 11px;
+	color: #8A7F72;
+	font-style: italic;
+}
+.pict-fe-preview-viewport
+{
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+	background: #FFFFFF;
+	padding: 12px;
+}
+.pict-fe-preview-placeholder
+{
+	font-size: 12px;
+	color: #B0A89E;
+	font-style: italic;
+	text-align: center;
+	padding: 24px 0;
+}
+.pict-fe-preview-loading
+{
+	font-size: 12px;
+	color: #8A7F72;
+	font-style: italic;
+	text-align: center;
+	padding: 24px 0;
+}
+.pict-fe-preview-error
+{
+	font-size: 12px;
+	color: #991B1B;
+	background: #FEF2F2;
+	border: 1px solid #FCA5A5;
+	border-radius: 4px;
+	padding: 10px 12px;
+}
+
 /* ---- Help Tab ---- */
 .pict-fe-help-container
 {
