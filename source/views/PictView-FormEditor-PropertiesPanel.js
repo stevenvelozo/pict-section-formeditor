@@ -39,6 +39,20 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		// Currently expanded reference item hash in the solver editor
 		this._SolverEditorExpandedHash = null;
 
+		// Active bottom tab in solver editor: 'linter' or 'reference'
+		this._SolverEditorBottomTab = 'linter';
+
+		// Debounce timer for linter refresh
+		this._SolverLinterDebounceTimer = null;
+
+		// Documentation topics loaded from .pict_documentation_topics.json
+		// Keyed by TopicCode, populated lazily
+		this._DocumentationTopics = null;
+		// Reverse lookup: lowercase token string → topic entry (for quick matching in linter)
+		this._DocumentationTopicsByToken = null;
+		// Whether the linter panel click handler for #help: links has been attached
+		this._LinterClickHandlerAttached = false;
+
 		// Navigation stack for solver editor (for breadcrumb-back behavior)
 		this._SolverEditorStack = [];
 
@@ -291,18 +305,36 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += `<button class="pict-fe-props-close" onclick="${tmpViewRef}._UtilitiesProvider.togglePropertiesPanel()" title="Collapse panel">\u00D7</button>`;
 		tmpHTML += '</div>';
 
-		// Panel tab bar
-		let tmpFormActive = (tmpActiveTab === 'form') ? ' pict-fe-panel-tab-active' : '';
-		let tmpPropsActive = (tmpActiveTab === 'properties') ? ' pict-fe-panel-tab-active' : '';
-		let tmpSectionActive = (tmpActiveTab === 'section') ? ' pict-fe-panel-tab-active' : '';
-		let tmpGroupActive = (tmpActiveTab === 'group') ? ' pict-fe-panel-tab-active' : '';
-		let tmpOptionsActive = (tmpActiveTab === 'options') ? ' pict-fe-panel-tab-active' : '';
-		tmpHTML += '<div class="pict-fe-panel-tabbar">';
-		tmpHTML += `<button class="pict-fe-panel-tab${tmpFormActive}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('form')">Form</button>`;
-		tmpHTML += `<button class="pict-fe-panel-tab${tmpSectionActive}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('section')">Section</button>`;
-		tmpHTML += `<button class="pict-fe-panel-tab${tmpGroupActive}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('group')">Group</button>`;
-		tmpHTML += `<button class="pict-fe-panel-tab${tmpPropsActive}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('properties')">Input</button>`;
-		tmpHTML += `<button class="pict-fe-panel-tab${tmpOptionsActive}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('options')">Options</button>`;
+		// Panel tab bar — tabs that overflow are hidden and shown in the hamburger dropdown
+		let tmpPanelHash = this._ParentFormEditor.Hash;
+		let tmpTabs =
+		[
+			{ key: 'form', label: 'Form' },
+			{ key: 'section', label: 'Section' },
+			{ key: 'group', label: 'Group' },
+			{ key: 'properties', label: 'Input' },
+			{ key: 'options', label: 'Options' },
+			{ key: 'help', label: 'Help' }
+		];
+
+		tmpHTML += `<div class="pict-fe-panel-tabbar" id="FormEditor-PanelTabBar-${tmpPanelHash}">`;
+		for (let i = 0; i < tmpTabs.length; i++)
+		{
+			let tmpTab = tmpTabs[i];
+			let tmpActive = (tmpActiveTab === tmpTab.key) ? ' pict-fe-panel-tab-active' : '';
+			tmpHTML += `<button class="pict-fe-panel-tab${tmpActive}" data-tab="${tmpTab.key}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('${tmpTab.key}')">${tmpTab.label}</button>`;
+		}
+
+		// Overflow hamburger button + dropdown
+		tmpHTML += `<button class="pict-fe-panel-tab-overflow-btn" id="FormEditor-PanelTabOverflow-${tmpPanelHash}" onclick="${tmpViewRef}._PropertiesPanelView.toggleTabOverflowMenu()">&#x2630;</button>`;
+		tmpHTML += `<div class="pict-fe-panel-tab-overflow-menu" id="FormEditor-PanelTabOverflowMenu-${tmpPanelHash}">`;
+		for (let i = 0; i < tmpTabs.length; i++)
+		{
+			let tmpTab = tmpTabs[i];
+			let tmpItemActive = (tmpActiveTab === tmpTab.key) ? ' pict-fe-panel-tab-overflow-item-active' : '';
+			tmpHTML += `<button class="pict-fe-panel-tab-overflow-item${tmpItemActive}" data-overflow-tab="${tmpTab.key}" onclick="${tmpViewRef}._UtilitiesProvider.setPanelTab('${tmpTab.key}')">${tmpTab.label}</button>`;
+		}
+		tmpHTML += '</div>';
 		tmpHTML += '</div>';
 
 		// Tab content: Form Dashboard
@@ -338,8 +370,17 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += this._renderOptionsTab();
 		tmpHTML += '</div>';
 
+		// Tab content: Help
+		let tmpHelpDisplay = (tmpActiveTab === 'help') ? ' pict-fe-panel-tab-content-active' : '';
+		tmpHTML += `<div class="pict-fe-panel-tab-content${tmpHelpDisplay}">`;
+		tmpHTML += this._renderHelpTab();
+		tmpHTML += '</div>';
+
 		let tmpPanelEl = `#FormEditor-PropertiesPanel-${this._ParentFormEditor.Hash}`;
 		this.pict.ContentAssignment.assignContent(tmpPanelEl, tmpHTML);
+
+		// Check for tab bar overflow and show/hide hamburger menu
+		this._updateTabOverflow();
 
 		// Wire up the searchable selector dropdowns
 		this._wireSearchableSelector('Section');
@@ -363,6 +404,28 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			{
 				this._wireAddressConfirmation(tmpResolved.Address);
 			}
+		}
+
+		// Initialize help content view and load article when Help tab is active
+		if (tmpActiveTab === 'help' && this._ParentFormEditor._DocumentationProvider)
+		{
+			let tmpDocProvider = this._ParentFormEditor._DocumentationProvider;
+			let tmpContentView = this._ParentFormEditor._HelpContentView;
+
+			// The help body DOM was just recreated, so the old click handler is gone
+			tmpDocProvider._ClickHandlerAttached = false;
+
+			// Render the content view container (creates the pict-content wrapper div)
+			if (tmpContentView)
+			{
+				tmpContentView.render();
+			}
+
+			// Load the current or default article
+			tmpDocProvider.loadArticle(
+				tmpDocProvider._CurrentPath || 'docs/ToC.md',
+				false
+			);
 		}
 	}
 
@@ -1461,6 +1524,531 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		return tmpHTML;
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*          Solver Editor — Expression Linter Tab                             */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Classify a token string for display styling.
+	 * Returns a CSS suffix for the token type class.
+	 *
+	 * @param {string} pToken - The token string
+	 * @param {number} pIndex - Index in the token array
+	 * @param {Array} pTokens - The full token array (for lookahead)
+	 * @param {Object} pTokenMap - The expression parser's tokenMap
+	 * @param {Object} pFunctionMap - The expression parser's functionMap
+	 * @returns {string} CSS class suffix (e.g. 'constant', 'symbol', 'operator')
+	 */
+
+	/**
+	 * Ensure the documentation topics lookup is loaded.
+	 * Fetches .pict_documentation_topics.json once, then builds a reverse
+	 * lookup keyed by lowercase token string (function name or operator symbol).
+	 */
+	_ensureDocumentationTopics()
+	{
+		if (this._DocumentationTopicsByToken !== null)
+		{
+			return;
+		}
+
+		this._DocumentationTopicsByToken = {};
+		this._DocumentationTopics = {};
+
+		// Build the operator symbol → topic code map
+		let tmpOperatorSymbolMap =
+			{
+				'+': 'SLV-OP-Add',
+				'-': 'SLV-OP-Subtract',
+				'*': 'SLV-OP-Multiply',
+				'/': 'SLV-OP-Divide',
+				'%': 'SLV-OP-Modulus',
+				'^': 'SLV-OP-Exponent',
+				',': 'SLV-OP-SetConcat',
+				'=': 'SLV-ASSIGN-Equals',
+				'?=': 'SLV-ASSIGN-NullCoalesce',
+				':': 'SLV-ASSIGN-ExpressionBegin'
+			};
+
+		let tmpDocProvider = this._ParentFormEditor._DocumentationProvider;
+		let tmpBasePath = (tmpDocProvider && tmpDocProvider._BasePath) ? tmpDocProvider._BasePath : 'docs/';
+
+		// Try to fetch the topics JSON
+		try
+		{
+			let tmpSelf = this;
+			let tmpFetchPath = tmpBasePath + '.pict_documentation_topics.json';
+
+			// Use XMLHttpRequest for synchronous load (we need it immediately for rendering)
+			if (typeof XMLHttpRequest !== 'undefined')
+			{
+				let tmpXHR = new XMLHttpRequest();
+				tmpXHR.open('GET', tmpFetchPath, false);
+				tmpXHR.send();
+				if (tmpXHR.status === 200)
+				{
+					let tmpTopics = JSON.parse(tmpXHR.responseText);
+					tmpSelf._DocumentationTopics = tmpTopics;
+
+					// Build reverse lookup: function name (lowercase) → topic entry
+					let tmpTopicCodes = Object.keys(tmpTopics);
+					for (let i = 0; i < tmpTopicCodes.length; i++)
+					{
+						let tmpTopic = tmpTopics[tmpTopicCodes[i]];
+						let tmpCode = tmpTopic.TopicCode || '';
+
+						// For functions: SLV-FUNC-xxx → key by lowercase function name
+						if (tmpCode.indexOf('SLV-FUNC-') === 0)
+						{
+							let tmpFuncName = tmpCode.substring(9).toLowerCase();
+							tmpSelf._DocumentationTopicsByToken[tmpFuncName] = tmpTopic;
+						}
+					}
+
+					// Map operator symbols to their topic entries
+					let tmpSymbols = Object.keys(tmpOperatorSymbolMap);
+					for (let i = 0; i < tmpSymbols.length; i++)
+					{
+						let tmpTopicCode = tmpOperatorSymbolMap[tmpSymbols[i]];
+						if (tmpTopics[tmpTopicCode])
+						{
+							tmpSelf._DocumentationTopicsByToken[tmpSymbols[i]] = tmpTopics[tmpTopicCode];
+						}
+					}
+				}
+			}
+		}
+		catch (pError)
+		{
+			// If loading fails, the lookup stays empty — no links, graceful degradation
+			this.log.warn('Could not load documentation topics: ' + pError);
+		}
+	}
+
+	/**
+	 * Look up a documentation topic for a given token string.
+	 *
+	 * @param {string} pToken - The raw token string from the expression
+	 * @param {string} pTokenType - The classified token type (from _classifyToken)
+	 * @returns {Object|null} The topic entry or null if none found
+	 */
+	_getDocumentationTopic(pToken, pTokenType)
+	{
+		this._ensureDocumentationTopics();
+
+		if (!this._DocumentationTopicsByToken)
+		{
+			return null;
+		}
+
+		// For functions: look up by lowercase function name
+		if (pTokenType === 'function')
+		{
+			return this._DocumentationTopicsByToken[pToken.toLowerCase()] || null;
+		}
+
+		// For operators and assignments: look up by the symbol itself
+		if (pTokenType === 'operator' || pTokenType === 'assignment')
+		{
+			return this._DocumentationTopicsByToken[pToken] || null;
+		}
+
+		return null;
+	}
+
+	_classifyToken(pToken, pIndex, pTokens, pTokenMap, pFunctionMap)
+	{
+		// State address: wrapped in {}
+		if (pToken.charAt(0) === '{' && pToken.charAt(pToken.length - 1) === '}')
+		{
+			return 'stateaddress';
+		}
+
+		// String: wrapped in ""
+		if (pToken.charAt(0) === '"' && pToken.charAt(pToken.length - 1) === '"')
+		{
+			return 'string';
+		}
+
+		// Check tokenMap for operators, assignments, parentheses
+		if (pTokenMap && pTokenMap[pToken])
+		{
+			let tmpType = pTokenMap[pToken].Type;
+			if (tmpType === 'Operator')
+			{
+				return 'operator';
+			}
+			if (tmpType === 'Assignment')
+			{
+				return 'assignment';
+			}
+			if (tmpType === 'Parenthesis')
+			{
+				return 'parenthesis';
+			}
+		}
+
+		// Constant: numeric value
+		if (/^-?\d*\.?\d+$/.test(pToken))
+		{
+			return 'constant';
+		}
+
+		// Function: a symbol followed by (
+		if (pIndex < pTokens.length - 1 && pTokens[pIndex + 1] === '(')
+		{
+			return 'function';
+		}
+
+		// Check functionMap for known functions (case insensitive)
+		if (pFunctionMap && pFunctionMap[pToken.toUpperCase()])
+		{
+			return 'function';
+		}
+
+		// Default: symbol (variable name)
+		return 'symbol';
+	}
+
+	/**
+	 * Ensure the child Pict application is available for expression parsing.
+	 * Initializes it once if it does not yet exist.
+	 *
+	 * @returns {Object|null} The ExpressionParser instance, or null if unavailable
+	 */
+	_ensureExpressionParser()
+	{
+		let tmpChildManager = this.pict.providers['FormEditor-ChildPictManager'];
+		if (!tmpChildManager)
+		{
+			return null;
+		}
+
+		if (!tmpChildManager.childApplicationExists('Simple Form'))
+		{
+			tmpChildManager.initializeChildApplication('Simple Form', this.pict.AppData.FormConfig);
+		}
+
+		let tmpChildApp = tmpChildManager.childApplication('Simple Form');
+		if (!tmpChildApp || !tmpChildApp.ExpressionParser)
+		{
+			return null;
+		}
+
+		return tmpChildApp.ExpressionParser;
+	}
+
+	/**
+	 * Render the Expression Linter tab content.
+	 * Tokenizes and lints the current solver expression, displaying
+	 * color-coded tokens and any errors or warnings.
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderSolverEditorLinterTab()
+	{
+		let tmpHTML = '';
+		let tmpExpression = '';
+
+		// Get the current expression from the code editor or context
+		let tmpSolverEditor = this._ParentFormEditor._SolverCodeEditorView;
+		if (tmpSolverEditor && tmpSolverEditor.codeJar)
+		{
+			tmpExpression = tmpSolverEditor.getCode() || '';
+		}
+		else if (this._SolverEditorContext)
+		{
+			tmpExpression = this._SolverEditorContext.Expression || '';
+		}
+
+		tmpHTML += '<div class="pict-fe-solver-linter-output">';
+
+		if (!tmpExpression.trim())
+		{
+			tmpHTML += '<div class="pict-fe-solver-linter-empty">Enter an expression above to see linter results.</div>';
+			tmpHTML += '</div>';
+			return tmpHTML;
+		}
+
+		// Get the expression parser from the child application
+		let tmpParser = this._ensureExpressionParser();
+		if (!tmpParser)
+		{
+			tmpHTML += '<div class="pict-fe-solver-linter-empty">Expression parser is initializing\u2026</div>';
+			tmpHTML += '</div>';
+			return tmpHTML;
+		}
+
+		// Tokenize and lint
+		let tmpResultObject = { ExpressionParserLog: [] };
+		let tmpTokens = tmpParser.tokenize(tmpExpression, tmpResultObject);
+		let tmpLintResults = tmpParser.lintTokenizedExpression(tmpTokens, tmpResultObject);
+
+		// Ensure documentation topic lookup is ready
+		this._ensureDocumentationTopics();
+
+		let tmpDocProvider = this._ParentFormEditor._DocumentationProvider;
+		let tmpBasePath = (tmpDocProvider && tmpDocProvider._BasePath) ? tmpDocProvider._BasePath : 'docs/';
+
+		// Collect matched documentation topics (de-duplicated by TopicCode)
+		let tmpMatchedTopics = {};
+
+		// Render token chips
+		tmpHTML += '<div class="pict-fe-solver-linter-section-label">Tokens</div>';
+		tmpHTML += '<div class="pict-fe-solver-linter-tokens">';
+		if (Array.isArray(tmpTokens) && tmpTokens.length > 0)
+		{
+			let tmpTokenMap = tmpParser.tokenMap || {};
+			let tmpFunctionMap = tmpParser.functionMap || {};
+			for (let i = 0; i < tmpTokens.length; i++)
+			{
+				let tmpTokenType = this._classifyToken(tmpTokens[i], i, tmpTokens, tmpTokenMap, tmpFunctionMap);
+				let tmpTopic = this._getDocumentationTopic(tmpTokens[i], tmpTokenType);
+				let tmpTokenHTML = this._escapeHTML(tmpTokens[i]);
+
+				if (tmpTopic)
+				{
+					// Track the matched topic for the reference section
+					tmpMatchedTopics[tmpTopic.TopicCode] = tmpTopic;
+
+					// Wrap the token chip in a help link
+					let tmpHelpPath = tmpBasePath + tmpTopic.TopicHelpFilePath;
+					tmpHTML += `<a href="#help:${tmpHelpPath}" class="pict-fe-solver-linter-token-link" title="${this._escapeAttr(tmpTopic.TopicTitle)}">`;
+					tmpHTML += `<span class="pict-fe-solver-linter-token pict-fe-solver-linter-token-${tmpTokenType} pict-fe-solver-linter-token-linked">${tmpTokenHTML}</span>`;
+					tmpHTML += '</a>';
+				}
+				else
+				{
+					tmpHTML += `<span class="pict-fe-solver-linter-token pict-fe-solver-linter-token-${tmpTokenType}">${tmpTokenHTML}</span>`;
+				}
+			}
+		}
+		tmpHTML += '</div>';
+
+		// Render lint messages
+		tmpHTML += '<div class="pict-fe-solver-linter-section-label">Lint Results</div>';
+		tmpHTML += '<div class="pict-fe-solver-linter-messages">';
+		if (Array.isArray(tmpLintResults) && tmpLintResults.length > 0)
+		{
+			for (let i = 0; i < tmpLintResults.length; i++)
+			{
+				let tmpMessage = tmpLintResults[i];
+				let tmpMsgClass = 'pict-fe-solver-linter-message';
+				if (typeof tmpMessage === 'string')
+				{
+					if (tmpMessage.indexOf('ERROR:') === 0)
+					{
+						tmpMsgClass += ' pict-fe-solver-linter-message-error';
+					}
+					else if (tmpMessage.indexOf('WARNING:') === 0)
+					{
+						tmpMsgClass += ' pict-fe-solver-linter-message-warning';
+					}
+				}
+				tmpHTML += `<div class="${tmpMsgClass}">${this._escapeHTML(String(tmpMessage))}</div>`;
+			}
+		}
+		else
+		{
+			tmpHTML += '<div class="pict-fe-solver-linter-ok">No issues found.</div>';
+		}
+		tmpHTML += '</div>';
+
+		// Render matched documentation references
+		let tmpMatchedTopicCodes = Object.keys(tmpMatchedTopics);
+		if (tmpMatchedTopicCodes.length > 0)
+		{
+			tmpHTML += '<div class="pict-fe-solver-linter-section-label">Documentation</div>';
+			tmpHTML += '<div class="pict-fe-solver-linter-docs">';
+			for (let i = 0; i < tmpMatchedTopicCodes.length; i++)
+			{
+				let tmpTopic = tmpMatchedTopics[tmpMatchedTopicCodes[i]];
+				let tmpHelpPath = tmpBasePath + tmpTopic.TopicHelpFilePath;
+				tmpHTML += `<a href="#help:${tmpHelpPath}" class="pict-fe-solver-linter-doc-link" title="${this._escapeAttr(tmpTopic.TopicTitle)}">`;
+				tmpHTML += this._escapeHTML(tmpTopic.TopicTitle);
+				tmpHTML += '</a>';
+			}
+			tmpHTML += '</div>';
+		}
+
+		tmpHTML += '</div>';
+		return tmpHTML;
+	}
+
+	/**
+	 * Switch the active bottom tab in the solver editor.
+	 * Updates only the bottom panel area to preserve CodeJar state.
+	 *
+	 * @param {string} pTabName - 'linter' or 'reference'
+	 */
+	setSolverEditorBottomTab(pTabName)
+	{
+		if (pTabName !== 'linter' && pTabName !== 'reference')
+		{
+			return;
+		}
+		this._SolverEditorBottomTab = pTabName;
+
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+
+		// Toggle tab active states
+		if (typeof document !== 'undefined')
+		{
+			let tmpTabBar = document.querySelector(`#FormEditor-SolverEditorTab-Container-${tmpEditorHash} .pict-fe-solver-bottom-tabbar`);
+			if (tmpTabBar)
+			{
+				let tmpButtons = tmpTabBar.querySelectorAll('.pict-fe-solver-bottom-tab');
+				for (let i = 0; i < tmpButtons.length; i++)
+				{
+					tmpButtons[i].classList.remove('pict-fe-solver-bottom-tab-active');
+				}
+				let tmpActiveBtn = tmpTabBar.querySelector(`.pict-fe-solver-bottom-tab[onclick*="'${pTabName}'"]`);
+				if (tmpActiveBtn)
+				{
+					tmpActiveBtn.classList.add('pict-fe-solver-bottom-tab-active');
+				}
+			}
+
+			// Toggle content panels
+			let tmpLinterPanel = document.getElementById(`PictFE-SolverEditor-LinterPanel-${tmpEditorHash}`);
+			let tmpRefPanel = document.getElementById(`PictFE-SolverEditor-RefPanel-${tmpEditorHash}`);
+
+			if (tmpLinterPanel)
+			{
+				if (pTabName === 'linter')
+				{
+					tmpLinterPanel.classList.add('pict-fe-solver-bottom-content-active');
+					// Refresh linter content when switching to it
+					tmpLinterPanel.innerHTML = this._renderSolverEditorLinterTab();
+				}
+				else
+				{
+					tmpLinterPanel.classList.remove('pict-fe-solver-bottom-content-active');
+				}
+			}
+
+			if (tmpRefPanel)
+			{
+				if (pTabName === 'reference')
+				{
+					tmpRefPanel.classList.add('pict-fe-solver-bottom-content-active');
+				}
+				else
+				{
+					tmpRefPanel.classList.remove('pict-fe-solver-bottom-content-active');
+				}
+			}
+		}
+	}
+
+	/**
+	 * Attach a delegated click handler on the linter panel to intercept
+	 * #help: links. When clicked, switches the properties panel to the
+	 * Help tab and loads the referenced article.
+	 */
+	_attachLinterHelpClickHandler()
+	{
+		if (this._LinterClickHandlerAttached)
+		{
+			return;
+		}
+
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+		let tmpLinterPanel = document.getElementById(`PictFE-SolverEditor-LinterPanel-${tmpEditorHash}`);
+		if (!tmpLinterPanel)
+		{
+			return;
+		}
+
+		let tmpSelf = this;
+		tmpLinterPanel.addEventListener('click', function(pEvent)
+		{
+			let tmpEl = pEvent.target;
+			while (tmpEl && tmpEl !== tmpLinterPanel)
+			{
+				if (tmpEl.tagName === 'A' && tmpEl.getAttribute('href') && tmpEl.getAttribute('href').indexOf('#help:') === 0)
+				{
+					pEvent.preventDefault();
+					let tmpPath = tmpEl.getAttribute('href').substring(6);
+
+					// Switch to the Help tab and load the article
+					let tmpDocProvider = tmpSelf._ParentFormEditor._DocumentationProvider;
+					if (tmpDocProvider)
+					{
+						tmpSelf._ParentFormEditor._UtilitiesProvider.setPanelTab('help');
+						tmpDocProvider.loadArticle(tmpPath, true);
+					}
+					return;
+				}
+				tmpEl = tmpEl.parentElement;
+			}
+		});
+
+		this._LinterClickHandlerAttached = true;
+	}
+
+	/**
+	 * Show the pending-linting spinner on the Expression Linter tab.
+	 */
+	_showLinterPending()
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+		let tmpSpinner = document.getElementById(`PictFE-SolverLinterSpinner-${tmpEditorHash}`);
+		if (tmpSpinner)
+		{
+			tmpSpinner.classList.add('pict-fe-solver-linter-spinner-visible');
+		}
+	}
+
+	/**
+	 * Hide the pending-linting spinner on the Expression Linter tab.
+	 */
+	_hideLinterPending()
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+		let tmpSpinner = document.getElementById(`PictFE-SolverLinterSpinner-${tmpEditorHash}`);
+		if (tmpSpinner)
+		{
+			tmpSpinner.classList.remove('pict-fe-solver-linter-spinner-visible');
+		}
+	}
+
+	/**
+	 * Refresh the linter output based on the current code editor content.
+	 * Intended to be called on code changes (debounced).
+	 */
+	refreshSolverLinter()
+	{
+		if (this._SolverEditorBottomTab !== 'linter')
+		{
+			return;
+		}
+
+		let tmpEditorHash = this._ParentFormEditor.Hash;
+		if (typeof document !== 'undefined')
+		{
+			let tmpLinterPanel = document.getElementById(`PictFE-SolverEditor-LinterPanel-${tmpEditorHash}`);
+			if (tmpLinterPanel)
+			{
+				tmpLinterPanel.innerHTML = this._renderSolverEditorLinterTab();
+			}
+			this._attachLinterHelpClickHandler();
+		}
 	}
 
 	/**
@@ -3043,6 +3631,145 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	}
 
 	/**
+	 * Render the Help tab content.
+	 *
+	 * Returns a container with a navigation breadcrumb bar and a content body
+	 * area. The PictContentView renders its own pict-content wrapper inside the
+	 * body, and the DocumentationProvider populates it with parsed markdown.
+	 *
+	 * @returns {string} HTML string
+	 */
+	_renderHelpTab()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-header">HELP</div>';
+		tmpHTML += `<div class="pict-fe-help-container" id="FormEditor-Help-Container-${tmpHash}">`;
+		tmpHTML += `<div class="pict-fe-help-nav" id="FormEditor-Help-Nav-${tmpHash}"></div>`;
+		tmpHTML += `<div class="pict-fe-help-body" id="FormEditor-Help-Body-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
+		return tmpHTML;
+	}
+
+	/**
+	 * Detect which panel tabs overflow the tab bar and show/hide the
+	 * hamburger overflow button accordingly. Overflowed tabs are hidden
+	 * from the bar but remain in the dropdown menu.
+	 */
+	_updateTabOverflow()
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpTabBar = document.getElementById(`FormEditor-PanelTabBar-${tmpHash}`);
+		let tmpOverflowBtn = document.getElementById(`FormEditor-PanelTabOverflow-${tmpHash}`);
+		let tmpOverflowMenu = document.getElementById(`FormEditor-PanelTabOverflowMenu-${tmpHash}`);
+
+		if (!tmpTabBar || !tmpOverflowBtn || !tmpOverflowMenu)
+		{
+			return;
+		}
+
+		// Reset: show all tabs, hide hamburger and menu
+		let tmpTabs = tmpTabBar.querySelectorAll('.pict-fe-panel-tab');
+		for (let i = 0; i < tmpTabs.length; i++)
+		{
+			tmpTabs[i].style.display = '';
+		}
+		tmpOverflowBtn.classList.remove('pict-fe-panel-tab-overflow-btn-visible');
+		tmpOverflowMenu.classList.remove('pict-fe-panel-tab-overflow-menu-open');
+
+		// Measure: does the tab bar content overflow?
+		let tmpBarWidth = tmpTabBar.clientWidth;
+		let tmpContentWidth = 0;
+		for (let i = 0; i < tmpTabs.length; i++)
+		{
+			tmpContentWidth += tmpTabs[i].offsetWidth;
+		}
+
+		if (tmpContentWidth <= tmpBarWidth)
+		{
+			// Everything fits — hide all overflow menu items
+			let tmpMenuItems = tmpOverflowMenu.querySelectorAll('.pict-fe-panel-tab-overflow-item');
+			for (let i = 0; i < tmpMenuItems.length; i++)
+			{
+				tmpMenuItems[i].style.display = 'none';
+			}
+			return;
+		}
+
+		// Show the hamburger button
+		tmpOverflowBtn.classList.add('pict-fe-panel-tab-overflow-btn-visible');
+
+		// Re-measure accounting for the hamburger button width
+		let tmpBtnWidth = tmpOverflowBtn.offsetWidth;
+		let tmpAvailable = tmpBarWidth - tmpBtnWidth;
+
+		// Walk tabs left-to-right: hide ones that don't fit
+		let tmpUsed = 0;
+		let tmpMenuItems = tmpOverflowMenu.querySelectorAll('.pict-fe-panel-tab-overflow-item');
+		for (let i = 0; i < tmpTabs.length; i++)
+		{
+			let tmpTabWidth = tmpTabs[i].offsetWidth;
+			if (tmpUsed + tmpTabWidth > tmpAvailable)
+			{
+				// This tab overflows — hide from bar, show in menu
+				tmpTabs[i].style.display = 'none';
+				if (tmpMenuItems[i])
+				{
+					tmpMenuItems[i].style.display = '';
+				}
+			}
+			else
+			{
+				tmpUsed += tmpTabWidth;
+				// Fits in bar — hide from menu
+				if (tmpMenuItems[i])
+				{
+					tmpMenuItems[i].style.display = 'none';
+				}
+			}
+		}
+	}
+
+	/**
+	 * Toggle the overflow dropdown menu open/closed.
+	 */
+	toggleTabOverflowMenu()
+	{
+		let tmpHash = this._ParentFormEditor.Hash;
+		let tmpMenu = document.getElementById(`FormEditor-PanelTabOverflowMenu-${tmpHash}`);
+
+		if (!tmpMenu)
+		{
+			return;
+		}
+
+		tmpMenu.classList.toggle('pict-fe-panel-tab-overflow-menu-open');
+
+		// Close the menu when clicking outside
+		if (tmpMenu.classList.contains('pict-fe-panel-tab-overflow-menu-open'))
+		{
+			let fCloseMenu = (pEvent) =>
+			{
+				if (!tmpMenu.contains(pEvent.target))
+				{
+					tmpMenu.classList.remove('pict-fe-panel-tab-overflow-menu-open');
+					document.removeEventListener('click', fCloseMenu);
+				}
+			};
+			// Defer so the current click doesn't immediately close it
+			setTimeout(() =>
+			{
+				document.addEventListener('click', fCloseMenu);
+			}, 0);
+		}
+	}
+
+	/**
 	 * Render the option entries editor rows.
 	 * Used for both inline input options and named list option editing.
 	 *
@@ -3687,6 +4414,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			tmpSolverEditor.initialRenderComplete = false;
 		}
 
+		// Reset the linter click handler flag since DOM will be replaced
+		this._LinterClickHandlerAttached = false;
+
 		let tmpHTML = this._SolverEditorContext
 			? this._renderSolverEditorActive()
 			: this._renderSolverEditorList();
@@ -3701,6 +4431,29 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			{
 				tmpSolverEditor.setCode(this._SolverEditorContext.Expression || '');
 			}
+
+			// Wire debounced linter refresh on code changes
+			let tmpPanelView = this;
+			let tmpOriginalOnCodeChange = tmpSolverEditor.onCodeChange.bind(tmpSolverEditor);
+			tmpSolverEditor.onCodeChange = function(pCode)
+			{
+				tmpOriginalOnCodeChange(pCode);
+
+				if (tmpPanelView._SolverLinterDebounceTimer)
+				{
+					clearTimeout(tmpPanelView._SolverLinterDebounceTimer);
+				}
+				tmpPanelView._showLinterPending();
+				tmpPanelView._SolverLinterDebounceTimer = setTimeout(function()
+				{
+					tmpPanelView._SolverLinterDebounceTimer = null;
+					tmpPanelView._hideLinterPending();
+					tmpPanelView.refreshSolverLinter();
+				}, 50);
+			};
+
+			// Run initial linter pass
+			this.refreshSolverLinter();
 		}
 	}
 
@@ -3940,14 +4693,32 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += `<input class="pict-fe-solver-modal-ordinal-input" id="PictFE-SolverEditor-Ordinal-${tmpEditorHash}" type="text" value="${this._escapeAttr(tmpContext.Ordinal)}" placeholder="1" />`;
 		tmpHTML += '</div>';
 
-		// Reference panel
+		// Bottom tabbed panel (Linter / Input Reference)
+		let tmpLinterActive = (this._SolverEditorBottomTab === 'linter') ? ' pict-fe-solver-bottom-tab-active' : '';
+		let tmpRefActive = (this._SolverEditorBottomTab === 'reference') ? ' pict-fe-solver-bottom-tab-active' : '';
+
+		tmpHTML += '<div class="pict-fe-solver-bottom-tabbar">';
+		tmpHTML += `<button class="pict-fe-solver-bottom-tab${tmpLinterActive}" onclick="${tmpPanelViewRef}.setSolverEditorBottomTab('linter')">Expression Linter<span class="pict-fe-solver-linter-spinner" id="PictFE-SolverLinterSpinner-${tmpEditorHash}"></span></button>`;
+		tmpHTML += `<button class="pict-fe-solver-bottom-tab${tmpRefActive}" onclick="${tmpPanelViewRef}.setSolverEditorBottomTab('reference')">Input Reference</button>`;
+		tmpHTML += '</div>';
+
+		// Tab content: Expression Linter
+		let tmpLinterContentActive = (this._SolverEditorBottomTab === 'linter') ? ' pict-fe-solver-bottom-content-active' : '';
+		tmpHTML += `<div class="pict-fe-solver-bottom-content${tmpLinterContentActive}" id="PictFE-SolverEditor-LinterPanel-${tmpEditorHash}">`;
+		tmpHTML += this._renderSolverEditorLinterTab();
+		tmpHTML += '</div>';
+
+		// Tab content: Input Reference
+		let tmpRefContentActive = (this._SolverEditorBottomTab === 'reference') ? ' pict-fe-solver-bottom-content-active' : '';
+		tmpHTML += `<div class="pict-fe-solver-bottom-content${tmpRefContentActive}" id="PictFE-SolverEditor-RefPanel-${tmpEditorHash}">`;
 		tmpHTML += '<div class="pict-fe-solver-modal-reference">';
 		tmpHTML += '<div class="pict-fe-solver-modal-reference-header">';
-		tmpHTML += '<span class="pict-fe-props-label">Reference</span>';
+		tmpHTML += '<span class="pict-fe-props-label">Input Reference</span>';
 		tmpHTML += `<input class="pict-fe-solver-modal-reference-search" id="PictFE-SolverEditor-RefSearch-${tmpEditorHash}" type="text" placeholder="Filter addresses\u2026" oninput="${tmpPanelViewRef}._onSolverEditorReferenceSearch(this.value)" />`;
 		tmpHTML += '</div>';
 		tmpHTML += `<div class="pict-fe-solver-modal-reference-list" id="PictFE-SolverEditor-RefList-${tmpEditorHash}">`;
 		tmpHTML += this._renderSolverEditorReference('');
+		tmpHTML += '</div>';
 		tmpHTML += '</div>';
 		tmpHTML += '</div>';
 

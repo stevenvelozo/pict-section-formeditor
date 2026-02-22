@@ -530,6 +530,10 @@ class FormEditorUtilities extends libPictProvider
 			return;
 		}
 
+		// Find the content area to enforce its minimum width
+		let tmpContentEl = document.querySelector('.pict-fe-editor-content');
+		let tmpContainerEl = document.querySelector('.pict-fe-editor-layout');
+
 		let tmpOnMouseMove = function(pMoveEvent)
 		{
 			if (!tmpSelf._ParentFormEditor._PanelResizing)
@@ -539,7 +543,19 @@ class FormEditorUtilities extends libPictProvider
 
 			// Moving left increases panel width, moving right decreases it
 			let tmpDelta = tmpStartX - pMoveEvent.clientX;
-			let tmpNewWidth = Math.max(240, Math.min(600, tmpStartWidth + tmpDelta));
+			let tmpNewWidth = Math.max(240, tmpStartWidth + tmpDelta);
+
+			// Limit so the content area doesn't shrink below its min-width (300px)
+			if (tmpContainerEl)
+			{
+				let tmpAvailable = tmpContainerEl.clientWidth - 10; // 10px for the grip
+				let tmpContentMin = 300;
+				if (tmpNewWidth > tmpAvailable - tmpContentMin)
+				{
+					tmpNewWidth = tmpAvailable - tmpContentMin;
+				}
+			}
+
 			tmpSelf._ParentFormEditor._PanelWidth = tmpNewWidth;
 			tmpPanelEl.style.width = tmpNewWidth + 'px';
 		};
@@ -549,6 +565,19 @@ class FormEditorUtilities extends libPictProvider
 			tmpSelf._ParentFormEditor._PanelResizing = false;
 			document.removeEventListener('mousemove', tmpOnMouseMove);
 			document.removeEventListener('mouseup', tmpOnMouseUp);
+
+			// Persist the panel width preference
+			if (typeof localStorage !== 'undefined')
+			{
+				try
+				{
+					localStorage.setItem('pict-fe-panel-width', String(tmpSelf._ParentFormEditor._PanelWidth));
+				}
+				catch (pError)
+				{
+					// localStorage may throw in restrictive environments
+				}
+			}
 		};
 
 		document.addEventListener('mousemove', tmpOnMouseMove);
@@ -558,11 +587,11 @@ class FormEditorUtilities extends libPictProvider
 	/**
 	 * Switch the active tab in the properties panel.
 	 *
-	 * @param {string} pTabName - 'form', 'section', 'group', 'properties', or 'options'
+	 * @param {string} pTabName - 'form', 'section', 'group', 'properties', 'options', or 'help'
 	 */
 	setPanelTab(pTabName)
 	{
-		if (pTabName === 'form' || pTabName === 'properties' || pTabName === 'section' || pTabName === 'group' || pTabName === 'options')
+		if (pTabName === 'form' || pTabName === 'properties' || pTabName === 'section' || pTabName === 'group' || pTabName === 'options' || pTabName === 'help')
 		{
 			this._ParentFormEditor._PanelActiveTab = pTabName;
 			// Re-render only the panel content, not the entire visual editor

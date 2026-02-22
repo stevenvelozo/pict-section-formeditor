@@ -1,0 +1,695 @@
+{
+	"SLV-FUNC-abs": {
+		"TopicCode": "SLV-FUNC-abs",
+		"TopicHelpFilePath": "solverfunctions/abs.md",
+		"TopicTitle": "abs function"
+	},
+	"SLV-FUNC-aggregationhistogram": {
+		"TopicCode": "SLV-FUNC-aggregationhistogram",
+		"TopicHelpFilePath": "solverfunctions/aggregationhistogram.md",
+		"TopicTitle": "aggregationhistogram function"
+	},
+	"SLV-FUNC-aggregationhistogrambyobject": {
+		"TopicCode": "SLV-FUNC-aggregationhistogrambyobject",
+		"TopicHelpFilePath": "solverfunctions/aggregationhistogrambyobject.md",
+		"TopicTitle": "aggregationhistogrambyobject function"
+	},
+	"SLV-FUNC-arrayconcat": {
+		"TopicCode": "SLV-FUNC-arrayconcat",
+		"TopicHelpFilePath": "solverfunctions/arrayconcat.md",
+		"TopicTitle": "arrayconcat function"
+	},
+	"SLV-FUNC-avg": {
+		"TopicCode": "SLV-FUNC-avg",
+		"TopicHelpFilePath": "solverfunctions/avg.md",
+		"TopicTitle": "avg / mean function"
+	},
+	"SLV-FUNC-bucketset": {
+		"TopicCode": "SLV-FUNC-bucketset",
+		"TopicHelpFilePath": "solverfunctions/bucketset.md",
+		"TopicTitle": "bucketset function"
+	},
+	"SLV-FUNC-ceil": {
+		"TopicCode": "SLV-FUNC-ceil",
+		"TopicHelpFilePath": "solverfunctions/ceil.md",
+		"TopicTitle": "ceil function"
+	},
+	"SLV-FUNC-cleanvaluearray": {
+		"TopicCode": "SLV-FUNC-cleanvaluearray",
+		"TopicHelpFilePath": "solverfunctions/cleanvaluearray.md",
+		"TopicTitle": "cleanvaluearray function"
+	},
+	"SLV-FUNC-cleanvalueobject": {
+		"TopicCode": "SLV-FUNC-cleanvalueobject",
+		"TopicHelpFilePath": "solverfunctions/cleanvalueobject.md",
+		"TopicTitle": "cleanvalueobject function"
+	},
+	"SLV-FUNC-colorgroupbackground": {
+		"TopicCode": "SLV-FUNC-colorgroupbackground",
+		"TopicHelpFilePath": "solverfunctions/colorgroupbackground.md",
+		"TopicTitle": "colorgroupbackground function"
+	},
+	"SLV-FUNC-colorinputbackground": {
+		"TopicCode": "SLV-FUNC-colorinputbackground",
+		"TopicHelpFilePath": "solverfunctions/colorinputbackground.md",
+		"TopicTitle": "colorinputbackground function"
+	},
+	"SLV-FUNC-colorinputbackgroundtabular": {
+		"TopicCode": "SLV-FUNC-colorinputbackgroundtabular",
+		"TopicHelpFilePath": "solverfunctions/colorinputbackgroundtabular.md",
+		"TopicTitle": "colorinputbackgroundtabular function"
+	},
+	"SLV-FUNC-colorsectionbackground": {
+		"TopicCode": "SLV-FUNC-colorsectionbackground",
+		"TopicHelpFilePath": "solverfunctions/colorsectionbackground.md",
+		"TopicTitle": "colorsectionbackground function"
+	},
+	"SLV-FUNC-compare": {
+		"TopicCode": "SLV-FUNC-compare",
+		"TopicHelpFilePath": "solverfunctions/compare.md",
+		"TopicTitle": "compare function"
+	},
+	"SLV-FUNC-concat": {
+		"TopicCode": "SLV-FUNC-concat",
+		"TopicHelpFilePath": "solverfunctions/concat.md",
+		"TopicTitle": "concat function"
+	},
+	"SLV-FUNC-concatraw": {
+		"TopicCode": "SLV-FUNC-concatraw",
+		"TopicHelpFilePath": "solverfunctions/concatraw.md",
+		"TopicTitle": "concatraw function"
+	},
+	"SLV-FUNC-cos": {
+		"TopicCode": "SLV-FUNC-cos",
+		"TopicHelpFilePath": "solverfunctions/cos.md",
+		"TopicTitle": "cos function"
+	},
+	"SLV-FUNC-count": {
+		"TopicCode": "SLV-FUNC-count",
+		"TopicHelpFilePath": "solverfunctions/count.md",
+		"TopicTitle": "count function"
+	},
+	"SLV-FUNC-countset": {
+		"TopicCode": "SLV-FUNC-countset",
+		"TopicHelpFilePath": "solverfunctions/countset.md",
+		"TopicTitle": "countset function"
+	},
+	"SLV-FUNC-countsetelements": {
+		"TopicCode": "SLV-FUNC-countsetelements",
+		"TopicHelpFilePath": "solverfunctions/countsetelements.md",
+		"TopicTitle": "countsetelements function"
+	},
+	"SLV-FUNC-createarrayfromabsolutevalues": {
+		"TopicCode": "SLV-FUNC-createarrayfromabsolutevalues",
+		"TopicHelpFilePath": "solverfunctions/createarrayfromabsolutevalues.md",
+		"TopicTitle": "createarrayfromabsolutevalues function"
+	},
+	"SLV-FUNC-createvalueobjectbyhashes": {
+		"TopicCode": "SLV-FUNC-createvalueobjectbyhashes",
+		"TopicHelpFilePath": "solverfunctions/createvalueobjectbyhashes.md",
+		"TopicTitle": "createvalueobjectbyhashes function"
+	},
+	"SLV-FUNC-cumulativesummation": {
+		"TopicCode": "SLV-FUNC-cumulativesummation",
+		"TopicHelpFilePath": "solverfunctions/cumulativesummation.md",
+		"TopicTitle": "cumulativesummation function"
+	},
+	"SLV-FUNC-dateadddays": {
+		"TopicCode": "SLV-FUNC-dateadddays",
+		"TopicHelpFilePath": "solverfunctions/dateadddays.md",
+		"TopicTitle": "dateadddays function"
+	},
+	"SLV-FUNC-dateaddhours": {
+		"TopicCode": "SLV-FUNC-dateaddhours",
+		"TopicHelpFilePath": "solverfunctions/dateaddhours.md",
+		"TopicTitle": "dateaddhours function"
+	},
+	"SLV-FUNC-dateaddmilliseconds": {
+		"TopicCode": "SLV-FUNC-dateaddmilliseconds",
+		"TopicHelpFilePath": "solverfunctions/dateaddmilliseconds.md",
+		"TopicTitle": "dateaddmilliseconds function"
+	},
+	"SLV-FUNC-dateaddminutes": {
+		"TopicCode": "SLV-FUNC-dateaddminutes",
+		"TopicHelpFilePath": "solverfunctions/dateaddminutes.md",
+		"TopicTitle": "dateaddminutes function"
+	},
+	"SLV-FUNC-dateaddmonths": {
+		"TopicCode": "SLV-FUNC-dateaddmonths",
+		"TopicHelpFilePath": "solverfunctions/dateaddmonths.md",
+		"TopicTitle": "dateaddmonths function"
+	},
+	"SLV-FUNC-dateaddseconds": {
+		"TopicCode": "SLV-FUNC-dateaddseconds",
+		"TopicHelpFilePath": "solverfunctions/dateaddseconds.md",
+		"TopicTitle": "dateaddseconds function"
+	},
+	"SLV-FUNC-dateaddweeks": {
+		"TopicCode": "SLV-FUNC-dateaddweeks",
+		"TopicHelpFilePath": "solverfunctions/dateaddweeks.md",
+		"TopicTitle": "dateaddweeks function"
+	},
+	"SLV-FUNC-dateaddyears": {
+		"TopicCode": "SLV-FUNC-dateaddyears",
+		"TopicHelpFilePath": "solverfunctions/dateaddyears.md",
+		"TopicTitle": "dateaddyears function"
+	},
+	"SLV-FUNC-datedaydifference": {
+		"TopicCode": "SLV-FUNC-datedaydifference",
+		"TopicHelpFilePath": "solverfunctions/datedaydifference.md",
+		"TopicTitle": "datedaydifference function"
+	},
+	"SLV-FUNC-datefromparts": {
+		"TopicCode": "SLV-FUNC-datefromparts",
+		"TopicHelpFilePath": "solverfunctions/datefromparts.md",
+		"TopicTitle": "datefromparts function"
+	},
+	"SLV-FUNC-datehourdifference": {
+		"TopicCode": "SLV-FUNC-datehourdifference",
+		"TopicHelpFilePath": "solverfunctions/datehourdifference.md",
+		"TopicTitle": "datehourdifference function"
+	},
+	"SLV-FUNC-datemathadd": {
+		"TopicCode": "SLV-FUNC-datemathadd",
+		"TopicHelpFilePath": "solverfunctions/datemathadd.md",
+		"TopicTitle": "datemathadd function"
+	},
+	"SLV-FUNC-datemilliseconddifference": {
+		"TopicCode": "SLV-FUNC-datemilliseconddifference",
+		"TopicHelpFilePath": "solverfunctions/datemilliseconddifference.md",
+		"TopicTitle": "datemilliseconddifference function"
+	},
+	"SLV-FUNC-dateminutedifference": {
+		"TopicCode": "SLV-FUNC-dateminutedifference",
+		"TopicHelpFilePath": "solverfunctions/dateminutedifference.md",
+		"TopicTitle": "dateminutedifference function"
+	},
+	"SLV-FUNC-datemonthdifference": {
+		"TopicCode": "SLV-FUNC-datemonthdifference",
+		"TopicHelpFilePath": "solverfunctions/datemonthdifference.md",
+		"TopicTitle": "datemonthdifference function"
+	},
+	"SLV-FUNC-dateseconddifference": {
+		"TopicCode": "SLV-FUNC-dateseconddifference",
+		"TopicHelpFilePath": "solverfunctions/dateseconddifference.md",
+		"TopicTitle": "dateseconddifference function"
+	},
+	"SLV-FUNC-dateweekdifference": {
+		"TopicCode": "SLV-FUNC-dateweekdifference",
+		"TopicHelpFilePath": "solverfunctions/dateweekdifference.md",
+		"TopicTitle": "dateweekdifference function"
+	},
+	"SLV-FUNC-dateyeardifference": {
+		"TopicCode": "SLV-FUNC-dateyeardifference",
+		"TopicHelpFilePath": "solverfunctions/dateyeardifference.md",
+		"TopicTitle": "dateyeardifference function"
+	},
+	"SLV-FUNC-differencearrays": {
+		"TopicCode": "SLV-FUNC-differencearrays",
+		"TopicHelpFilePath": "solverfunctions/differencearrays.md",
+		"TopicTitle": "differencearrays function"
+	},
+	"SLV-FUNC-disablesolverordinal": {
+		"TopicCode": "SLV-FUNC-disablesolverordinal",
+		"TopicHelpFilePath": "solverfunctions/disablesolverordinal.md",
+		"TopicTitle": "disablesolverordinal function"
+	},
+	"SLV-FUNC-distributionhistogram": {
+		"TopicCode": "SLV-FUNC-distributionhistogram",
+		"TopicHelpFilePath": "solverfunctions/distributionhistogram.md",
+		"TopicTitle": "distributionhistogram function"
+	},
+	"SLV-FUNC-distributionhistogrambyobject": {
+		"TopicCode": "SLV-FUNC-distributionhistogrambyobject",
+		"TopicHelpFilePath": "solverfunctions/distributionhistogrambyobject.md",
+		"TopicTitle": "distributionhistogrambyobject function"
+	},
+	"SLV-FUNC-enablesolverordinal": {
+		"TopicCode": "SLV-FUNC-enablesolverordinal",
+		"TopicHelpFilePath": "solverfunctions/enablesolverordinal.md",
+		"TopicTitle": "enablesolverordinal function"
+	},
+	"SLV-FUNC-entryinset": {
+		"TopicCode": "SLV-FUNC-entryinset",
+		"TopicHelpFilePath": "solverfunctions/entryinset.md",
+		"TopicTitle": "entryinset function"
+	},
+	"SLV-FUNC-euler": {
+		"TopicCode": "SLV-FUNC-euler",
+		"TopicHelpFilePath": "solverfunctions/euler.md",
+		"TopicTitle": "euler function"
+	},
+	"SLV-FUNC-exp": {
+		"TopicCode": "SLV-FUNC-exp",
+		"TopicHelpFilePath": "solverfunctions/exp.md",
+		"TopicTitle": "exp function"
+	},
+	"SLV-FUNC-findfirstvaluebyexactmatch": {
+		"TopicCode": "SLV-FUNC-findfirstvaluebyexactmatch",
+		"TopicHelpFilePath": "solverfunctions/findfirstvaluebyexactmatch.md",
+		"TopicTitle": "findfirstvaluebyexactmatch function"
+	},
+	"SLV-FUNC-findfirstvaluebystringincludes": {
+		"TopicCode": "SLV-FUNC-findfirstvaluebystringincludes",
+		"TopicHelpFilePath": "solverfunctions/findfirstvaluebystringincludes.md",
+		"TopicTitle": "findfirstvaluebystringincludes function"
+	},
+	"SLV-FUNC-flatten": {
+		"TopicCode": "SLV-FUNC-flatten",
+		"TopicHelpFilePath": "solverfunctions/flatten.md",
+		"TopicTitle": "flatten function"
+	},
+	"SLV-FUNC-floor": {
+		"TopicCode": "SLV-FUNC-floor",
+		"TopicHelpFilePath": "solverfunctions/floor.md",
+		"TopicTitle": "floor function"
+	},
+	"SLV-FUNC-gaussianelimination": {
+		"TopicCode": "SLV-FUNC-gaussianelimination",
+		"TopicHelpFilePath": "solverfunctions/gaussianelimination.md",
+		"TopicTitle": "gaussianelimination function"
+	},
+	"SLV-FUNC-generatearrayofobjectsfromsets": {
+		"TopicCode": "SLV-FUNC-generatearrayofobjectsfromsets",
+		"TopicHelpFilePath": "solverfunctions/generatearrayofobjectsfromsets.md",
+		"TopicTitle": "generatearrayofobjectsfromsets function"
+	},
+	"SLV-FUNC-generatehtmlhexcolor": {
+		"TopicCode": "SLV-FUNC-generatehtmlhexcolor",
+		"TopicHelpFilePath": "solverfunctions/generatehtmlhexcolor.md",
+		"TopicTitle": "generatehtmlhexcolor function"
+	},
+	"SLV-FUNC-getvalue": {
+		"TopicCode": "SLV-FUNC-getvalue",
+		"TopicHelpFilePath": "solverfunctions/getvalue.md",
+		"TopicTitle": "getvalue function"
+	},
+	"SLV-FUNC-getvaluearray": {
+		"TopicCode": "SLV-FUNC-getvaluearray",
+		"TopicHelpFilePath": "solverfunctions/getvaluearray.md",
+		"TopicTitle": "getvaluearray function"
+	},
+	"SLV-FUNC-getvalueobject": {
+		"TopicCode": "SLV-FUNC-getvalueobject",
+		"TopicHelpFilePath": "solverfunctions/getvalueobject.md",
+		"TopicTitle": "getvalueobject function"
+	},
+	"SLV-FUNC-hidesections": {
+		"TopicCode": "SLV-FUNC-hidesections",
+		"TopicHelpFilePath": "solverfunctions/hidesections.md",
+		"TopicTitle": "hidesections function"
+	},
+	"SLV-FUNC-if": {
+		"TopicCode": "SLV-FUNC-if",
+		"TopicHelpFilePath": "solverfunctions/if.md",
+		"TopicTitle": "if function"
+	},
+	"SLV-FUNC-iterativeseries": {
+		"TopicCode": "SLV-FUNC-iterativeseries",
+		"TopicHelpFilePath": "solverfunctions/iterativeseries.md",
+		"TopicTitle": "iterativeseries function"
+	},
+	"SLV-FUNC-join": {
+		"TopicCode": "SLV-FUNC-join",
+		"TopicHelpFilePath": "solverfunctions/join.md",
+		"TopicTitle": "join function"
+	},
+	"SLV-FUNC-joinraw": {
+		"TopicCode": "SLV-FUNC-joinraw",
+		"TopicHelpFilePath": "solverfunctions/joinraw.md",
+		"TopicTitle": "joinraw function"
+	},
+	"SLV-FUNC-largestinset": {
+		"TopicCode": "SLV-FUNC-largestinset",
+		"TopicHelpFilePath": "solverfunctions/largestinset.md",
+		"TopicTitle": "largestinset function"
+	},
+	"SLV-FUNC-leastsquares": {
+		"TopicCode": "SLV-FUNC-leastsquares",
+		"TopicHelpFilePath": "solverfunctions/leastsquares.md",
+		"TopicTitle": "leastsquares function"
+	},
+	"SLV-FUNC-linest": {
+		"TopicCode": "SLV-FUNC-linest",
+		"TopicHelpFilePath": "solverfunctions/linest.md",
+		"TopicTitle": "linest function"
+	},
+	"SLV-FUNC-log": {
+		"TopicCode": "SLV-FUNC-log",
+		"TopicHelpFilePath": "solverfunctions/log.md",
+		"TopicTitle": "log function"
+	},
+	"SLV-FUNC-logvalues": {
+		"TopicCode": "SLV-FUNC-logvalues",
+		"TopicHelpFilePath": "solverfunctions/logvalues.md",
+		"TopicTitle": "logvalues function"
+	},
+	"SLV-FUNC-match": {
+		"TopicCode": "SLV-FUNC-match",
+		"TopicHelpFilePath": "solverfunctions/match.md",
+		"TopicTitle": "match function"
+	},
+	"SLV-FUNC-matrixinverse": {
+		"TopicCode": "SLV-FUNC-matrixinverse",
+		"TopicHelpFilePath": "solverfunctions/matrixinverse.md",
+		"TopicTitle": "matrixinverse function"
+	},
+	"SLV-FUNC-matrixmultiply": {
+		"TopicCode": "SLV-FUNC-matrixmultiply",
+		"TopicHelpFilePath": "solverfunctions/matrixmultiply.md",
+		"TopicTitle": "matrixmultiply function"
+	},
+	"SLV-FUNC-matrixtranspose": {
+		"TopicCode": "SLV-FUNC-matrixtranspose",
+		"TopicHelpFilePath": "solverfunctions/matrixtranspose.md",
+		"TopicTitle": "matrixtranspose function"
+	},
+	"SLV-FUNC-matrixvectormultiply": {
+		"TopicCode": "SLV-FUNC-matrixvectormultiply",
+		"TopicHelpFilePath": "solverfunctions/matrixvectormultiply.md",
+		"TopicTitle": "matrixvectormultiply function"
+	},
+	"SLV-FUNC-max": {
+		"TopicCode": "SLV-FUNC-max",
+		"TopicHelpFilePath": "solverfunctions/max.md",
+		"TopicTitle": "max function"
+	},
+	"SLV-FUNC-mean": {
+		"TopicCode": "SLV-FUNC-mean",
+		"TopicHelpFilePath": "solverfunctions/mean.md",
+		"TopicTitle": "mean function"
+	},
+	"SLV-FUNC-median": {
+		"TopicCode": "SLV-FUNC-median",
+		"TopicHelpFilePath": "solverfunctions/median.md",
+		"TopicTitle": "median function"
+	},
+	"SLV-FUNC-min": {
+		"TopicCode": "SLV-FUNC-min",
+		"TopicHelpFilePath": "solverfunctions/min.md",
+		"TopicTitle": "min function"
+	},
+	"SLV-FUNC-mode": {
+		"TopicCode": "SLV-FUNC-mode",
+		"TopicHelpFilePath": "solverfunctions/mode.md",
+		"TopicTitle": "mode function"
+	},
+	"SLV-FUNC-objectkeystoarray": {
+		"TopicCode": "SLV-FUNC-objectkeystoarray",
+		"TopicHelpFilePath": "solverfunctions/objectkeystoarray.md",
+		"TopicTitle": "objectkeystoarray function"
+	},
+	"SLV-FUNC-objectvaluessortbyexternalobjectarray": {
+		"TopicCode": "SLV-FUNC-objectvaluessortbyexternalobjectarray",
+		"TopicHelpFilePath": "solverfunctions/objectvaluessortbyexternalobjectarray.md",
+		"TopicTitle": "objectvaluessortbyexternalobjectarray function"
+	},
+	"SLV-FUNC-objectvaluestoarray": {
+		"TopicCode": "SLV-FUNC-objectvaluestoarray",
+		"TopicHelpFilePath": "solverfunctions/objectvaluestoarray.md",
+		"TopicTitle": "objectvaluestoarray function"
+	},
+	"SLV-FUNC-percent": {
+		"TopicCode": "SLV-FUNC-percent",
+		"TopicHelpFilePath": "solverfunctions/percent.md",
+		"TopicTitle": "percent function"
+	},
+	"SLV-FUNC-pi": {
+		"TopicCode": "SLV-FUNC-pi",
+		"TopicHelpFilePath": "solverfunctions/pi.md",
+		"TopicTitle": "pi function"
+	},
+	"SLV-FUNC-polynomialregression": {
+		"TopicCode": "SLV-FUNC-polynomialregression",
+		"TopicHelpFilePath": "solverfunctions/polynomialregression.md",
+		"TopicTitle": "polynomialregression function"
+	},
+	"SLV-FUNC-predict": {
+		"TopicCode": "SLV-FUNC-predict",
+		"TopicHelpFilePath": "solverfunctions/predict.md",
+		"TopicTitle": "predict function"
+	},
+	"SLV-FUNC-rad": {
+		"TopicCode": "SLV-FUNC-rad",
+		"TopicHelpFilePath": "solverfunctions/rad.md",
+		"TopicTitle": "rad function"
+	},
+	"SLV-FUNC-randomfloat": {
+		"TopicCode": "SLV-FUNC-randomfloat",
+		"TopicHelpFilePath": "solverfunctions/randomfloat.md",
+		"TopicTitle": "randomfloat function"
+	},
+	"SLV-FUNC-randomfloatbetween": {
+		"TopicCode": "SLV-FUNC-randomfloatbetween",
+		"TopicHelpFilePath": "solverfunctions/randomfloatbetween.md",
+		"TopicTitle": "randomfloatbetween function"
+	},
+	"SLV-FUNC-randomfloatupto": {
+		"TopicCode": "SLV-FUNC-randomfloatupto",
+		"TopicHelpFilePath": "solverfunctions/randomfloatupto.md",
+		"TopicTitle": "randomfloatupto function"
+	},
+	"SLV-FUNC-randominteger": {
+		"TopicCode": "SLV-FUNC-randominteger",
+		"TopicHelpFilePath": "solverfunctions/randominteger.md",
+		"TopicTitle": "randominteger function"
+	},
+	"SLV-FUNC-randomintegerbetween": {
+		"TopicCode": "SLV-FUNC-randomintegerbetween",
+		"TopicHelpFilePath": "solverfunctions/randomintegerbetween.md",
+		"TopicTitle": "randomintegerbetween function"
+	},
+	"SLV-FUNC-randomintegerupto": {
+		"TopicCode": "SLV-FUNC-randomintegerupto",
+		"TopicHelpFilePath": "solverfunctions/randomintegerupto.md",
+		"TopicTitle": "randomintegerupto function"
+	},
+	"SLV-FUNC-refreshtabularsection": {
+		"TopicCode": "SLV-FUNC-refreshtabularsection",
+		"TopicHelpFilePath": "solverfunctions/refreshtabularsection.md",
+		"TopicTitle": "refreshtabularsection function"
+	},
+	"SLV-FUNC-resolvehtmlentities": {
+		"TopicCode": "SLV-FUNC-resolvehtmlentities",
+		"TopicHelpFilePath": "solverfunctions/resolvehtmlentities.md",
+		"TopicTitle": "resolvehtmlentities function"
+	},
+	"SLV-FUNC-round": {
+		"TopicCode": "SLV-FUNC-round",
+		"TopicHelpFilePath": "solverfunctions/round.md",
+		"TopicTitle": "round function"
+	},
+	"SLV-FUNC-runsolvers": {
+		"TopicCode": "SLV-FUNC-runsolvers",
+		"TopicHelpFilePath": "solverfunctions/runsolvers.md",
+		"TopicTitle": "runsolvers function"
+	},
+	"SLV-FUNC-setconcatenate": {
+		"TopicCode": "SLV-FUNC-setconcatenate",
+		"TopicHelpFilePath": "solverfunctions/setconcatenate.md",
+		"TopicTitle": "setconcatenate function"
+	},
+	"SLV-FUNC-setgroupvisibility": {
+		"TopicCode": "SLV-FUNC-setgroupvisibility",
+		"TopicHelpFilePath": "solverfunctions/setgroupvisibility.md",
+		"TopicTitle": "setgroupvisibility function"
+	},
+	"SLV-FUNC-setsectionvisibility": {
+		"TopicCode": "SLV-FUNC-setsectionvisibility",
+		"TopicHelpFilePath": "solverfunctions/setsectionvisibility.md",
+		"TopicTitle": "setsectionvisibility function"
+	},
+	"SLV-FUNC-setsolverordinalenabled": {
+		"TopicCode": "SLV-FUNC-setsolverordinalenabled",
+		"TopicHelpFilePath": "solverfunctions/setsolverordinalenabled.md",
+		"TopicTitle": "setsolverordinalenabled function"
+	},
+	"SLV-FUNC-settabularrowlength": {
+		"TopicCode": "SLV-FUNC-settabularrowlength",
+		"TopicHelpFilePath": "solverfunctions/settabularrowlength.md",
+		"TopicTitle": "settabularrowlength function"
+	},
+	"SLV-FUNC-setvalue": {
+		"TopicCode": "SLV-FUNC-setvalue",
+		"TopicHelpFilePath": "solverfunctions/setvalue.md",
+		"TopicTitle": "setvalue function"
+	},
+	"SLV-FUNC-showsections": {
+		"TopicCode": "SLV-FUNC-showsections",
+		"TopicHelpFilePath": "solverfunctions/showsections.md",
+		"TopicTitle": "showsections function"
+	},
+	"SLV-FUNC-sin": {
+		"TopicCode": "SLV-FUNC-sin",
+		"TopicHelpFilePath": "solverfunctions/sin.md",
+		"TopicTitle": "sin function"
+	},
+	"SLV-FUNC-slice": {
+		"TopicCode": "SLV-FUNC-slice",
+		"TopicHelpFilePath": "solverfunctions/slice.md",
+		"TopicTitle": "slice function"
+	},
+	"SLV-FUNC-smallestinset": {
+		"TopicCode": "SLV-FUNC-smallestinset",
+		"TopicHelpFilePath": "solverfunctions/smallestinset.md",
+		"TopicTitle": "smallestinset function"
+	},
+	"SLV-FUNC-sortarray": {
+		"TopicCode": "SLV-FUNC-sortarray",
+		"TopicHelpFilePath": "solverfunctions/sortarray.md",
+		"TopicTitle": "sortarray function"
+	},
+	"SLV-FUNC-sorthistogram": {
+		"TopicCode": "SLV-FUNC-sorthistogram",
+		"TopicHelpFilePath": "solverfunctions/sorthistogram.md",
+		"TopicTitle": "sorthistogram function"
+	},
+	"SLV-FUNC-sorthistogrambykeys": {
+		"TopicCode": "SLV-FUNC-sorthistogrambykeys",
+		"TopicHelpFilePath": "solverfunctions/sorthistogrambykeys.md",
+		"TopicTitle": "sorthistogrambykeys function"
+	},
+	"SLV-FUNC-sortset": {
+		"TopicCode": "SLV-FUNC-sortset",
+		"TopicHelpFilePath": "solverfunctions/sortset.md",
+		"TopicTitle": "sortset function"
+	},
+	"SLV-FUNC-sqrt": {
+		"TopicCode": "SLV-FUNC-sqrt",
+		"TopicHelpFilePath": "solverfunctions/sqrt.md",
+		"TopicTitle": "sqrt function"
+	},
+	"SLV-FUNC-stdev": {
+		"TopicCode": "SLV-FUNC-stdev",
+		"TopicHelpFilePath": "solverfunctions/stdev.md",
+		"TopicTitle": "stdev / stdeva function"
+	},
+	"SLV-FUNC-stdeva": {
+		"TopicCode": "SLV-FUNC-stdeva",
+		"TopicHelpFilePath": "solverfunctions/stdeva.md",
+		"TopicTitle": "stdeva function"
+	},
+	"SLV-FUNC-stdevp": {
+		"TopicCode": "SLV-FUNC-stdevp",
+		"TopicHelpFilePath": "solverfunctions/stdevp.md",
+		"TopicTitle": "stdevp function"
+	},
+	"SLV-FUNC-stringcountsegments": {
+		"TopicCode": "SLV-FUNC-stringcountsegments",
+		"TopicHelpFilePath": "solverfunctions/stringcountsegments.md",
+		"TopicTitle": "stringcountsegments function"
+	},
+	"SLV-FUNC-stringgetsegments": {
+		"TopicCode": "SLV-FUNC-stringgetsegments",
+		"TopicHelpFilePath": "solverfunctions/stringgetsegments.md",
+		"TopicTitle": "stringgetsegments function"
+	},
+	"SLV-FUNC-subtractingsummation": {
+		"TopicCode": "SLV-FUNC-subtractingsummation",
+		"TopicHelpFilePath": "solverfunctions/subtractingsummation.md",
+		"TopicTitle": "subtractingsummation function"
+	},
+	"SLV-FUNC-sum": {
+		"TopicCode": "SLV-FUNC-sum",
+		"TopicHelpFilePath": "solverfunctions/sum.md",
+		"TopicTitle": "sum function"
+	},
+	"SLV-FUNC-tan": {
+		"TopicCode": "SLV-FUNC-tan",
+		"TopicHelpFilePath": "solverfunctions/tan.md",
+		"TopicTitle": "tan function"
+	},
+	"SLV-FUNC-tofixed": {
+		"TopicCode": "SLV-FUNC-tofixed",
+		"TopicHelpFilePath": "solverfunctions/tofixed.md",
+		"TopicTitle": "tofixed function"
+	},
+	"SLV-FUNC-unionarrays": {
+		"TopicCode": "SLV-FUNC-unionarrays",
+		"TopicHelpFilePath": "solverfunctions/unionarrays.md",
+		"TopicTitle": "unionarrays function"
+	},
+	"SLV-FUNC-uniquearray": {
+		"TopicCode": "SLV-FUNC-uniquearray",
+		"TopicHelpFilePath": "solverfunctions/uniquearray.md",
+		"TopicTitle": "uniquearray function"
+	},
+	"SLV-FUNC-var": {
+		"TopicCode": "SLV-FUNC-var",
+		"TopicHelpFilePath": "solverfunctions/var.md",
+		"TopicTitle": "var function"
+	},
+	"SLV-FUNC-vara": {
+		"TopicCode": "SLV-FUNC-vara",
+		"TopicHelpFilePath": "solverfunctions/vara.md",
+		"TopicTitle": "vara function"
+	},
+	"SLV-FUNC-varp": {
+		"TopicCode": "SLV-FUNC-varp",
+		"TopicHelpFilePath": "solverfunctions/varp.md",
+		"TopicTitle": "varp function"
+	},
+	"SLV-FUNC-when": {
+		"TopicCode": "SLV-FUNC-when",
+		"TopicHelpFilePath": "solverfunctions/when.md",
+		"TopicTitle": "when function"
+	},
+	"SLV-OP-Add": {
+		"TopicCode": "SLV-OP-Add",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Addition Operator (+)",
+		"RelevantMarkdownLine": 39
+	},
+	"SLV-OP-Subtract": {
+		"TopicCode": "SLV-OP-Subtract",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Subtraction Operator (-)",
+		"RelevantMarkdownLine": 40
+	},
+	"SLV-OP-Multiply": {
+		"TopicCode": "SLV-OP-Multiply",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Multiplication Operator (*)",
+		"RelevantMarkdownLine": 36
+	},
+	"SLV-OP-Divide": {
+		"TopicCode": "SLV-OP-Divide",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Division Operator (/)",
+		"RelevantMarkdownLine": 37
+	},
+	"SLV-OP-Modulus": {
+		"TopicCode": "SLV-OP-Modulus",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Modulus Operator (%)",
+		"RelevantMarkdownLine": 38
+	},
+	"SLV-OP-Exponent": {
+		"TopicCode": "SLV-OP-Exponent",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Exponentiation Operator (^)",
+		"RelevantMarkdownLine": 35
+	},
+	"SLV-OP-SetConcat": {
+		"TopicCode": "SLV-OP-SetConcat",
+		"TopicHelpFilePath": "Solver-Functions.md",
+		"TopicTitle": "Set Concatenation Operator (,)"
+	},
+	"SLV-ASSIGN-Equals": {
+		"TopicCode": "SLV-ASSIGN-Equals",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Assignment Operator (=)",
+		"RelevantMarkdownLine": 17
+	},
+	"SLV-ASSIGN-NullCoalesce": {
+		"TopicCode": "SLV-ASSIGN-NullCoalesce",
+		"TopicHelpFilePath": "Solver-Expression-Walkthrough.md",
+		"TopicTitle": "Null Coalescence Assignment (?=)",
+		"RelevantMarkdownLine": 141
+	},
+	"SLV-ASSIGN-ExpressionBegin": {
+		"TopicCode": "SLV-ASSIGN-ExpressionBegin",
+		"TopicHelpFilePath": "Solver-Expressions-Advanced.md",
+		"TopicTitle": "Expression Begin Directive (:)"
+	}
+}

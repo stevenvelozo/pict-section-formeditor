@@ -18,7 +18,9 @@ class ChildPictManager extends libPictProvider
 	// Check if a pict instance exists for this cache
 	childApplicationExists(pFormHash)
 	{
-		if (this._PictCache[pFormHash])
+		const tmpFormHash = this.fable.DataFormat.sanitizeObjectKey(pFormHash);
+
+		if (this._PictCache[tmpFormHash])
 		{
 			return true;
 		}
@@ -28,9 +30,11 @@ class ChildPictManager extends libPictProvider
 
 	childApplication(pFormHash)
 	{
-		if (this.childApplicationExists(pFormHash))
+		const tmpFormHash = this.fable.DataFormat.sanitizeObjectKey(pFormHash);
+
+		if (this.childApplicationExists(tmpFormHash))
 		{
-			return this._PictCache[pFormHash];
+			return this._PictCache[tmpFormHash];
 		}
 
 		return null;
@@ -44,16 +48,16 @@ class ChildPictManager extends libPictProvider
 		try
 		{
 			// Construct a new pict instance
-			const tmpChildPictSettings = new libPict(
+			const tmpChildPictSettings =
 				{
 					Product: `Form-${tmpFormHash}`,
 					ProductVersion: '1.0.0',
 					DefaultFormManifest: pPictSectionFormManifest
-				});
+				};
 			
 			this._PictCache[tmpFormHash] = new Pict(tmpChildPictSettings);
 
-			_Pict.addApplication(tmpFormHash, tmpDefaultConfiguration, libPictCustomApplication);
+			_Pict.addApplication(tmpFormHash, {}, libPictCustomApplication);
 
 			_Pict.PictApplication.initializeAsync(
 				function (pError)

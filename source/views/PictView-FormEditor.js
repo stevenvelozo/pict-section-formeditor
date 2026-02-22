@@ -1,6 +1,7 @@
 const libPictView = require('pict-view');
 const libPictSectionObjectEditor = require('pict-section-objecteditor');
 const libPictSectionCode = require('pict-section-code');
+const libPictSectionContent = require('pict-section-content');
 
 const _DefaultConfiguration = require('../Pict-Section-FormEditor-DefaultConfiguration.js');
 const libFormEditorIconography = require('../providers/Pict-Provider-FormEditorIconography.js');
@@ -11,6 +12,7 @@ const libFormEditorInputTypePicker = require('./PictView-FormEditor-InputTypePic
 const libFormEditorRendering = require('../providers/Pict-Provider-FormEditorRendering.js');
 const libFormEditorManifestOps = require('../providers/Pict-Provider-FormEditorManifestOps.js');
 const libChildPictManager = require('../providers/Pict-Provider-ChildPictManager.js');
+const libFormEditorDocumentation = require('../providers/Pict-Provider-FormEditorDocumentation.js');
 
 class PictViewFormEditor extends libPictView
 {
@@ -31,6 +33,9 @@ class PictViewFormEditor extends libPictView
 		this._ObjectEditorView = null;
 		this._CodeEditorView = null;
 		this._SolverCodeEditorView = null;
+		this._HelpContentView = null;
+		this._HelpContentProvider = null;
+		this._DocumentationProvider = null;
 
 		// Supported Manyfest DataTypes
 		this._ManyfestDataTypes =
@@ -91,6 +96,23 @@ class PictViewFormEditor extends libPictView
 		);
 		this._RenderingProvider._ParentFormEditor = this;
 
+		// Create the documentation provider for the embedded help system
+		let tmpDocumentationHash = `${pServiceHash || 'FormEditor'}-Documentation`;
+		this._DocumentationProvider = this.pict.addProvider(
+			tmpDocumentationHash,
+			{},
+			libFormEditorDocumentation
+		);
+		this._DocumentationProvider._ParentFormEditor = this;
+
+		// Create the help content provider (PictContentProvider for markdown parsing)
+		let tmpHelpContentProviderHash = `${pServiceHash || 'FormEditor'}-HelpContentProvider`;
+		this._HelpContentProvider = this.pict.addProvider(
+			tmpHelpContentProviderHash,
+			{},
+			libPictSectionContent.PictContentProvider
+		);
+
 		// Create the inline editing child view
 		let tmpInlineEditHash = `${pServiceHash || 'FormEditor'}-InlineEditing`;
 		this._InlineEditingView = this.pict.addView(
@@ -134,6 +156,27 @@ class PictViewFormEditor extends libPictView
 		this._PanelActiveTab = 'form';
 		this._PanelWidth = 300;
 		this._PanelResizing = false;
+
+		// Restore panel width from localStorage
+		if (typeof localStorage !== 'undefined')
+		{
+			try
+			{
+				let tmpStoredWidth = localStorage.getItem('pict-fe-panel-width');
+				if (tmpStoredWidth)
+				{
+					let tmpParsed = parseInt(tmpStoredWidth, 10);
+					if (!isNaN(tmpParsed) && tmpParsed >= 240)
+					{
+						this._PanelWidth = tmpParsed;
+					}
+				}
+			}
+			catch (pError)
+			{
+				// localStorage may throw in restrictive environments
+			}
+		}
 
 		// Properties panel child view reference
 		this._PropertiesPanelView = null;
@@ -283,6 +326,28 @@ class PictViewFormEditor extends libPictView
 
 		// Set a custom solver DSL highlight function
 		this._SolverCodeEditorView.setHighlightFunction(this._buildSolverHighlightFunction());
+
+		// Create the help content view (PictContentView for rendering parsed markdown)
+		let tmpHelpContentViewHash = `${this.Hash}-HelpContentView`;
+		this._HelpContentView = this.pict.addView(
+			tmpHelpContentViewHash,
+			{
+				ViewIdentifier: tmpHelpContentViewHash,
+				DefaultRenderable: 'HelpContent-Wrap',
+				DefaultDestinationAddress: `#FormEditor-Help-Body-${this.Hash}`,
+				AutoRender: false,
+				Renderables:
+				[
+					{
+						RenderableHash: 'HelpContent-Wrap',
+						TemplateHash: 'Pict-Content-Template',
+						DestinationAddress: `#FormEditor-Help-Body-${this.Hash}`
+					}
+				]
+			},
+			libPictSectionContent
+		);
+		this._HelpContentView.initialize();
 	}
 
 	/**

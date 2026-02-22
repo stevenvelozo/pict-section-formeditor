@@ -29,7 +29,7 @@ class FormEditorExampleApplication extends libPictApplication
 
 	onAfterInitializeAsync(fCallback)
 	{
-		// Start with "New Form" (empty manifest)
+		// Start with an empty manifest; the first sample will be loaded after render
 		this.pict.AppData.FormConfig =
 		{
 			Scope: 'NewForm',
@@ -63,6 +63,15 @@ class FormEditorExampleApplication extends libPictApplication
 
 		// Render the selector bar
 		this.renderSelector();
+
+		// Load the first file-based sample by default
+		let tmpDefaultIndex = 1;
+		let tmpSelect = document.getElementById('FormEditor-ManifestSelect');
+		if (tmpSelect)
+		{
+			tmpSelect.value = String(tmpDefaultIndex);
+		}
+		this.loadManifest(tmpDefaultIndex);
 
 		return super.onAfterInitializeAsync(fCallback);
 	}

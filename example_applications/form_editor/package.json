@@ -28,6 +28,18 @@
 		{
 			"from": "../../node_modules/pict-section-code/example_applications/code_editor/html/codejar.js",
 			"to": "./dist/codejar.js"
+		},
+		{
+			"from": "../../user-documentation/*",
+			"to": "./dist/docs/"
+		},
+		{
+			"from": "../../user-documentation/.pict_documentation_topics.json",
+			"to": "./dist/docs/.pict_documentation_topics.json"
+		},
+		{
+			"from": "../../user-documentation/solverfunctions/*",
+			"to": "./dist/docs/solverfunctions/"
 		}
 	],
 	"dependencies": {

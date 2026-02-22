@@ -30,3 +30,6 @@ module.exports.InlineEditing = require('./views/PictView-FormEditor-InlineEditin
 
 // Input type picker view
 module.exports.InputTypePicker = require('./views/PictView-FormEditor-InputTypePicker.js');
+
+// Documentation provider for embedded help system
+module.exports.DocumentationProvider = require('./providers/Pict-Provider-FormEditorDocumentation.js');

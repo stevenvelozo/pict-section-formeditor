@@ -7,7 +7,16 @@ class ChildPictApplication extends libPictSectionForm.PictFormApplication
 		super(pFable, pOptions, pServiceHash);
 
 		// Trying this pattern -- it seems to make the most sense.
+		// MainViewportViewIdentifier: 'Default-View',
+		// MainViewportRenderableHash: false,
+		// MainViewportDestinationAddress: false,
+		// MainViewportDefaultDataAddress: false,
+
+		this.options.AutoSolveAfterInitialize = false;
 		this.options.AutoRenderMainViewportViewAfterInitialize = false;
+		this.options.AutoRenderViewsAfterInitialize = false;
+		this.options.AutoLoginAfterInitialize = false;
+		this.options.AutoLoadDataAfterLogin = false;
 	}
 
 	onBeforeInitialize()

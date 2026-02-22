@@ -24,9 +24,11 @@
     },
     "homepage": "https://github.com/stevenvelozo/pict-section-formeditor#readme",
     "dependencies": {
-        "pict-view": "^1.0.66",
+        "pict-section-code": "^0.0.1",
+        "pict-section-content": "^0.0.6",
+        "pict-section-form": "^1.0.189",
         "pict-section-objecteditor": "^0.0.1",
-        "pict-section-code": "^0.0.1"
+        "pict-view": "^1.0.66"
     },
     "devDependencies": {
         "pict": "^1.0.350",
