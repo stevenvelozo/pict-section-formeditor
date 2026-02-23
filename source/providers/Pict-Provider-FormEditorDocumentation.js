@@ -57,8 +57,8 @@ class FormEditorDocumentation extends libPictProvider
 			return;
 		}
 
-		// Push current location onto the stack before navigating
-		if (pPushToStack && this._CurrentPath)
+		// Only push onto the navigation stack if we are navigating to a different article
+		if (pPushToStack && this._CurrentPath && pPath !== this._CurrentPath)
 		{
 			this._NavigationStack.push(
 			{
@@ -69,7 +69,8 @@ class FormEditorDocumentation extends libPictProvider
 
 		this._CurrentPath = pPath;
 
-		// If cached, render immediately
+		// If cached, render immediately (always render even if same article,
+		// because the help panel may have just become visible and needs content)
 		if (this._Cache[pPath])
 		{
 			this._renderArticle(this._Cache[pPath].html, this._Cache[pPath].title);

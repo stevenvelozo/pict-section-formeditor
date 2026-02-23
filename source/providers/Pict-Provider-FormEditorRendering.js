@@ -29,6 +29,7 @@ class FormEditorRendering extends libPictProvider
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-EntityData-${tmpHash}" onclick="${tmpViewRef}.switchTab('entitydata')">Providers</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ObjectEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('objecteditor')">Object Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-JSON-${tmpHash}" onclick="${tmpViewRef}.switchTab('json')">JSON</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Import-${tmpHash}" onclick="${tmpViewRef}.switchTab('import')">Import</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Preview-${tmpHash}" onclick="${tmpViewRef}.switchTab('preview')">Preview</button>`;
 		tmpHTML += '</div>';
 
@@ -69,6 +70,11 @@ class FormEditorRendering extends libPictProvider
 		// JSON panel
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-JSON-${tmpHash}">`;
 		tmpHTML += `<div id="FormEditor-CodeEditor-Container-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
+
+		// Import panel
+		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-Import-${tmpHash}">`;
+		tmpHTML += `<div id="FormEditor-ImportTab-Container-${tmpHash}"></div>`;
 		tmpHTML += '</div>';
 
 		// Preview panel
@@ -588,6 +594,50 @@ class FormEditorRendering extends libPictProvider
 		tmpHTML += '</div>';
 
 		return tmpHTML;
+	}
+
+	renderImportTabPanel()
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+
+		let tmpHTML = '';
+
+		tmpHTML += '<div class="pict-fe-import-container">';
+		tmpHTML += '<h3 class="pict-fe-import-title">Import Form Configuration</h3>';
+		tmpHTML += '<p class="pict-fe-import-description">Drop a CSV or JSON file below to load a form configuration. CSV files are processed through ManifestFactory. JSON files are loaded directly as manifests. If the file contains multiple forms, the first will be loaded and the rest will be available in the Load Configuration selector.</p>';
+
+		// Drop zone
+		tmpHTML += `<div class="pict-fe-import-dropzone" id="FormEditor-ImportDropZone-${tmpHash}"`;
+		tmpHTML += ` ondragover="event.preventDefault(); event.stopPropagation(); this.classList.add('pict-fe-import-dropzone-active');"`;
+		tmpHTML += ` ondragleave="event.preventDefault(); event.stopPropagation(); this.classList.remove('pict-fe-import-dropzone-active');"`;
+		tmpHTML += ` ondrop="event.preventDefault(); event.stopPropagation(); this.classList.remove('pict-fe-import-dropzone-active'); ${tmpViewRef}.handleImportDrop(event);">`;
+		tmpHTML += '<div class="pict-fe-import-dropzone-content">';
+		tmpHTML += `<div class="pict-fe-import-dropzone-icon">${tmpParent._IconographyProvider.getIcon('Action', 'Add', 48)}</div>`;
+		tmpHTML += '<div class="pict-fe-import-dropzone-text">Drop CSV or JSON file here</div>';
+		tmpHTML += '<div class="pict-fe-import-dropzone-subtext">or click to browse</div>';
+		tmpHTML += '</div>';
+		tmpHTML += `<input type="file" accept=".csv,.json" class="pict-fe-import-file-input" id="FormEditor-ImportFileInput-${tmpHash}" onchange="${tmpViewRef}.handleImportFileSelect(event)" />`;
+		tmpHTML += '</div>';
+
+		// Status / results area
+		tmpHTML += `<div class="pict-fe-import-status" id="FormEditor-ImportStatus-${tmpHash}"></div>`;
+
+		tmpHTML += '</div>';
+
+		this.pict.ContentAssignment.assignContent(`#FormEditor-ImportTab-Container-${tmpHash}`, tmpHTML);
+
+		// Wire up click-to-browse on the drop zone
+		if (typeof document !== 'undefined')
+		{
+			let tmpDropZone = document.getElementById(`FormEditor-ImportDropZone-${tmpHash}`);
+			let tmpFileInput = document.getElementById(`FormEditor-ImportFileInput-${tmpHash}`);
+			if (tmpDropZone && tmpFileInput)
+			{
+				tmpDropZone.addEventListener('click', () => { tmpFileInput.click(); });
+			}
+		}
 	}
 
 	_renderRow(pRow, pSectionIndex, pGroupIndex, pRowIndex)

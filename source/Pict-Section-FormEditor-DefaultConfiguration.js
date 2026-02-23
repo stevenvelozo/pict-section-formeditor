@@ -16,6 +16,7 @@ module.exports = (
 	CSS: /*css*/`
 .pict-formeditor
 {
+	position: relative;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 	font-size: 14px;
 	color: #3D3229;
@@ -2029,6 +2030,14 @@ module.exports = (
 	color: #8A7F72;
 	margin-bottom: 4px;
 }
+.pict-fe-solver-linter-section-label + .pict-fe-solver-linter-section-label,
+.pict-fe-solver-linter-tokens + .pict-fe-solver-linter-section-label,
+.pict-fe-solver-linter-messages + .pict-fe-solver-linter-section-label,
+.pict-fe-solver-linter-descriptors + .pict-fe-solver-linter-section-label,
+.pict-fe-solver-linter-docs + .pict-fe-solver-linter-section-label
+{
+	margin-top: 14px;
+}
 .pict-fe-solver-linter-tokens
 {
 	display: flex;
@@ -2172,6 +2181,86 @@ module.exports = (
 	transition: background 0.12s, border-color 0.12s;
 }
 .pict-fe-solver-linter-doc-link:hover
+{
+	background: #F5ECE4;
+	border-color: #D4C5B3;
+}
+
+/* ---- Linter Token References (Descriptors) ---- */
+.pict-fe-solver-linter-descriptors
+{
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 6px 0;
+}
+.pict-fe-solver-linter-descriptor
+{
+	padding: 8px 10px;
+	background: #FDFCFA;
+	border: 1px solid #E8E3DA;
+	border-radius: 4px;
+}
+.pict-fe-solver-linter-descriptor-row
+{
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+.pict-fe-solver-linter-descriptor-row + .pict-fe-solver-linter-descriptor-row
+{
+	margin-top: 3px;
+}
+.pict-fe-solver-linter-descriptor-name
+{
+	font-size: 12px;
+	font-weight: 600;
+	color: #3D3229;
+}
+.pict-fe-solver-linter-descriptor-type
+{
+	font-size: 10px;
+	font-weight: 600;
+	color: #fff;
+	background: #9E6B47;
+	padding: 1px 6px;
+	border-radius: 3px;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+.pict-fe-solver-linter-descriptor-detail
+{
+	font-size: 11px;
+	color: #8A7F72;
+	font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+}
+.pict-fe-solver-linter-descriptor-solver-label
+{
+	font-size: 9px;
+	font-weight: 700;
+	color: #8A7F72;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-top: 5px;
+}
+.pict-fe-solver-linter-descriptor-solver-link
+{
+	font-size: 11px;
+	font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+	color: #9E6B47;
+	padding: 2px 6px;
+	background: #FAF6F2;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	cursor: pointer;
+	margin-top: 2px;
+	transition: background 0.12s, border-color 0.12s;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.pict-fe-solver-linter-descriptor-solver-link:hover
 {
 	background: #F5ECE4;
 	border-color: #D4C5B3;
@@ -3067,6 +3156,163 @@ module.exports = (
 	outline: none;
 	border-color: #9E6B47;
 	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.1);
+}
+
+/* ---- Import Tab ---- */
+.pict-fe-import-container
+{
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	max-width: 640px;
+}
+.pict-fe-import-title
+{
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: #3D3229;
+}
+.pict-fe-import-description
+{
+	margin: 0;
+	font-size: 13px;
+	color: #8A7F72;
+	line-height: 1.5;
+}
+.pict-fe-import-dropzone
+{
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 200px;
+	border: 2px dashed #D4C4A8;
+	border-radius: 8px;
+	background: #FDFCFA;
+	cursor: pointer;
+	transition: border-color 0.15s, background 0.15s;
+}
+.pict-fe-import-dropzone:hover
+{
+	border-color: #9E6B47;
+	background: #FAF5EE;
+}
+.pict-fe-import-dropzone-active
+{
+	border-color: #9E6B47;
+	background: #F3EAE0;
+	border-style: solid;
+}
+.pict-fe-import-dropzone-content
+{
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	pointer-events: none;
+}
+.pict-fe-import-dropzone-icon
+{
+	color: #D4C4A8;
+}
+.pict-fe-import-dropzone-icon svg
+{
+	width: 48px;
+	height: 48px;
+}
+.pict-fe-import-dropzone-text
+{
+	font-size: 16px;
+	font-weight: 600;
+	color: #3D3229;
+}
+.pict-fe-import-dropzone-subtext
+{
+	font-size: 12px;
+	color: #8A7F72;
+}
+.pict-fe-import-file-input
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	opacity: 0;
+}
+.pict-fe-import-status
+{
+	min-height: 0;
+}
+.pict-fe-import-status-success
+{
+	padding: 10px 14px;
+	background: #E8F5E9;
+	border: 1px solid #A5D6A7;
+	border-radius: 6px;
+	font-size: 13px;
+	color: #2E7D32;
+	line-height: 1.5;
+}
+.pict-fe-import-status-error
+{
+	padding: 10px 14px;
+	background: #FFEBEE;
+	border: 1px solid #EF9A9A;
+	border-radius: 6px;
+	font-size: 13px;
+	color: #C62828;
+	line-height: 1.5;
+}
+
+/* ---- Toast Notifications ---- */
+.pict-fe-toast-container
+{
+	position: absolute;
+	top: 56px;
+	right: 16px;
+	z-index: 9000;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	pointer-events: none;
+}
+.pict-fe-toast
+{
+	pointer-events: auto;
+	padding: 10px 18px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+	cursor: pointer;
+	opacity: 0;
+	transform: translateX(30px);
+	transition: opacity 0.25s ease, transform 0.25s ease;
+	max-width: 480px;
+}
+.pict-fe-toast-visible
+{
+	opacity: 1;
+	transform: translateX(0);
+}
+.pict-fe-toast-exit
+{
+	opacity: 0;
+	transform: translateX(30px);
+}
+.pict-fe-toast-success
+{
+	background: #2E7D32;
+	color: #fff;
+}
+.pict-fe-toast-error
+{
+	background: #C62828;
+	color: #fff;
 }
 
 /* ---- Preview Tab ---- */

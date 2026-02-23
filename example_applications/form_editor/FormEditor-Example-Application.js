@@ -61,6 +61,13 @@ class FormEditorExampleApplication extends libPictApplication
 		this._FormEditorView.initialize();
 		this._FormEditorView.render();
 
+		// Wire up the import event to add extra manifests to the selector
+		let tmpSelf = this;
+		this._FormEditorView.onImport = function(pManifests, pFileName)
+		{
+			tmpSelf._handleImportedManifests(pManifests, pFileName);
+		};
+
 		// Render the selector bar
 		this.renderSelector();
 
@@ -147,6 +154,14 @@ class FormEditorExampleApplication extends libPictApplication
 
 		let tmpEntry = this._ManifestList[pIndex];
 
+		if (tmpEntry.ManifestData)
+		{
+			// Directly loaded manifest (e.g. from CSV import)
+			this.pict.AppData.FormConfig = tmpEntry.ManifestData;
+			this._refreshEditor();
+			return;
+		}
+
 		if (!tmpEntry.File)
 		{
 			// "New Form" — empty manifest
@@ -186,6 +201,36 @@ class FormEditorExampleApplication extends libPictApplication
 			}
 		};
 		tmpXHR.send();
+	}
+
+	_handleImportedManifests(pManifests, pFileName)
+	{
+		let tmpManifestKeys = Object.keys(pManifests);
+		if (tmpManifestKeys.length <= 1)
+		{
+			return;
+		}
+
+		// Determine the source label from the file extension
+		let tmpSourceLabel = pFileName.toLowerCase().endsWith('.json') ? 'JSON' : 'CSV';
+
+		// Add additional manifests (beyond the first which was auto-loaded) to the selector
+		for (let i = 1; i < tmpManifestKeys.length; i++)
+		{
+			let tmpKey = tmpManifestKeys[i];
+			let tmpFormName = pManifests[tmpKey].FormName || tmpKey;
+			let tmpEntry = { Name: `${tmpSourceLabel}: ${tmpFormName}`, File: false, ManifestData: pManifests[tmpKey] };
+			this._ManifestList.push(tmpEntry);
+		}
+
+		// Re-render the selector to show new entries
+		this.renderSelector();
+	}
+
+	loadManifestDirect(pManifestData)
+	{
+		this.pict.AppData.FormConfig = pManifestData;
+		this._refreshEditor();
 	}
 
 	_refreshEditor()

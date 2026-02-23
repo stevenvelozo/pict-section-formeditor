@@ -14,6 +14,7 @@ const libFormEditorManifestOps = require('../providers/Pict-Provider-FormEditorM
 const libChildPictManager = require('../providers/Pict-Provider-ChildPictManager.js');
 const libPreviewCSS = require('../providers/Pict-Provider-PreviewCSS.js');
 const libFormEditorDocumentation = require('../providers/Pict-Provider-FormEditorDocumentation.js');
+const libManifestFactory = require('pict-section-form').ManifestFactory;
 
 class PictViewFormEditor extends libPictView
 {
@@ -195,6 +196,12 @@ class PictViewFormEditor extends libPictView
 	onBeforeInitialize()
 	{
 		super.onBeforeInitialize();
+
+		// Register ManifestFactory service type if not already present (needed for CSV import)
+		if (!this.fable.servicesMap.hasOwnProperty('ManifestFactory'))
+		{
+			this.fable.addServiceType('ManifestFactory', libManifestFactory);
+		}
 
 		// Ensure the manifest data address exists in AppData
 		let tmpManifest = this._resolveManifestData();
@@ -553,6 +560,10 @@ class PictViewFormEditor extends libPictView
 				this._PropertiesPanelView.renderEntityDataTabPanel();
 			}
 		}
+		else if (pTabName === 'import')
+		{
+			this._RenderingProvider.renderImportTabPanel();
+		}
 		else if (pTabName === 'preview')
 		{
 			if (this._PropertiesPanelView)
@@ -565,8 +576,8 @@ class PictViewFormEditor extends libPictView
 	_syncTabState()
 	{
 		let tmpHash = this.Hash;
-		let tmpTabs = ['visual', 'solvereditor', 'solvers', 'listdata', 'entitydata', 'objecteditor', 'json', 'preview'];
-		let tmpTabNames = ['Visual', 'SolverEditor', 'Solvers', 'ListData', 'EntityData', 'ObjectEditor', 'JSON', 'Preview'];
+		let tmpTabs = ['visual', 'solvereditor', 'solvers', 'listdata', 'entitydata', 'objecteditor', 'json', 'import', 'preview'];
+		let tmpTabNames = ['Visual', 'SolverEditor', 'Solvers', 'ListData', 'EntityData', 'ObjectEditor', 'JSON', 'Import', 'Preview'];
 
 		for (let i = 0; i < tmpTabs.length; i++)
 		{
@@ -666,6 +677,310 @@ class PictViewFormEditor extends libPictView
 			StaticOptionLists: [],
 			PickLists: []
 		});
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                     Code Section: Import (CSV / JSON)                      */
+	/* -------------------------------------------------------------------------- */
+
+	handleImportDrop(pEvent)
+	{
+		let tmpFiles = pEvent.dataTransfer ? pEvent.dataTransfer.files : [];
+		if (tmpFiles.length < 1)
+		{
+			return;
+		}
+		let tmpFile = tmpFiles[0];
+		let tmpName = tmpFile.name.toLowerCase();
+		if (!tmpName.endsWith('.csv') && !tmpName.endsWith('.json'))
+		{
+			this._setImportStatus('error', 'Please drop a CSV or JSON file.');
+			return;
+		}
+		this._readImportFile(tmpFile);
+	}
+
+	handleImportFileSelect(pEvent)
+	{
+		let tmpFiles = pEvent.target ? pEvent.target.files : [];
+		if (tmpFiles.length < 1)
+		{
+			return;
+		}
+		this._readImportFile(tmpFiles[0]);
+	}
+
+	_readImportFile(pFile)
+	{
+		let tmpReader = new FileReader();
+		tmpReader.onload = (pEvent) =>
+		{
+			let tmpContent = pEvent.target.result;
+			let tmpName = pFile.name.toLowerCase();
+			if (tmpName.endsWith('.json'))
+			{
+				this._processJSONContent(tmpContent, pFile.name);
+			}
+			else
+			{
+				this._processCSVContent(tmpContent, pFile.name);
+			}
+		};
+		tmpReader.onerror = () =>
+		{
+			this._setImportStatus('error', `Error reading file: ${pFile.name}`);
+		};
+		tmpReader.readAsText(pFile);
+	}
+
+	_processCSVContent(pCSVContent, pFileName)
+	{
+		// Use Fable's CSVParser to parse the CSV line-by-line
+		let tmpCSVParser = this.fable.instantiateServiceProviderWithoutRegistration('CSVParser');
+		tmpCSVParser.EscapedQuoteString = '"';
+
+		let tmpLines = pCSVContent.split('\n');
+		let tmpRecords = [];
+
+		for (let i = 0; i < tmpLines.length; i++)
+		{
+			let tmpLine = tmpLines[i];
+			if (tmpLine.trim().length === 0)
+			{
+				continue;
+			}
+			let tmpRecord = tmpCSVParser.parseCSVLine(tmpLine);
+			if (tmpRecord)
+			{
+				tmpRecords.push(tmpRecord);
+			}
+		}
+
+		if (tmpRecords.length === 0)
+		{
+			this._setImportStatus('error', 'No valid records found in CSV file.');
+			this._showToast('error', 'No valid records found in CSV file.');
+			return;
+		}
+
+		// Use ManifestFactory to generate form configurations
+		let tmpManifestFactory = this.fable.instantiateServiceProviderWithoutRegistration('ManifestFactory');
+		let tmpManifests = tmpManifestFactory.createManifestsFromTabularArray(tmpRecords);
+
+		let tmpManifestKeys = Object.keys(tmpManifests);
+		if (tmpManifestKeys.length === 0)
+		{
+			this._setImportStatus('error', 'CSV parsed but no valid form configurations were generated. Ensure the CSV has a "Form" column.');
+			this._showToast('error', 'No form configurations generated. Ensure the CSV has a "Form" column.');
+			return;
+		}
+
+		this._loadImportedManifests(tmpManifests, pFileName, 'CSV');
+	}
+
+	_processJSONContent(pJSONContent, pFileName)
+	{
+		let tmpParsed;
+		try
+		{
+			tmpParsed = JSON.parse(pJSONContent);
+		}
+		catch (pError)
+		{
+			this._setImportStatus('error', `Invalid JSON: ${pError.message}`);
+			this._showToast('error', 'Failed to parse JSON file.');
+			return;
+		}
+
+		if (!tmpParsed || typeof tmpParsed !== 'object')
+		{
+			this._setImportStatus('error', 'JSON file did not contain a valid object.');
+			this._showToast('error', 'JSON file did not contain a valid object.');
+			return;
+		}
+
+		// Detect whether this is a single manifest or a multi-form bundle.
+		// A single manifest has Descriptors and/or Sections at the top level.
+		// A multi-form bundle is an object whose values are each manifests
+		// (like the output of ManifestFactory).
+		let tmpIsSingleManifest = (tmpParsed.Descriptors || tmpParsed.Sections);
+
+		if (tmpIsSingleManifest)
+		{
+			// Wrap in a keyed object so _loadImportedManifests can handle it uniformly
+			let tmpFormName = tmpParsed.Scope || tmpParsed.FormName || pFileName.replace(/\.json$/i, '');
+			let tmpManifests = {};
+			tmpManifests[tmpFormName] = tmpParsed;
+			this._loadImportedManifests(tmpManifests, pFileName, 'JSON');
+		}
+		else
+		{
+			// Check if the values look like manifests (at least one has Descriptors or Sections)
+			let tmpKeys = Object.keys(tmpParsed);
+			let tmpHasManifestValues = false;
+			for (let i = 0; i < tmpKeys.length; i++)
+			{
+				let tmpValue = tmpParsed[tmpKeys[i]];
+				if (tmpValue && typeof tmpValue === 'object' && (tmpValue.Descriptors || tmpValue.Sections))
+				{
+					tmpHasManifestValues = true;
+					break;
+				}
+			}
+
+			if (tmpHasManifestValues)
+			{
+				this._loadImportedManifests(tmpParsed, pFileName, 'JSON');
+			}
+			else
+			{
+				this._setImportStatus('error', 'JSON file does not appear to contain a valid form manifest. Expected an object with Descriptors and/or Sections.');
+				this._showToast('error', 'JSON does not contain a valid form manifest.');
+			}
+		}
+	}
+
+	/**
+	 * Common handler for loading imported manifests (from CSV or JSON).
+	 *
+	 * @param {object} pManifests - Keyed object of form manifests
+	 * @param {string} pFileName - Original file name
+	 * @param {string} pSourceType - 'CSV' or 'JSON' for display purposes
+	 */
+	_loadImportedManifests(pManifests, pFileName, pSourceType)
+	{
+		let tmpManifestKeys = Object.keys(pManifests);
+		if (tmpManifestKeys.length === 0)
+		{
+			this._setImportStatus('error', `${pSourceType} parsed but no valid form configurations were found.`);
+			this._showToast('error', `No form configurations found in ${pSourceType} file.`);
+			return;
+		}
+
+		// Load the first manifest into the editor data address.
+		// Do NOT call this.render() here — that rebuilds the entire tab shell
+		// and destroys the import panel the user is looking at.  Each tab lazily
+		// renders its own content when switched to, so the data will be picked
+		// up automatically.
+		let tmpFirstKey = tmpManifestKeys[0];
+		let tmpFirstManifest = pManifests[tmpFirstKey];
+		this._setManifestData(tmpFirstManifest);
+
+		// Emit event with all manifests for the host application to handle
+		// (fire before toast so the selector is updated first)
+		if (typeof this.onImport === 'function')
+		{
+			this.onImport(pManifests, pFileName);
+		}
+
+		// Build a toast notification
+		let tmpDescriptorCount = Object.keys(tmpFirstManifest.Descriptors || {}).length;
+		let tmpSectionCount = (tmpFirstManifest.Sections || []).length;
+		let tmpToastMessage = `Loaded \u201C${tmpFirstKey}\u201D \u2014 ${tmpDescriptorCount} descriptors, ${tmpSectionCount} section${tmpSectionCount !== 1 ? 's' : ''}`;
+
+		if (tmpManifestKeys.length > 1)
+		{
+			tmpToastMessage += ` \u00B7 ${tmpManifestKeys.length - 1} additional form${tmpManifestKeys.length > 2 ? 's' : ''} added to selector`;
+		}
+
+		this._showToast('success', tmpToastMessage);
+
+		// Also update the in-tab status area (persists when user returns to import tab)
+		let tmpStatusParts = [];
+		tmpStatusParts.push(`Loaded <strong>${this._UtilitiesProvider._escapeHTML(tmpFirstKey)}</strong> from ${pSourceType} (${tmpDescriptorCount} descriptors, ${tmpSectionCount} sections)`);
+
+		if (tmpManifestKeys.length > 1)
+		{
+			tmpStatusParts.push(`<br/>${tmpManifestKeys.length - 1} additional form(s) found: ${tmpManifestKeys.slice(1).map((pKey) => '<strong>' + this._UtilitiesProvider._escapeHTML(pKey) + '</strong>').join(', ')}`);
+			tmpStatusParts.push('<br/>These have been added to the Load Configuration selector.');
+		}
+
+		this._setImportStatus('success', tmpStatusParts.join(''));
+	}
+
+	_setImportStatus(pType, pMessage)
+	{
+		let tmpHash = this.Hash;
+		let tmpStatusClass = (pType === 'error') ? 'pict-fe-import-status-error' : 'pict-fe-import-status-success';
+		let tmpHTML = `<div class="${tmpStatusClass}">${pMessage}</div>`;
+		this.pict.ContentAssignment.assignContent(`#FormEditor-ImportStatus-${tmpHash}`, tmpHTML);
+	}
+
+	/**
+	 * Show a floating toast notification inside the form editor.
+	 *
+	 * @param {string} pType - 'success' or 'error'
+	 * @param {string} pMessage - Plain text message to display
+	 * @param {number} [pDuration] - Auto-dismiss in ms (default 4000)
+	 */
+	_showToast(pType, pMessage, pDuration)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpDuration = (typeof pDuration === 'number') ? pDuration : 4000;
+
+		// Find or create the toast container anchored inside the editor wrapper
+		let tmpContainerId = `FormEditor-ToastContainer-${this.Hash}`;
+		let tmpContainer = document.getElementById(tmpContainerId);
+		if (!tmpContainer)
+		{
+			tmpContainer = document.createElement('div');
+			tmpContainer.id = tmpContainerId;
+			tmpContainer.className = 'pict-fe-toast-container';
+			// Attach inside the editor wrapper so it stays positioned within the editor
+			let tmpWrap = document.getElementById(`FormEditor-Wrap-${this.Hash}`);
+			if (tmpWrap)
+			{
+				tmpWrap.appendChild(tmpContainer);
+			}
+			else
+			{
+				document.body.appendChild(tmpContainer);
+			}
+		}
+
+		// Create the toast element
+		let tmpToast = document.createElement('div');
+		tmpToast.className = 'pict-fe-toast pict-fe-toast-' + pType;
+		tmpToast.textContent = pMessage;
+
+		tmpContainer.appendChild(tmpToast);
+
+		// Trigger the enter animation on next frame
+		requestAnimationFrame(() =>
+		{
+			tmpToast.classList.add('pict-fe-toast-visible');
+		});
+
+		// Auto-dismiss
+		let tmpDismiss = () =>
+		{
+			tmpToast.classList.remove('pict-fe-toast-visible');
+			tmpToast.classList.add('pict-fe-toast-exit');
+			tmpToast.addEventListener('transitionend', () =>
+			{
+				if (tmpToast.parentNode)
+				{
+					tmpToast.parentNode.removeChild(tmpToast);
+				}
+			});
+			// Fallback removal if transitionend doesn't fire
+			setTimeout(() =>
+			{
+				if (tmpToast.parentNode)
+				{
+					tmpToast.parentNode.removeChild(tmpToast);
+				}
+			}, 400);
+		};
+
+		setTimeout(tmpDismiss, tmpDuration);
+
+		// Also allow click to dismiss
+		tmpToast.addEventListener('click', tmpDismiss);
 	}
 
 	/* -------------------------------------------------------------------------- */

@@ -53,6 +53,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		// Whether the linter panel click handler for #help: links has been attached
 		this._LinterClickHandlerAttached = false;
 
+		// Cached descriptor hash lookup for linter token matching (invalidated on render)
+		this._DescriptorHashLookup = null;
+
 		// Navigation stack for solver editor (for breadcrumb-back behavior)
 		this._SolverEditorStack = [];
 
@@ -410,22 +413,36 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		if (tmpActiveTab === 'help' && this._ParentFormEditor._DocumentationProvider)
 		{
 			let tmpDocProvider = this._ParentFormEditor._DocumentationProvider;
-			let tmpContentView = this._ParentFormEditor._HelpContentView;
 
 			// The help body DOM was just recreated, so the old click handler is gone
 			tmpDocProvider._ClickHandlerAttached = false;
 
-			// Render the content view container (creates the pict-content wrapper div)
-			if (tmpContentView)
-			{
-				tmpContentView.render();
-			}
+			let tmpPath = tmpDocProvider._CurrentPath || 'docs/ToC.md';
+			let tmpHelpBodyId = `FormEditor-Help-Body-${this._ParentFormEditor.Hash}`;
+			let tmpHelpBody = document.getElementById(tmpHelpBodyId);
 
-			// Load the current or default article
-			tmpDocProvider.loadArticle(
-				tmpDocProvider._CurrentPath || 'docs/ToC.md',
-				false
-			);
+			if (tmpHelpBody)
+			{
+				// If the article is already cached, render it directly into
+				// the help body — bypassing the "Loading content..." intermediate
+				// state which can persist if renderPanel() is called again before
+				// the content has settled.
+				if (tmpDocProvider._Cache[tmpPath])
+				{
+					let tmpCached = tmpDocProvider._Cache[tmpPath];
+					tmpHelpBody.innerHTML = `<div class="pict-content" id="Pict-Content-Body">${tmpCached.html}</div>`;
+					tmpDocProvider._CurrentPath = tmpPath;
+					tmpDocProvider._CurrentTitle = tmpCached.title || 'Help';
+					tmpDocProvider._attachClickHandler();
+					tmpDocProvider._renderBreadcrumbs();
+				}
+				else
+				{
+					// Not yet cached — show loading placeholder and fetch via XHR
+					tmpHelpBody.innerHTML = '<div class="pict-content" id="Pict-Content-Body"><div class="pict-content-loading">Loading content...</div></div>';
+					tmpDocProvider.loadArticle(tmpPath, false);
+				}
+			}
 		}
 	}
 
@@ -1741,6 +1758,38 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	}
 
 	/**
+	 * Look up a token string against known descriptor hashes in the manifest.
+	 * Returns the matching input entry (with Name, Hash, Address, DataType,
+	 * SectionName, GroupName, etc.) or null if no match.
+	 *
+	 * @param {string} pToken - A symbol token from the expression
+	 * @returns {Object|null} The matching entry from getAllInputEntries, or null
+	 */
+	_lookupDescriptorByToken(pToken)
+	{
+		if (!pToken)
+		{
+			return null;
+		}
+
+		// Build/cache the hash lookup on first call per render cycle
+		if (!this._DescriptorHashLookup)
+		{
+			this._DescriptorHashLookup = {};
+			let tmpEntries = this._ParentFormEditor._UtilitiesProvider.getAllInputEntries();
+			for (let i = 0; i < tmpEntries.length; i++)
+			{
+				if (tmpEntries[i].Hash)
+				{
+					this._DescriptorHashLookup[tmpEntries[i].Hash] = tmpEntries[i];
+				}
+			}
+		}
+
+		return this._DescriptorHashLookup[pToken] || null;
+	}
+
+	/**
 	 * Render the Expression Linter tab content.
 	 * Tokenizes and lints the current solver expression, displaying
 	 * color-coded tokens and any errors or warnings.
@@ -1792,8 +1841,10 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		let tmpDocProvider = this._ParentFormEditor._DocumentationProvider;
 		let tmpBasePath = (tmpDocProvider && tmpDocProvider._BasePath) ? tmpDocProvider._BasePath : 'docs/';
 
-		// Collect matched documentation topics (de-duplicated by TopicCode)
-		let tmpMatchedTopics = {};
+		// Collect matched documentation topics (de-duplicated by help file path)
+		let tmpMatchedTopicsByPath = {};
+		// Collect symbol tokens that match known descriptors
+		let tmpMatchedDescriptors = {};
 
 		// Render token chips
 		tmpHTML += '<div class="pict-fe-solver-linter-section-label">Tokens</div>';
@@ -1810,11 +1861,14 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 				if (tmpTopic)
 				{
-					// Track the matched topic for the reference section
-					tmpMatchedTopics[tmpTopic.TopicCode] = tmpTopic;
+					// Track the matched topic (keyed by file path to prevent duplicate links)
+					let tmpHelpPath = tmpBasePath + tmpTopic.TopicHelpFilePath;
+					if (!tmpMatchedTopicsByPath[tmpHelpPath])
+					{
+						tmpMatchedTopicsByPath[tmpHelpPath] = tmpTopic;
+					}
 
 					// Wrap the token chip in a help link
-					let tmpHelpPath = tmpBasePath + tmpTopic.TopicHelpFilePath;
 					tmpHTML += `<a href="#help:${tmpHelpPath}" class="pict-fe-solver-linter-token-link" title="${this._escapeAttr(tmpTopic.TopicTitle)}">`;
 					tmpHTML += `<span class="pict-fe-solver-linter-token pict-fe-solver-linter-token-${tmpTokenType} pict-fe-solver-linter-token-linked">${tmpTokenHTML}</span>`;
 					tmpHTML += '</a>';
@@ -1822,6 +1876,16 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				else
 				{
 					tmpHTML += `<span class="pict-fe-solver-linter-token pict-fe-solver-linter-token-${tmpTokenType}">${tmpTokenHTML}</span>`;
+				}
+
+				// Track symbol tokens that match known descriptor hashes
+				if (tmpTokenType === 'symbol')
+				{
+					let tmpDescriptorEntry = this._lookupDescriptorByToken(tmpTokens[i]);
+					if (tmpDescriptorEntry && !tmpMatchedDescriptors[tmpDescriptorEntry.Hash])
+					{
+						tmpMatchedDescriptors[tmpDescriptorEntry.Hash] = tmpDescriptorEntry;
+					}
 				}
 			}
 		}
@@ -1856,17 +1920,87 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 		tmpHTML += '</div>';
 
-		// Render matched documentation references
-		let tmpMatchedTopicCodes = Object.keys(tmpMatchedTopics);
-		if (tmpMatchedTopicCodes.length > 0)
+		// Render matched descriptor references
+		let tmpDescriptorKeys = Object.keys(tmpMatchedDescriptors);
+		if (tmpDescriptorKeys.length > 0)
+		{
+			let tmpPanelViewRef = this._browserViewRef();
+			let tmpSolverMap = this._buildSolverHashMapAll();
+
+			tmpHTML += '<div class="pict-fe-solver-linter-section-label">Token References</div>';
+			tmpHTML += '<div class="pict-fe-solver-linter-descriptors">';
+			for (let i = 0; i < tmpDescriptorKeys.length; i++)
+			{
+				let tmpDesc = tmpMatchedDescriptors[tmpDescriptorKeys[i]];
+				let tmpSolverData = tmpDesc.Hash ? tmpSolverMap[tmpDesc.Hash] : null;
+
+				tmpHTML += '<div class="pict-fe-solver-linter-descriptor">';
+
+				// Row: Name + DataType badge
+				tmpHTML += '<div class="pict-fe-solver-linter-descriptor-row">';
+				tmpHTML += `<span class="pict-fe-solver-linter-descriptor-name">${this._escapeHTML(tmpDesc.Label || tmpDesc.Hash)}</span>`;
+				if (tmpDesc.DataType)
+				{
+					tmpHTML += `<span class="pict-fe-solver-linter-descriptor-type">${this._escapeHTML(tmpDesc.DataType)}</span>`;
+				}
+				tmpHTML += '</div>';
+
+				// Row: Hash + Address
+				tmpHTML += '<div class="pict-fe-solver-linter-descriptor-row">';
+				tmpHTML += `<span class="pict-fe-solver-linter-descriptor-detail">Hash: ${this._escapeHTML(tmpDesc.Hash)}</span>`;
+				if (tmpDesc.Address && tmpDesc.Address !== tmpDesc.Hash)
+				{
+					tmpHTML += `<span class="pict-fe-solver-linter-descriptor-detail">Address: ${this._escapeHTML(tmpDesc.Address)}</span>`;
+				}
+				tmpHTML += '</div>';
+
+				// Solver cross-references: assignment and references
+				if (tmpSolverData)
+				{
+					if (tmpSolverData.assignment)
+					{
+						let tmpAssign = tmpSolverData.assignment;
+						let tmpAssignGroupArg = (tmpAssign.Type === 'Group') ? `, ${tmpAssign.GroupIndex}` : '';
+						tmpHTML += '<div class="pict-fe-solver-linter-descriptor-solver-label">ASSIGNED BY</div>';
+						tmpHTML += `<div class="pict-fe-solver-linter-descriptor-solver-link" onclick="${tmpPanelViewRef}.openSolverEditor('${tmpAssign.Type}', ${tmpAssign.SectionIndex}, ${tmpAssign.SolverIndex}${tmpAssignGroupArg})">${this._escapeHTML(tmpAssign.Expression)}</div>`;
+					}
+
+					if (tmpSolverData.references.length > 0)
+					{
+						tmpHTML += '<div class="pict-fe-solver-linter-descriptor-solver-label">REFERENCED IN</div>';
+						for (let r = 0; r < tmpSolverData.references.length; r++)
+						{
+							let tmpRefExpr = tmpSolverData.references[r];
+							let tmpRefGroupArg = (tmpRefExpr.Type === 'Group') ? `, ${tmpRefExpr.GroupIndex}` : '';
+							tmpHTML += `<div class="pict-fe-solver-linter-descriptor-solver-link" onclick="${tmpPanelViewRef}.openSolverEditor('${tmpRefExpr.Type}', ${tmpRefExpr.SectionIndex}, ${tmpRefExpr.SolverIndex}${tmpRefGroupArg})">${this._escapeHTML(tmpRefExpr.Expression)}</div>`;
+						}
+					}
+				}
+
+				// Section/Group info
+				tmpHTML += '<div class="pict-fe-solver-linter-descriptor-row">';
+				tmpHTML += `<span class="pict-fe-solver-linter-descriptor-detail">${this._escapeHTML(tmpDesc.SectionName || '')}</span>`;
+				if (tmpDesc.GroupName)
+				{
+					tmpHTML += `<span class="pict-fe-solver-linter-descriptor-detail">${this._escapeHTML(tmpDesc.GroupName)}</span>`;
+				}
+				tmpHTML += '</div>';
+
+				tmpHTML += '</div>';
+			}
+			tmpHTML += '</div>';
+		}
+
+		// Render matched documentation references (de-duplicated by file path)
+		let tmpMatchedPaths = Object.keys(tmpMatchedTopicsByPath);
+		if (tmpMatchedPaths.length > 0)
 		{
 			tmpHTML += '<div class="pict-fe-solver-linter-section-label">Documentation</div>';
 			tmpHTML += '<div class="pict-fe-solver-linter-docs">';
-			for (let i = 0; i < tmpMatchedTopicCodes.length; i++)
+			for (let i = 0; i < tmpMatchedPaths.length; i++)
 			{
-				let tmpTopic = tmpMatchedTopics[tmpMatchedTopicCodes[i]];
-				let tmpHelpPath = tmpBasePath + tmpTopic.TopicHelpFilePath;
-				tmpHTML += `<a href="#help:${tmpHelpPath}" class="pict-fe-solver-linter-doc-link" title="${this._escapeAttr(tmpTopic.TopicTitle)}">`;
+				let tmpTopic = tmpMatchedTopicsByPath[tmpMatchedPaths[i]];
+				tmpHTML += `<a href="#help:${tmpMatchedPaths[i]}" class="pict-fe-solver-linter-doc-link" title="${this._escapeAttr(tmpTopic.TopicTitle)}">`;
 				tmpHTML += this._escapeHTML(tmpTopic.TopicTitle);
 				tmpHTML += '</a>';
 			}
@@ -1976,14 +2110,26 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				if (tmpEl.tagName === 'A' && tmpEl.getAttribute('href') && tmpEl.getAttribute('href').indexOf('#help:') === 0)
 				{
 					pEvent.preventDefault();
+					pEvent.stopPropagation();
 					let tmpPath = tmpEl.getAttribute('href').substring(6);
 
-					// Switch to the Help tab and load the article
 					let tmpDocProvider = tmpSelf._ParentFormEditor._DocumentationProvider;
 					if (tmpDocProvider)
 					{
+						// Push current article to navigation stack if navigating to a different one
+						if (tmpDocProvider._CurrentPath && tmpPath !== tmpDocProvider._CurrentPath)
+						{
+							tmpDocProvider._NavigationStack.push(
+							{
+								path: tmpDocProvider._CurrentPath,
+								title: tmpDocProvider._CurrentTitle
+							});
+						}
+						// Always go through setPanelTab which rebuilds the
+						// panel DOM fresh (creating #Pict-Content-Body) and
+						// then calls loadArticle from cache synchronously.
+						tmpDocProvider._CurrentPath = tmpPath;
 						tmpSelf._ParentFormEditor._UtilitiesProvider.setPanelTab('help');
-						tmpDocProvider.loadArticle(tmpPath, true);
 					}
 					return;
 				}
@@ -4591,6 +4737,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Reset the linter click handler flag since DOM will be replaced
 		this._LinterClickHandlerAttached = false;
+
+		// Invalidate descriptor hash lookup so it rebuilds from fresh manifest data
+		this._DescriptorHashLookup = null;
 
 		let tmpHTML = this._SolverEditorContext
 			? this._renderSolverEditorActive()
