@@ -1737,18 +1737,21 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 	 */
 	_ensureExpressionParser()
 	{
-		let tmpChildManager = this.pict.providers['FormEditor-ChildPictManager'];
+		let tmpChildManager = this._ParentFormEditor._ChildPictManager;
 		if (!tmpChildManager)
 		{
 			return null;
 		}
 
-		if (!tmpChildManager.childApplicationExists('Simple Form'))
+		if (!tmpChildManager.childApplicationExists('ExpressionParser'))
 		{
-			tmpChildManager.initializeChildApplication('Simple Form', this.pict.AppData.FormConfig);
+			// Deep clone the manifest so the child pict does not mutate
+			// the live editor manifest (e.g. adding InputIndex, GroupIndex, etc.)
+			let tmpManifestClone = JSON.parse(JSON.stringify(this._ParentFormEditor._resolveManifestData() || {}));
+			tmpChildManager.initializeChildApplication('ExpressionParser', tmpManifestClone);
 		}
 
-		let tmpChildApp = tmpChildManager.childApplication('Simple Form');
+		let tmpChildApp = tmpChildManager.childApplication('ExpressionParser');
 		if (!tmpChildApp || !tmpChildApp.ExpressionParser)
 		{
 			return null;
