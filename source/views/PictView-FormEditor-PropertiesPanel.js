@@ -45,7 +45,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		// Debounce timer for linter refresh
 		this._SolverLinterDebounceTimer = null;
 
-		// Documentation topics loaded from .pict_documentation_topics.json
+		// Documentation topics loaded from pict_documentation_topics.json
 		// Keyed by TopicCode, populated lazily
 		this._DocumentationTopics = null;
 		// Reverse lookup: lowercase token string → topic entry (for quick matching in linter)
@@ -1561,7 +1561,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 	/**
 	 * Ensure the documentation topics lookup is loaded.
-	 * Fetches .pict_documentation_topics.json once, then builds a reverse
+	 * Fetches pict_documentation_topics.json once, then builds a reverse
 	 * lookup keyed by lowercase token string (function name or operator symbol).
 	 */
 	_ensureDocumentationTopics()
@@ -1596,7 +1596,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		try
 		{
 			let tmpSelf = this;
-			let tmpFetchPath = tmpBasePath + '.pict_documentation_topics.json';
+			let tmpFetchPath = tmpBasePath + 'pict_documentation_topics.json';
 
 			// Use XMLHttpRequest for synchronous load (we need it immediately for rendering)
 			if (typeof XMLHttpRequest !== 'undefined')

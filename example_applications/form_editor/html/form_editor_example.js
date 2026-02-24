@@ -19693,7 +19693,7 @@ this._SolverDragState=null;// Solver editor context: { Type, SectionIndex, Solve
 this._SolverEditorContext=null;// Currently expanded reference item hash in the solver editor
 this._SolverEditorExpandedHash=null;// Active bottom tab in solver editor: 'linter' or 'reference'
 this._SolverEditorBottomTab='linter';// Debounce timer for linter refresh
-this._SolverLinterDebounceTimer=null;// Documentation topics loaded from .pict_documentation_topics.json
+this._SolverLinterDebounceTimer=null;// Documentation topics loaded from pict_documentation_topics.json
 // Keyed by TopicCode, populated lazily
 this._DocumentationTopics=null;// Reverse lookup: lowercase token string → topic entry (for quick matching in linter)
 this._DocumentationTopicsByToken=null;// Whether the linter panel click handler for #help: links has been attached
@@ -19991,11 +19991,11 @@ if(tmpIsExpanded&&tmpSolverData){tmpHTML+='<div class="pict-fe-solver-modal-refe
 	 * @returns {string} CSS class suffix (e.g. 'constant', 'symbol', 'operator')
 	 *//**
 	 * Ensure the documentation topics lookup is loaded.
-	 * Fetches .pict_documentation_topics.json once, then builds a reverse
+	 * Fetches pict_documentation_topics.json once, then builds a reverse
 	 * lookup keyed by lowercase token string (function name or operator symbol).
 	 */_ensureDocumentationTopics(){if(this._DocumentationTopicsByToken!==null){return;}this._DocumentationTopicsByToken={};this._DocumentationTopics={};// Build the operator symbol → topic code map
 let tmpOperatorSymbolMap={'+':'SLV-OP-Add','-':'SLV-OP-Subtract','*':'SLV-OP-Multiply','/':'SLV-OP-Divide','%':'SLV-OP-Modulus','^':'SLV-OP-Exponent',',':'SLV-OP-SetConcat','=':'SLV-ASSIGN-Equals','?=':'SLV-ASSIGN-NullCoalesce',':':'SLV-ASSIGN-ExpressionBegin'};let tmpDocProvider=this._ParentFormEditor._DocumentationProvider;let tmpBasePath=tmpDocProvider&&tmpDocProvider._BasePath?tmpDocProvider._BasePath:'docs/';// Try to fetch the topics JSON
-try{let tmpSelf=this;let tmpFetchPath=tmpBasePath+'.pict_documentation_topics.json';// Use XMLHttpRequest for synchronous load (we need it immediately for rendering)
+try{let tmpSelf=this;let tmpFetchPath=tmpBasePath+'pict_documentation_topics.json';// Use XMLHttpRequest for synchronous load (we need it immediately for rendering)
 if(typeof XMLHttpRequest!=='undefined'){let tmpXHR=new XMLHttpRequest();tmpXHR.open('GET',tmpFetchPath,false);tmpXHR.send();if(tmpXHR.status===200){let tmpTopics=JSON.parse(tmpXHR.responseText);tmpSelf._DocumentationTopics=tmpTopics;// Build reverse lookup: function name (lowercase) → topic entry
 let tmpTopicCodes=Object.keys(tmpTopics);for(let i=0;i<tmpTopicCodes.length;i++){let tmpTopic=tmpTopics[tmpTopicCodes[i]];let tmpCode=tmpTopic.TopicCode||'';// For functions: SLV-FUNC-xxx → key by lowercase function name
 if(tmpCode.indexOf('SLV-FUNC-')===0){let tmpFuncName=tmpCode.substring(9).toLowerCase();tmpSelf._DocumentationTopicsByToken[tmpFuncName]=tmpTopic;}}// Map operator symbols to their topic entries
@@ -20956,13 +20956,18 @@ let tmpEditorContainer=document.createElement('div');tmpEditorContainer.id=tmpEd
 let tmpHeaderHTML='';tmpHeaderHTML+='<div class="pict-fe-content-editor-header">';tmpHeaderHTML+=`<div class="pict-fe-content-editor-title">${tmpInputType} Content: ${this._UtilitiesProvider._escapeHTML(tmpInputName)}</div>`;tmpHeaderHTML+=`<button class="pict-fe-content-editor-close" onclick="${tmpViewRef}.closeContentEditor()">Save &amp; Close</button>`;tmpHeaderHTML+='</div>';// Body (target for the markdown editor)
 tmpHeaderHTML+=`<div class="pict-fe-content-editor-body" id="FormEditor-ContentEditor-Body-${this.Hash}"></div>`;tmpEditorContainer.innerHTML=tmpHeaderHTML;// Append as siblings on document.body (same pattern as InputType picker)
 document.body.appendChild(tmpOverlay);document.body.appendChild(tmpEditorContainer);// Try to render the markdown editor into the body container
-let tmpUseFallback=false;try{this._ContentEditorView.render();// Check if CodeMirror modules are available
+let tmpUseFallback=false;try{// Destroy any existing CodeMirror editors from a previous open
+this._ContentEditorView.destroy();// Reset the initial render flag so the markdown editor fully
+// re-initializes its UI (the DOM target is re-created each time
+// the modal opens, so onAfterInitialRender must run again).
+this._ContentEditorView.initialRenderComplete=false;this._ContentEditorView.render();// Check if CodeMirror modules are available
 if(!this._ContentEditorView._codeMirrorModules){tmpUseFallback=true;}}catch(pError){this.log.warn(`Content editor markdown view failed to render: ${pError.message}`);tmpUseFallback=true;}if(tmpUseFallback){// Fallback to a plain textarea
 let tmpBodyEl=document.getElementById(`FormEditor-ContentEditor-Body-${this.Hash}`);if(tmpBodyEl){let tmpEscapedContent=this._UtilitiesProvider._escapeHTML(tmpContent);tmpBodyEl.innerHTML=`<textarea class="pict-fe-content-editor-fallback" id="FormEditor-ContentEditor-Fallback-${this.Hash}">${tmpEscapedContent}</textarea>`;}}}}/**
 	 * Close the content editor overlay, saving the content back to the descriptor.
 	 */closeContentEditor(){let tmpEditorId=`FormEditor-ContentEditor-${this.Hash}`;// Read content from the fallback textarea if it exists, otherwise from the markdown editor
 if(this._ContentEditorContext&&typeof document!=='undefined'){let tmpFallbackEl=document.getElementById(`FormEditor-ContentEditor-Fallback-${this.Hash}`);if(tmpFallbackEl){this._setContentEditorValue(tmpFallbackEl.value);}else{// Marshal from the markdown editor
-let tmpContent=this._ContentEditorView.getAllContent();this._setContentEditorValue(tmpContent);}}// Remove overlay
+let tmpContent=this._ContentEditorView.getAllContent();this._setContentEditorValue(tmpContent);}}// Destroy CodeMirror editors to prevent memory leaks
+if(this._ContentEditorView){this._ContentEditorView.destroy();}// Remove overlay
 if(typeof document!=='undefined'){let tmpOverlayId=`${tmpEditorId}-Overlay`;let tmpOverlay=document.getElementById(tmpOverlayId);if(tmpOverlay&&tmpOverlay.parentNode){tmpOverlay.parentNode.removeChild(tmpOverlay);}// Remove editor container
 let tmpEditor=document.getElementById(tmpEditorId);if(tmpEditor&&tmpEditor.parentNode){tmpEditor.parentNode.removeChild(tmpEditor);}}this._ContentEditorContext=null;// Refresh the visual editor and properties panel
 this.renderVisualEditor();}/**

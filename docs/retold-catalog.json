@@ -53,7 +53,7 @@
 					"HasCover": false,
 					"Sidebar": [],
 					"DocFiles": [
-						".pict_documentation_topics.json",
+						"pict_documentation_topics.json",
 						"Getting-Started.md",
 						"Groups.md",
 						"Inputs.md",

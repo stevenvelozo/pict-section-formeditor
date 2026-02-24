@@ -34,8 +34,8 @@
 			"to": "./dist/docs/"
 		},
 		{
-			"from": "../../user-documentation/.pict_documentation_topics.json",
-			"to": "./dist/docs/.pict_documentation_topics.json"
+			"from": "../../user-documentation/pict_documentation_topics.json",
+			"to": "./dist/docs/pict_documentation_topics.json"
 		},
 		{
 			"from": "../../user-documentation/solverfunctions/*",

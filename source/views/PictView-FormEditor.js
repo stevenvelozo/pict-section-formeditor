@@ -1132,6 +1132,14 @@ class PictViewFormEditor extends libPictView
 
 			try
 			{
+				// Destroy any existing CodeMirror editors from a previous open
+				this._ContentEditorView.destroy();
+
+				// Reset the initial render flag so the markdown editor fully
+				// re-initializes its UI (the DOM target is re-created each time
+				// the modal opens, so onAfterInitialRender must run again).
+				this._ContentEditorView.initialRenderComplete = false;
+
 				this._ContentEditorView.render();
 
 				// Check if CodeMirror modules are available
@@ -1180,6 +1188,12 @@ class PictViewFormEditor extends libPictView
 				let tmpContent = this._ContentEditorView.getAllContent();
 				this._setContentEditorValue(tmpContent);
 			}
+		}
+
+		// Destroy CodeMirror editors to prevent memory leaks
+		if (this._ContentEditorView)
+		{
+			this._ContentEditorView.destroy();
 		}
 
 		// Remove overlay
