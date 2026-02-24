@@ -126,8 +126,26 @@ class FormEditorUtilities extends libPictProvider
 		[
 			// Text & Content
 			{ Hash: 'TextArea', Name: 'Text Area', Description: 'Multi-line text input', Category: 'Text & Content' },
-			{ Hash: 'Markdown', Name: 'Markdown', Description: 'Markdown-formatted text editor', Category: 'Text & Content' },
-			{ Hash: 'HTML', Name: 'HTML', Description: 'Rich HTML content block', Category: 'Text & Content' },
+			{
+				Hash: 'Markdown', Name: 'Markdown', Description: 'Markdown-formatted text editor', Category: 'Text & Content',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'ExtraDescription': { Name: 'Extra Description', Hash: 'ExtraDescription', DataType: 'String', Description: 'Supplementary description text shown below the input' }
+					}
+				}
+			},
+			{
+				Hash: 'HTML', Name: 'HTML', Description: 'Rich HTML content block', Category: 'Text & Content',
+				Manifest:
+				{
+					Descriptors:
+					{
+						'ExtraDescription': { Name: 'Extra Description', Hash: 'ExtraDescription', DataType: 'String', Description: 'Supplementary description text shown below the input' }
+					}
+				}
+			},
 
 			// Selection
 			{

@@ -33,3 +33,6 @@ module.exports.InputTypePicker = require('./views/PictView-FormEditor-InputTypeP
 
 // Documentation provider for embedded help system
 module.exports.DocumentationProvider = require('./providers/Pict-Provider-FormEditorDocumentation.js');
+
+// Markdown editor view (pict-section-markdowneditor for content editing)
+module.exports.MarkdownEditor = require('pict-section-markdowneditor');

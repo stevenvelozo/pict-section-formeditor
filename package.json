@@ -1,6 +1,6 @@
 {
     "name": "pict-section-formeditor",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "description": "Pict visual editor for pict-section-form configurations",
     "main": "source/Pict-Section-FormEditor.js",
     "scripts": {
@@ -27,6 +27,7 @@
         "pict-section-code": "^1.0.2",
         "pict-section-content": "^0.0.6",
         "pict-section-form": "^1.0.189",
+        "pict-section-markdowneditor": "^1.0.0",
         "pict-section-objecteditor": "^1.0.0",
         "pict-view": "^1.0.66"
     },

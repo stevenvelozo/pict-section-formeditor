@@ -4304,5 +4304,272 @@ suite
 				);
 			}
 		);
+
+		suite
+		(
+			'Content Editor (Markdown/HTML)',
+			function ()
+			{
+				test
+				(
+					'Should export the MarkdownEditor class',
+					function ()
+					{
+						Expect(libPictSectionFormEditor.MarkdownEditor).to.be.a('function');
+					}
+				);
+
+				test
+				(
+					'Should create _ContentEditorView child view on initialize',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestContentEditorInit',
+						{
+							ViewIdentifier: 'TestContentEditorInit'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						Expect(tmpView._ContentEditorView).to.not.be.null;
+						Expect(tmpView._ContentEditorContext).to.be.null;
+					}
+				);
+
+				test
+				(
+					'Should set and clear _ContentEditorContext in openContentEditor and closeContentEditor',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.TestContentManifest =
+						{
+							Scope: 'TestContent',
+							Sections:
+							[
+								{
+									Hash: 'S1',
+									Name: 'Section 1',
+									Groups:
+									[
+										{
+											Hash: 'G1',
+											Name: 'Group 1',
+											Rows:
+											[
+												{
+													Inputs: ['MarkdownField']
+												}
+											]
+										}
+									]
+								}
+							],
+							Descriptors:
+							{
+								'MarkdownField':
+								{
+									Name: 'Markdown Field',
+									Hash: 'MarkdownField',
+									DataType: 'String',
+									Content: '# Hello World',
+									PictForm:
+									{
+										InputType: 'Markdown',
+										Section: 'S1',
+										Group: 'G1',
+										Row: '1'
+									}
+								}
+							}
+						};
+
+						let tmpView = tmpPict.addView('TestContentEditorOpen',
+						{
+							ViewIdentifier: 'TestContentEditorOpen',
+							ManifestDataAddress: 'AppData.TestContentManifest'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Open the content editor for the markdown field
+						tmpView.openContentEditor(0, 0, 0, 0);
+
+						Expect(tmpView._ContentEditorContext).to.be.an('object');
+						Expect(tmpView._ContentEditorContext.SectionIndex).to.equal(0);
+						Expect(tmpView._ContentEditorContext.GroupIndex).to.equal(0);
+						Expect(tmpView._ContentEditorContext.RowIndex).to.equal(0);
+						Expect(tmpView._ContentEditorContext.InputIndex).to.equal(0);
+
+						// Verify the segments data was populated with the Content
+						Expect(tmpPict.AppData.FormEditor.ContentEditorSegments[0].Content).to.equal('# Hello World');
+
+						// Close the content editor
+						tmpView.closeContentEditor();
+						Expect(tmpView._ContentEditorContext).to.be.null;
+					}
+				);
+
+				test
+				(
+					'Should write content back to descriptor via _setContentEditorValue',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.TestContentWriteManifest =
+						{
+							Scope: 'TestContentWrite',
+							Sections:
+							[
+								{
+									Hash: 'S1',
+									Name: 'Section 1',
+									Groups:
+									[
+										{
+											Hash: 'G1',
+											Name: 'Group 1',
+											Rows:
+											[
+												{
+													Inputs: ['HTMLField']
+												}
+											]
+										}
+									]
+								}
+							],
+							Descriptors:
+							{
+								'HTMLField':
+								{
+									Name: 'HTML Field',
+									Hash: 'HTMLField',
+									DataType: 'String',
+									PictForm:
+									{
+										InputType: 'HTML',
+										Section: 'S1',
+										Group: 'G1',
+										Row: '1'
+									}
+								}
+							}
+						};
+
+						let tmpView = tmpPict.addView('TestContentEditorWrite',
+						{
+							ViewIdentifier: 'TestContentEditorWrite',
+							ManifestDataAddress: 'AppData.TestContentWriteManifest'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Set context manually
+						tmpView._ContentEditorContext = { SectionIndex: 0, GroupIndex: 0, RowIndex: 0, InputIndex: 0 };
+
+						// Write content
+						tmpView._setContentEditorValue('<h1>Test HTML</h1>');
+
+						let tmpDescriptor = tmpPict.AppData.TestContentWriteManifest.Descriptors['HTMLField'];
+						Expect(tmpDescriptor.Content).to.equal('<h1>Test HTML</h1>');
+
+						// Write empty content should remove the property
+						tmpView._setContentEditorValue('');
+						Expect(tmpDescriptor.Content).to.be.undefined;
+					}
+				);
+
+				test
+				(
+					'Should have Manifest descriptors for Markdown and HTML InputTypes',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestContentEditorDefs',
+						{
+							ViewIdentifier: 'TestContentEditorDefs'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						let tmpMarkdownManifest = tmpView._UtilitiesProvider._getInputTypeManifest('Markdown');
+						Expect(tmpMarkdownManifest).to.be.an('object');
+						Expect(tmpMarkdownManifest.Descriptors).to.be.an('object');
+						Expect(tmpMarkdownManifest.Descriptors.ExtraDescription).to.be.an('object');
+
+						let tmpHTMLManifest = tmpView._UtilitiesProvider._getInputTypeManifest('HTML');
+						Expect(tmpHTMLManifest).to.be.an('object');
+						Expect(tmpHTMLManifest.Descriptors).to.be.an('object');
+						Expect(tmpHTMLManifest.Descriptors.ExtraDescription).to.be.an('object');
+					}
+				);
+
+				test
+				(
+					'Should commit descriptor property changes via commitDescriptorPropertyChange',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.TestDescPropManifest =
+						{
+							Scope: 'TestDescProp',
+							Sections:
+							[
+								{
+									Hash: 'S1',
+									Name: 'Section 1',
+									Groups:
+									[
+										{
+											Hash: 'G1',
+											Name: 'Group 1',
+											Rows:
+											[
+												{
+													Inputs: ['TestInput']
+												}
+											]
+										}
+									]
+								}
+							],
+							Descriptors:
+							{
+								'TestInput':
+								{
+									Name: 'Test Input',
+									Hash: 'TestInput',
+									DataType: 'String',
+									PictForm:
+									{
+										InputType: 'Markdown',
+										Section: 'S1',
+										Group: 'G1',
+										Row: '1'
+									}
+								}
+							}
+						};
+
+						let tmpView = tmpPict.addView('TestDescPropParent',
+						{
+							ViewIdentifier: 'TestDescPropParent',
+							ManifestDataAddress: 'AppData.TestDescPropManifest'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						let tmpPanel = tmpView._PropertiesPanelView;
+						tmpPanel._SelectedInput = { SectionIndex: 0, GroupIndex: 0, RowIndex: 0, InputIndex: 0 };
+
+						// Set a Default value
+						tmpPanel.commitDescriptorPropertyChange('Default', 'Fallback content');
+						let tmpDescriptor = tmpPict.AppData.TestDescPropManifest.Descriptors['TestInput'];
+						Expect(tmpDescriptor.Default).to.equal('Fallback content');
+
+						// Clear the Default value
+						tmpPanel.commitDescriptorPropertyChange('Default', '');
+						Expect(tmpDescriptor.Default).to.be.undefined;
+					}
+				);
+			}
+		);
 	}
 );

@@ -3524,14 +3524,52 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			return '<div class="pict-fe-props-placeholder">Select an InputType to see additional properties.</div>';
 		}
 
+		let tmpPictForm = (pDescriptor && pDescriptor.PictForm) ? pDescriptor.PictForm : {};
+		let tmpHTML = '';
+
+		// Markdown and HTML types get a Content editor section
+		if (pInputType === 'Markdown' || pInputType === 'HTML')
+		{
+			let tmpContent = pDescriptor.Content || '';
+			let tmpDefault = pDescriptor.Default || '';
+			let tmpViewRef = this._ParentFormEditor._browserViewRef();
+			let tmpInputIndices = this._SelectedInput;
+
+			if (tmpInputIndices)
+			{
+				tmpHTML += `<div class="pict-fe-props-section-header">Content</div>`;
+
+				// "Edit Content" button that opens the markdown editor overlay
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += `<button class="pict-fe-props-content-edit-btn" onclick="${tmpViewRef}.openContentEditor(${tmpInputIndices.SectionIndex}, ${tmpInputIndices.GroupIndex}, ${tmpInputIndices.RowIndex}, ${tmpInputIndices.InputIndex})">`;
+				tmpHTML += `Edit Content`;
+				if (tmpContent)
+				{
+					tmpHTML += ` (${tmpContent.length} chars)`;
+				}
+				tmpHTML += `</button>`;
+				tmpHTML += '</div>';
+
+				// Default value textarea
+				tmpHTML += '<div class="pict-fe-props-field">';
+				tmpHTML += '<div class="pict-fe-props-label">Default Value</div>';
+				tmpHTML += `<textarea class="pict-fe-props-textarea" rows="3" placeholder="Fallback content when no value is set" onchange="${pPanelViewRef}.commitDescriptorPropertyChange('Default', this.value)">${this._escapeHTML(tmpDefault)}</textarea>`;
+				tmpHTML += '</div>';
+
+				tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+			}
+		}
+
+		// Standard Manifest-based properties
 		let tmpManifest = this._ParentFormEditor._UtilitiesProvider._getInputTypeManifest(pInputType);
 		if (!tmpManifest || !tmpManifest.Descriptors || Object.keys(tmpManifest.Descriptors).length === 0)
 		{
-			return '<div class="pict-fe-props-placeholder">No additional properties for ' + this._escapeHTML(pInputType) + '.</div>';
+			if (tmpHTML.length === 0)
+			{
+				return '<div class="pict-fe-props-placeholder">No additional properties for ' + this._escapeHTML(pInputType) + '.</div>';
+			}
+			return tmpHTML;
 		}
-
-		let tmpPictForm = (pDescriptor && pDescriptor.PictForm) ? pDescriptor.PictForm : {};
-		let tmpHTML = '';
 
 		tmpHTML += `<div class="pict-fe-props-section-header">${this._escapeHTML(pInputType)} Properties</div>`;
 
@@ -3674,6 +3712,40 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		// Re-render the parent's visual editor (which also re-renders this panel)
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Commit a change to a direct descriptor property (e.g. Content, Default).
+	 *
+	 * Unlike commitPictFormChange which modifies descriptor.PictForm[key],
+	 * this modifies descriptor[key] directly.
+	 *
+	 * @param {string} pPropertyHash - The descriptor property key
+	 * @param {*} pValue - The new value
+	 */
+	commitDescriptorPropertyChange(pPropertyHash, pValue)
+	{
+		if (!this._SelectedInput || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		if (pValue === '' || pValue === null || pValue === undefined)
+		{
+			delete tmpResolved.Descriptor[pPropertyHash];
+		}
+		else
+		{
+			tmpResolved.Descriptor[pPropertyHash] = pValue;
+		}
+
 		this._ParentFormEditor.renderVisualEditor();
 	}
 

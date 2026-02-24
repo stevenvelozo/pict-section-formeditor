@@ -1456,6 +1456,101 @@ module.exports = (
 	font-size: 12px;
 }
 
+/* ---- Content Editor Overlay (Markdown/HTML) ---- */
+.pict-fe-content-editor-overlay
+{
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(61, 50, 41, 0.4);
+	z-index: 9998;
+}
+.pict-fe-content-editor
+{
+	position: fixed;
+	top: 5vh;
+	left: 10vw;
+	width: 80vw;
+	height: 90vh;
+	background: #FFF;
+	border-radius: 8px;
+	box-shadow: 0 8px 32px rgba(61, 50, 41, 0.25);
+	z-index: 9999;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+.pict-fe-content-editor-header
+{
+	display: flex;
+	align-items: center;
+	padding: 12px 16px;
+	border-bottom: 1px solid #E8E2D8;
+	background: #FAF8F5;
+	flex-shrink: 0;
+}
+.pict-fe-content-editor-title
+{
+	flex: 1;
+	font-weight: 600;
+	font-size: 14px;
+	color: #3D3229;
+}
+.pict-fe-content-editor-close
+{
+	background: #9E6B47;
+	color: #FFF;
+	border: none;
+	border-radius: 4px;
+	padding: 6px 16px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+}
+.pict-fe-content-editor-close:hover
+{
+	background: #8A5C3B;
+}
+.pict-fe-content-editor-body
+{
+	flex: 1;
+	overflow: auto;
+	padding: 0;
+}
+.pict-fe-content-editor-fallback
+{
+	width: 100%;
+	height: 100%;
+	border: none;
+	padding: 16px;
+	font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+	font-size: 13px;
+	line-height: 1.6;
+	color: #3D3229;
+	resize: none;
+	outline: none;
+	box-sizing: border-box;
+}
+.pict-fe-props-content-edit-btn
+{
+	width: 100%;
+	padding: 8px 12px;
+	background: #9E6B47;
+	color: #FFF;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	text-align: center;
+}
+.pict-fe-props-content-edit-btn:hover
+{
+	background: #8A5C3B;
+}
+
 /* ---- Manifest Summary ---- */
 .pict-fe-manifest-summary
 {

@@ -2,6 +2,7 @@ const libPictView = require('pict-view');
 const libPictSectionObjectEditor = require('pict-section-objecteditor');
 const libPictSectionCode = require('pict-section-code');
 const libPictSectionContent = require('pict-section-content');
+const libPictSectionMarkdownEditor = require('pict-section-markdowneditor');
 
 const _DefaultConfiguration = require('../Pict-Section-FormEditor-DefaultConfiguration.js');
 const libFormEditorIconography = require('../providers/Pict-Provider-FormEditorIconography.js');
@@ -38,6 +39,10 @@ class PictViewFormEditor extends libPictView
 		this._HelpContentView = null;
 		this._HelpContentProvider = null;
 		this._DocumentationProvider = null;
+
+		// Content editor (markdown editor overlay for Markdown/HTML inputs)
+		this._ContentEditorView = null;
+		this._ContentEditorContext = null;
 
 		// Supported Manyfest DataTypes
 		this._ManyfestDataTypes =
@@ -361,6 +366,46 @@ class PictViewFormEditor extends libPictView
 			libPictSectionContent
 		);
 		this._HelpContentView.initialize();
+
+		// Create the content editor child view (pict-section-markdowneditor for Markdown/HTML input content)
+		let tmpContentEditorHash = `${this.Hash}-ContentEditor`;
+		this.pict.AppData.FormEditor = this.pict.AppData.FormEditor || {};
+		this.pict.AppData.FormEditor.ContentEditorSegments = [{ Content: '' }];
+
+		this._ContentEditorView = this.pict.addView(
+			tmpContentEditorHash,
+			{
+				ViewIdentifier: tmpContentEditorHash,
+				ContentDataAddress: 'FormEditor.ContentEditorSegments',
+				AutoRender: false,
+				RenderOnLoad: false,
+				EnableRichPreview: true,
+				ReadOnly: false,
+				DefaultRenderable: 'MarkdownEditor-Wrap',
+				DefaultDestinationAddress: `#FormEditor-ContentEditor-Body-${this.Hash}`,
+				TargetElementAddress: `#FormEditor-ContentEditor-Body-${this.Hash}`,
+				Renderables:
+				[
+					{
+						RenderableHash: 'MarkdownEditor-Wrap',
+						TemplateHash: 'MarkdownEditor-Container',
+						DestinationAddress: `#FormEditor-ContentEditor-Body-${this.Hash}`
+					}
+				]
+			},
+			libPictSectionMarkdownEditor
+		);
+		this._ContentEditorView.initialize();
+
+		// Sync content changes back to the descriptor (tmpSelf already defined above for code editor)
+		this._ContentEditorView.onContentChange = function(pSegmentIndex, pContent)
+		{
+			if (tmpSelf._ContentEditorContext)
+			{
+				let tmpContent = tmpSelf._ContentEditorView.getAllContent();
+				tmpSelf._setContentEditorValue(tmpContent);
+			}
+		};
 	}
 
 	/**
@@ -981,6 +1026,225 @@ class PictViewFormEditor extends libPictView
 
 		// Also allow click to dismiss
 		tmpToast.addEventListener('click', tmpDismiss);
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                     Code Section: Content Editor                           */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Open the content editor overlay for a Markdown or HTML input.
+	 *
+	 * Creates a modal overlay with the pict-section-markdowneditor embedded,
+	 * pre-loaded with the descriptor's Content property. Falls back to a plain
+	 * textarea if CodeMirror modules are not available.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} pRowIndex
+	 * @param {number} pInputIndex
+	 */
+	openContentEditor(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
+	{
+		// Resolve the descriptor
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Sections)
+		{
+			return;
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		let tmpGroup = (tmpSection && tmpSection.Groups) ? tmpSection.Groups[pGroupIndex] : null;
+		let tmpRow = (tmpGroup && tmpGroup.Rows) ? tmpGroup.Rows[pRowIndex] : null;
+		let tmpDescriptor = null;
+		let tmpInputType = '';
+
+		if (tmpRow && Array.isArray(tmpRow.Inputs))
+		{
+			let tmpAddress = tmpRow.Inputs[pInputIndex];
+			if (typeof tmpAddress === 'string' && tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress])
+			{
+				tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+				tmpInputType = (tmpDescriptor.PictForm && tmpDescriptor.PictForm.InputType) ? tmpDescriptor.PictForm.InputType : '';
+			}
+		}
+
+		if (!tmpDescriptor)
+		{
+			return;
+		}
+
+		// Close any existing content editor first (before setting new context)
+		this.closeContentEditor();
+
+		// Read existing content
+		let tmpContent = tmpDescriptor.Content || tmpDescriptor.Default || '';
+
+		// Store context
+		this._ContentEditorContext =
+		{
+			SectionIndex: pSectionIndex,
+			GroupIndex: pGroupIndex,
+			RowIndex: pRowIndex,
+			InputIndex: pInputIndex
+		};
+
+		// Load content into the segments data address
+		this.pict.AppData.FormEditor = this.pict.AppData.FormEditor || {};
+		this.pict.AppData.FormEditor.ContentEditorSegments = [{ Content: tmpContent }];
+
+		let tmpViewRef = this._browserViewRef();
+		let tmpEditorId = `FormEditor-ContentEditor-${this.Hash}`;
+		let tmpInputName = tmpDescriptor.Name || tmpDescriptor.Hash || 'Input';
+
+		if (typeof document !== 'undefined')
+		{
+			// Create the backdrop overlay
+			let tmpOverlay = document.createElement('div');
+			tmpOverlay.id = `${tmpEditorId}-Overlay`;
+			tmpOverlay.className = 'pict-fe-content-editor-overlay';
+			tmpOverlay.onclick = function() { eval(tmpViewRef + '.closeContentEditor()'); };
+
+			// Create the editor container
+			let tmpEditorContainer = document.createElement('div');
+			tmpEditorContainer.id = tmpEditorId;
+			tmpEditorContainer.className = 'pict-fe-content-editor';
+			tmpEditorContainer.onclick = function(e) { e.stopPropagation(); };
+
+			// Header
+			let tmpHeaderHTML = '';
+			tmpHeaderHTML += '<div class="pict-fe-content-editor-header">';
+			tmpHeaderHTML += `<div class="pict-fe-content-editor-title">${tmpInputType} Content: ${this._UtilitiesProvider._escapeHTML(tmpInputName)}</div>`;
+			tmpHeaderHTML += `<button class="pict-fe-content-editor-close" onclick="${tmpViewRef}.closeContentEditor()">Save &amp; Close</button>`;
+			tmpHeaderHTML += '</div>';
+
+			// Body (target for the markdown editor)
+			tmpHeaderHTML += `<div class="pict-fe-content-editor-body" id="FormEditor-ContentEditor-Body-${this.Hash}"></div>`;
+
+			tmpEditorContainer.innerHTML = tmpHeaderHTML;
+
+			// Append as siblings on document.body (same pattern as InputType picker)
+			document.body.appendChild(tmpOverlay);
+			document.body.appendChild(tmpEditorContainer);
+
+			// Try to render the markdown editor into the body container
+			let tmpUseFallback = false;
+
+			try
+			{
+				this._ContentEditorView.render();
+
+				// Check if CodeMirror modules are available
+				if (!this._ContentEditorView._codeMirrorModules)
+				{
+					tmpUseFallback = true;
+				}
+			}
+			catch (pError)
+			{
+				this.log.warn(`Content editor markdown view failed to render: ${pError.message}`);
+				tmpUseFallback = true;
+			}
+
+			if (tmpUseFallback)
+			{
+				// Fallback to a plain textarea
+				let tmpBodyEl = document.getElementById(`FormEditor-ContentEditor-Body-${this.Hash}`);
+				if (tmpBodyEl)
+				{
+					let tmpEscapedContent = this._UtilitiesProvider._escapeHTML(tmpContent);
+					tmpBodyEl.innerHTML = `<textarea class="pict-fe-content-editor-fallback" id="FormEditor-ContentEditor-Fallback-${this.Hash}">${tmpEscapedContent}</textarea>`;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Close the content editor overlay, saving the content back to the descriptor.
+	 */
+	closeContentEditor()
+	{
+		let tmpEditorId = `FormEditor-ContentEditor-${this.Hash}`;
+
+		// Read content from the fallback textarea if it exists, otherwise from the markdown editor
+		if (this._ContentEditorContext && typeof document !== 'undefined')
+		{
+			let tmpFallbackEl = document.getElementById(`FormEditor-ContentEditor-Fallback-${this.Hash}`);
+			if (tmpFallbackEl)
+			{
+				this._setContentEditorValue(tmpFallbackEl.value);
+			}
+			else
+			{
+				// Marshal from the markdown editor
+				let tmpContent = this._ContentEditorView.getAllContent();
+				this._setContentEditorValue(tmpContent);
+			}
+		}
+
+		// Remove overlay
+		if (typeof document !== 'undefined')
+		{
+			let tmpOverlayId = `${tmpEditorId}-Overlay`;
+			let tmpOverlay = document.getElementById(tmpOverlayId);
+			if (tmpOverlay && tmpOverlay.parentNode)
+			{
+				tmpOverlay.parentNode.removeChild(tmpOverlay);
+			}
+
+			// Remove editor container
+			let tmpEditor = document.getElementById(tmpEditorId);
+			if (tmpEditor && tmpEditor.parentNode)
+			{
+				tmpEditor.parentNode.removeChild(tmpEditor);
+			}
+		}
+
+		this._ContentEditorContext = null;
+
+		// Refresh the visual editor and properties panel
+		this.renderVisualEditor();
+	}
+
+	/**
+	 * Write content back to the descriptor's Content property.
+	 *
+	 * @param {string} pContent - The content string to store
+	 */
+	_setContentEditorValue(pContent)
+	{
+		if (!this._ContentEditorContext)
+		{
+			return;
+		}
+
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Sections)
+		{
+			return;
+		}
+
+		let tmpCtx = this._ContentEditorContext;
+		let tmpSection = tmpManifest.Sections[tmpCtx.SectionIndex];
+		let tmpGroup = (tmpSection && tmpSection.Groups) ? tmpSection.Groups[tmpCtx.GroupIndex] : null;
+		let tmpRow = (tmpGroup && tmpGroup.Rows) ? tmpGroup.Rows[tmpCtx.RowIndex] : null;
+
+		if (tmpRow && Array.isArray(tmpRow.Inputs))
+		{
+			let tmpAddress = tmpRow.Inputs[tmpCtx.InputIndex];
+			if (typeof tmpAddress === 'string' && tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress])
+			{
+				let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+				if (pContent && pContent.length > 0)
+				{
+					tmpDescriptor.Content = pContent;
+				}
+				else
+				{
+					delete tmpDescriptor.Content;
+				}
+			}
+		}
 	}
 
 	/* -------------------------------------------------------------------------- */
