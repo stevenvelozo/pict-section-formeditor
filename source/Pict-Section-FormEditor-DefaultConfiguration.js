@@ -696,6 +696,42 @@ module.exports = (
 	outline-offset: -2px;
 	background: rgba(158, 107, 71, 0.05);
 }
+.pict-fe-drag-insert-before
+{
+	position: relative;
+	background: rgba(158, 107, 71, 0.03);
+}
+.pict-fe-drag-insert-before::before
+{
+	content: '';
+	position: absolute;
+	top: -1px;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: #9E6B47;
+	border-radius: 2px;
+	z-index: 10;
+	pointer-events: none;
+}
+.pict-fe-drag-insert-after
+{
+	position: relative;
+	background: rgba(158, 107, 71, 0.03);
+}
+.pict-fe-drag-insert-after::after
+{
+	content: '';
+	position: absolute;
+	bottom: -1px;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: #9E6B47;
+	border-radius: 2px;
+	z-index: 10;
+	pointer-events: none;
+}
 
 /* ---- Editor Layout: tab content + toggle + properties panel ---- */
 .pict-fe-editor-layout
@@ -1316,7 +1352,6 @@ module.exports = (
 	width: 100%;
 	height: 100%;
 	z-index: 9999;
-	overflow: hidden;
 }
 .pict-fe-inputtype-picker
 {

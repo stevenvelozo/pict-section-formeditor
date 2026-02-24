@@ -103,8 +103,10 @@ class PictViewFormEditorInputTypePicker extends libPictView
 				}
 			}, { passive: false });
 
-			tmpOverlay.appendChild(tmpPickerContainer);
+			// Append overlay and picker as siblings on document.body so the picker
+			// is not inside the overlay's stacking context (which can trap pointer events).
 			document.body.appendChild(tmpOverlay);
+			document.body.appendChild(tmpPickerContainer);
 
 			// Position the picker using fixed viewport coordinates
 			// anchored below the InputType chip (or properties panel button as fallback)
@@ -320,12 +322,22 @@ class PictViewFormEditorInputTypePicker extends libPictView
 	{
 		let tmpHash = this._ParentFormEditor.Hash;
 		let tmpOverlayId = `FormEditor-InputTypePicker-${tmpHash}-Overlay`;
+		let tmpPickerId = `FormEditor-InputTypePicker-${tmpHash}`;
 
+		// Remove the overlay
 		let tmpOverlaySet = this.pict.ContentAssignment.getElement(`#${tmpOverlayId}`);
 		let tmpOverlay = (Array.isArray(tmpOverlaySet) && tmpOverlaySet.length > 0) ? tmpOverlaySet[0] : tmpOverlaySet;
 		if (tmpOverlay && tmpOverlay.parentNode)
 		{
 			tmpOverlay.parentNode.removeChild(tmpOverlay);
+		}
+
+		// Remove the picker container (now a sibling of the overlay, not a child)
+		let tmpPickerSet = this.pict.ContentAssignment.getElement(`#${tmpPickerId}`);
+		let tmpPicker = (Array.isArray(tmpPickerSet) && tmpPickerSet.length > 0) ? tmpPickerSet[0] : tmpPickerSet;
+		if (tmpPicker && tmpPicker.parentNode)
+		{
+			tmpPicker.parentNode.removeChild(tmpPicker);
 		}
 
 		this._InputTypePickerContext = null;
@@ -491,8 +503,10 @@ class PictViewFormEditorInputTypePicker extends libPictView
 				}
 			}, { passive: false });
 
-			tmpOverlay.appendChild(tmpPickerContainer);
+			// Append overlay and picker as siblings on document.body so the picker
+			// is not inside the overlay's stacking context (which can trap pointer events).
 			document.body.appendChild(tmpOverlay);
+			document.body.appendChild(tmpPickerContainer);
 
 			// Position anchored to the InputType button in the properties panel
 			let tmpAnchorEl = document.getElementById(`FormEditor-PropsInputTypeBtn-${tmpHash}`);

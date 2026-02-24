@@ -87,7 +87,24 @@ class FormEditorDragDrop extends libPictProvider
 
 		if (pEvent && pEvent.currentTarget)
 		{
-			pEvent.currentTarget.classList.add('pict-fe-drag-over');
+			// Detect whether the cursor is in the top or bottom half of the target
+			let tmpRect = pEvent.currentTarget.getBoundingClientRect();
+			let tmpMidpoint = tmpRect.top + (tmpRect.height / 2);
+			let tmpIsTopHalf = pEvent.clientY < tmpMidpoint;
+
+			pEvent.currentTarget.classList.remove('pict-fe-drag-insert-before');
+			pEvent.currentTarget.classList.remove('pict-fe-drag-insert-after');
+
+			if (tmpIsTopHalf)
+			{
+				pEvent.currentTarget.classList.add('pict-fe-drag-insert-before');
+			}
+			else
+			{
+				pEvent.currentTarget.classList.add('pict-fe-drag-insert-after');
+			}
+
+			this._ParentFormEditor._DragState.InsertPosition = tmpIsTopHalf ? 'before' : 'after';
 		}
 	}
 
@@ -101,6 +118,8 @@ class FormEditorDragDrop extends libPictProvider
 		if (pEvent && pEvent.currentTarget)
 		{
 			pEvent.currentTarget.classList.remove('pict-fe-drag-over');
+			pEvent.currentTarget.classList.remove('pict-fe-drag-insert-before');
+			pEvent.currentTarget.classList.remove('pict-fe-drag-insert-after');
 		}
 	}
 
@@ -123,6 +142,7 @@ class FormEditorDragDrop extends libPictProvider
 
 		let tmpTargetIndices = [pIndex0, pIndex1, pIndex2, pIndex3].filter((pVal) => { return typeof pVal === 'number'; });
 		let tmpSourceIndices = this._ParentFormEditor._DragState.Indices;
+		let tmpInsertPosition = this._ParentFormEditor._DragState.InsertPosition || 'before';
 		this._ParentFormEditor._DragState = null;
 
 		// Check if source and target are identical
@@ -148,7 +168,8 @@ class FormEditorDragDrop extends libPictProvider
 					return;
 				}
 				let tmpItem = tmpManifest.Sections.splice(tmpFromIdx, 1)[0];
-				tmpManifest.Sections.splice(tmpToIdx, 0, tmpItem);
+				let tmpInsertIdx = this._computeInsertIndex(tmpFromIdx, tmpToIdx, true, tmpInsertPosition);
+				tmpManifest.Sections.splice(tmpInsertIdx, 0, tmpItem);
 				break;
 			}
 			case 'group':
@@ -164,15 +185,9 @@ class FormEditorDragDrop extends libPictProvider
 					tmpTargetSection.Groups = [];
 				}
 
+				let tmpSameContainer = (tmpSourceIndices[0] === tmpTargetIndices[0]);
 				let tmpItem = tmpSourceSection.Groups.splice(tmpSourceIndices[1], 1)[0];
-
-				// If moving within the same section and target index is after source,
-				// adjust for the removal
-				let tmpInsertIdx = tmpTargetIndices[1];
-				if (tmpSourceIndices[0] === tmpTargetIndices[0] && tmpSourceIndices[1] < tmpTargetIndices[1])
-				{
-					tmpInsertIdx--;
-				}
+				let tmpInsertIdx = this._computeInsertIndex(tmpSourceIndices[1], tmpTargetIndices[1], tmpSameContainer, tmpInsertPosition);
 				tmpTargetSection.Groups.splice(tmpInsertIdx, 0, tmpItem);
 				break;
 			}
@@ -197,12 +212,8 @@ class FormEditorDragDrop extends libPictProvider
 
 				let tmpItem = tmpSourceGroup.Rows.splice(tmpSourceIndices[2], 1)[0];
 
-				let tmpInsertIdx = tmpTargetIndices[2];
 				let tmpSameContainer = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]);
-				if (tmpSameContainer && tmpSourceIndices[2] < tmpTargetIndices[2])
-				{
-					tmpInsertIdx--;
-				}
+				let tmpInsertIdx = this._computeInsertIndex(tmpSourceIndices[2], tmpTargetIndices[2], tmpSameContainer, tmpInsertPosition);
 				tmpTargetGroup.Rows.splice(tmpInsertIdx, 0, tmpItem);
 
 				// Sync row indices on both source and target groups
@@ -240,12 +251,8 @@ class FormEditorDragDrop extends libPictProvider
 
 				let tmpAddress = tmpSourceRow.Inputs.splice(tmpSourceIndices[3], 1)[0];
 
-				let tmpInsertIdx = tmpTargetIndices[3];
 				let tmpSameContainer = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]) && (tmpSourceIndices[2] === tmpTargetIndices[2]);
-				if (tmpSameContainer && tmpSourceIndices[3] < tmpTargetIndices[3])
-				{
-					tmpInsertIdx--;
-				}
+				let tmpInsertIdx = this._computeInsertIndex(tmpSourceIndices[3], tmpTargetIndices[3], tmpSameContainer, tmpInsertPosition);
 				tmpTargetRow.Inputs.splice(tmpInsertIdx, 0, tmpAddress);
 
 				// Update the Descriptor's PictForm metadata for the new location
@@ -282,10 +289,12 @@ class FormEditorDragDrop extends libPictProvider
 		let tmpContainer = this.pict.ContentAssignment.getElement(`#FormEditor-Panel-Visual-${this._ParentFormEditor.Hash}`);
 		if (tmpContainer && tmpContainer[0])
 		{
-			let tmpHighlighted = tmpContainer[0].querySelectorAll('.pict-fe-drag-over');
+			let tmpHighlighted = tmpContainer[0].querySelectorAll('.pict-fe-drag-over, .pict-fe-drag-insert-before, .pict-fe-drag-insert-after');
 			for (let i = 0; i < tmpHighlighted.length; i++)
 			{
 				tmpHighlighted[i].classList.remove('pict-fe-drag-over');
+				tmpHighlighted[i].classList.remove('pict-fe-drag-insert-before');
+				tmpHighlighted[i].classList.remove('pict-fe-drag-insert-after');
 			}
 		}
 	}
@@ -312,6 +321,31 @@ class FormEditorDragDrop extends libPictProvider
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Compute the final insert index for a position-aware drag-and-drop.
+	 *
+	 * After removing the source item from its array, this method determines the
+	 * correct splice index based on the user's cursor position (insert before or
+	 * after the target).
+	 *
+	 * @param {number} pSourceIdx - The source item's index within its container
+	 * @param {number} pTargetIdx - The target item's index within its container
+	 * @param {boolean} pSameContainer - Whether source and target share the same parent
+	 * @param {string} pInsertPosition - 'before' or 'after'
+	 * @returns {number} The index to use with Array.splice after removing the source
+	 */
+	_computeInsertIndex(pSourceIdx, pTargetIdx, pSameContainer, pInsertPosition)
+	{
+		let tmpLogicalTarget = (pInsertPosition === 'before') ? pTargetIdx : pTargetIdx + 1;
+
+		if (pSameContainer && pSourceIdx < tmpLogicalTarget)
+		{
+			tmpLogicalTarget--;
+		}
+
+		return tmpLogicalTarget;
 	}
 
 	/**

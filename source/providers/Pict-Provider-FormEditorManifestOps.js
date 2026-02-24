@@ -167,8 +167,13 @@ class FormEditorManifestOps extends libPictProvider
 				tmpGroup.Rows = [];
 			}
 
-			// PictForm.Row is 1-based; pad with empty rows if necessary
-			let tmpRowNumber = (typeof tmpPictForm.Row === 'number' && tmpPictForm.Row > 0) ? tmpPictForm.Row : 1;
+			// PictForm.Row is 1-based; pad with empty rows if necessary.
+			// Row may be a number or a string (e.g. "2") in real-world manifests.
+			let tmpRowNumber = parseInt(tmpPictForm.Row, 10);
+			if (isNaN(tmpRowNumber) || tmpRowNumber < 1)
+			{
+				tmpRowNumber = 1;
+			}
 			let tmpRowIndex = tmpRowNumber - 1;
 			while (tmpGroup.Rows.length <= tmpRowIndex)
 			{

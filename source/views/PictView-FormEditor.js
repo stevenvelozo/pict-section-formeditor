@@ -991,6 +991,24 @@ class PictViewFormEditor extends libPictView
 	{
 		return `${this.pict.browserAddress}.views['${this.Hash}']`;
 	}
+
+	// Proxy methods for the InputType picker child view.
+	// The picker's inline onclick handlers reference the parent form editor's
+	// browser view ref, so these must exist on the parent to route calls through.
+	commitEditInputType(pInputTypeHash)
+	{
+		this._InputTypePickerView.commitEditInputType(pInputTypeHash);
+	}
+
+	closeInputTypePicker()
+	{
+		this._InputTypePickerView.closeInputTypePicker();
+	}
+
+	_onInputTypePickerSearch(pQuery)
+	{
+		this._InputTypePickerView._onInputTypePickerSearch(pQuery);
+	}
 }
 
 module.exports = PictViewFormEditor;

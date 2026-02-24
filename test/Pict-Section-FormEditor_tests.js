@@ -2192,6 +2192,212 @@ suite
 						fDone();
 					}
 				);
+				test
+				(
+					'Should insert before target when InsertPosition is before (same container)',
+					function (fDone)
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.FormConfig =
+						{
+							Scope: 'TestInsertBefore',
+							Sections:
+							[
+								{ Name: 'A', Hash: 'A', Groups: [] },
+								{ Name: 'B', Hash: 'B', Groups: [] },
+								{ Name: 'C', Hash: 'C', Groups: [] }
+							],
+							Descriptors: {}
+						};
+
+						let tmpView = tmpPict.addView('TestInsertBefore',
+						{
+							ViewIdentifier: 'TestInsertBefore',
+							ManifestDataAddress: 'AppData.FormConfig',
+							DefaultDestinationAddress: '#FormEditor-Container',
+							Renderables:
+							[
+								{
+									RenderableHash: 'FormEditor-Container',
+									TemplateHash: 'FormEditor-Container-Template',
+									DestinationAddress: '#FormEditor-Container',
+									RenderMethod: 'replace'
+								}
+							]
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.render();
+						tmpView._DragAndDropEnabled = true;
+
+						// Drag C(2) to A(0), InsertPosition=before → [C, A, B]
+						tmpView._DragState = { Type: 'section', Indices: [2], InsertPosition: 'before' };
+						tmpView._DragDropProvider.onDrop(
+							{ preventDefault: function() {} },
+							'section', 0
+						);
+
+						var tmpManifest = tmpPict.AppData.FormConfig;
+						Expect(tmpManifest.Sections[0].Hash).to.equal('C');
+						Expect(tmpManifest.Sections[1].Hash).to.equal('A');
+						Expect(tmpManifest.Sections[2].Hash).to.equal('B');
+
+						fDone();
+					}
+				);
+				test
+				(
+					'Should insert after target when InsertPosition is after (same container)',
+					function (fDone)
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.FormConfig =
+						{
+							Scope: 'TestInsertAfter',
+							Sections:
+							[
+								{ Name: 'A', Hash: 'A', Groups: [] },
+								{ Name: 'B', Hash: 'B', Groups: [] },
+								{ Name: 'C', Hash: 'C', Groups: [] }
+							],
+							Descriptors: {}
+						};
+
+						let tmpView = tmpPict.addView('TestInsertAfter',
+						{
+							ViewIdentifier: 'TestInsertAfter',
+							ManifestDataAddress: 'AppData.FormConfig',
+							DefaultDestinationAddress: '#FormEditor-Container',
+							Renderables:
+							[
+								{
+									RenderableHash: 'FormEditor-Container',
+									TemplateHash: 'FormEditor-Container-Template',
+									DestinationAddress: '#FormEditor-Container',
+									RenderMethod: 'replace'
+								}
+							]
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.render();
+						tmpView._DragAndDropEnabled = true;
+
+						// Drag C(2) to A(0), InsertPosition=after → [A, C, B]
+						tmpView._DragState = { Type: 'section', Indices: [2], InsertPosition: 'after' };
+						tmpView._DragDropProvider.onDrop(
+							{ preventDefault: function() {} },
+							'section', 0
+						);
+
+						var tmpManifest = tmpPict.AppData.FormConfig;
+						Expect(tmpManifest.Sections[0].Hash).to.equal('A');
+						Expect(tmpManifest.Sections[1].Hash).to.equal('C');
+						Expect(tmpManifest.Sections[2].Hash).to.equal('B');
+
+						fDone();
+					}
+				);
+				test
+				(
+					'Should handle forward drag with before and after positions',
+					function (fDone)
+					{
+						// Test forward drag A(0) to C(2) with before → [B, A, C]
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.FormConfig =
+						{
+							Scope: 'TestForwardBefore',
+							Sections:
+							[
+								{ Name: 'A', Hash: 'A', Groups: [] },
+								{ Name: 'B', Hash: 'B', Groups: [] },
+								{ Name: 'C', Hash: 'C', Groups: [] }
+							],
+							Descriptors: {}
+						};
+
+						let tmpView = tmpPict.addView('TestForwardBefore',
+						{
+							ViewIdentifier: 'TestForwardBefore',
+							ManifestDataAddress: 'AppData.FormConfig',
+							DefaultDestinationAddress: '#FormEditor-Container',
+							Renderables:
+							[
+								{
+									RenderableHash: 'FormEditor-Container',
+									TemplateHash: 'FormEditor-Container-Template',
+									DestinationAddress: '#FormEditor-Container',
+									RenderMethod: 'replace'
+								}
+							]
+						}, libPictSectionFormEditor);
+
+						tmpView.initialize();
+						tmpView.render();
+						tmpView._DragAndDropEnabled = true;
+
+						// Drag A(0) to C(2), InsertPosition=before → [B, A, C]
+						tmpView._DragState = { Type: 'section', Indices: [0], InsertPosition: 'before' };
+						tmpView._DragDropProvider.onDrop(
+							{ preventDefault: function() {} },
+							'section', 2
+						);
+
+						var tmpManifest = tmpPict.AppData.FormConfig;
+						Expect(tmpManifest.Sections[0].Hash).to.equal('B');
+						Expect(tmpManifest.Sections[1].Hash).to.equal('A');
+						Expect(tmpManifest.Sections[2].Hash).to.equal('C');
+
+						// Now test forward drag with after: reset
+						tmpManifest.Sections = [
+							{ Name: 'A', Hash: 'A', Groups: [] },
+							{ Name: 'B', Hash: 'B', Groups: [] },
+							{ Name: 'C', Hash: 'C', Groups: [] }
+						];
+
+						// Drag A(0) to C(2), InsertPosition=after → [B, C, A]
+						tmpView._DragState = { Type: 'section', Indices: [0], InsertPosition: 'after' };
+						tmpView._DragDropProvider.onDrop(
+							{ preventDefault: function() {} },
+							'section', 2
+						);
+
+						Expect(tmpManifest.Sections[0].Hash).to.equal('B');
+						Expect(tmpManifest.Sections[1].Hash).to.equal('C');
+						Expect(tmpManifest.Sections[2].Hash).to.equal('A');
+
+						fDone();
+					}
+				);
+				test
+				(
+					'Should compute insert index correctly via _computeInsertIndex helper',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestComputeIdx',
+						{
+							ViewIdentifier: 'TestComputeIdx'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						let tmpDD = tmpView._DragDropProvider;
+
+						// Same container, backward drag, insert before
+						Expect(tmpDD._computeInsertIndex(2, 0, true, 'before')).to.equal(0);
+						// Same container, backward drag, insert after
+						Expect(tmpDD._computeInsertIndex(2, 0, true, 'after')).to.equal(1);
+						// Same container, forward drag, insert before
+						Expect(tmpDD._computeInsertIndex(0, 2, true, 'before')).to.equal(1);
+						// Same container, forward drag, insert after
+						Expect(tmpDD._computeInsertIndex(0, 2, true, 'after')).to.equal(2);
+						// Cross container, insert before
+						Expect(tmpDD._computeInsertIndex(1, 0, false, 'before')).to.equal(0);
+						// Cross container, insert after
+						Expect(tmpDD._computeInsertIndex(1, 0, false, 'after')).to.equal(1);
+					}
+				);
 			}
 		);
 		suite
