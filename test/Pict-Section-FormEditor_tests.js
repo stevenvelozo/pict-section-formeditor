@@ -1821,9 +1821,10 @@ suite
 
 						var tmpActionVariants = tmpProvider.getVariants('Action');
 						Expect(tmpActionVariants).to.be.an('array');
-						Expect(tmpActionVariants.length).to.equal(2);
+						Expect(tmpActionVariants.length).to.equal(3);
 						Expect(tmpActionVariants).to.include('Add');
 						Expect(tmpActionVariants).to.include('DragHandle');
+						Expect(tmpActionVariants).to.include('Download');
 
 						var tmpSVG = tmpProvider.getIcon('Action', 'DragHandle');
 						Expect(tmpSVG).to.be.a('string');
@@ -4567,6 +4568,135 @@ suite
 						// Clear the Default value
 						tmpPanel.commitDescriptorPropertyChange('Default', '');
 						Expect(tmpDescriptor.Default).to.be.undefined;
+					}
+				);
+
+				test
+				(
+					'Should support extended descriptor properties via configuration',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						tmpPict.AppData.TestExtendedManifest =
+						{
+							Scope: 'TestExtended',
+							Sections:
+							[
+								{
+									Hash: 'S1',
+									Name: 'Section 1',
+									Groups:
+									[
+										{
+											Hash: 'G1',
+											Name: 'Group 1',
+											Rows:
+											[
+												{
+													Inputs: ['TestInput']
+												}
+											]
+										}
+									]
+								}
+							],
+							Descriptors:
+							{
+								'TestInput':
+								{
+									Name: 'Test Input',
+									Hash: 'TestInput',
+									DataType: 'String',
+									PictForm:
+									{
+										InputType: 'Text',
+										Section: 'S1',
+										Group: 'G1',
+										Row: '1',
+										Units: 'kg'
+									}
+								}
+							}
+						};
+
+						let tmpView = tmpPict.addView('TestExtendedProps',
+						{
+							ViewIdentifier: 'TestExtendedProps',
+							ManifestDataAddress: 'AppData.TestExtendedManifest',
+							ExtendedDescriptorProperties:
+							[
+								{ Name: 'Units', Address: 'PictForm.Units', DataType: 'String', Description: 'Unit of measure' },
+								{ Name: 'Extra Data', Address: 'ExtraData', DataType: 'String' }
+							]
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Verify extended properties were loaded from config
+						Expect(tmpView._ExtendedDescriptorProperties).to.be.an('array');
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(2);
+						Expect(tmpView._ExtendedDescriptorProperties[0].Name).to.equal('Units');
+						Expect(tmpView._ExtendedDescriptorProperties[0].Address).to.equal('PictForm.Units');
+
+						let tmpPanel = tmpView._PropertiesPanelView;
+						tmpPanel._SelectedInput = { SectionIndex: 0, GroupIndex: 0, RowIndex: 0, InputIndex: 0 };
+
+						// Read the current value via the panel's resolver
+						let tmpDescriptor = tmpPict.AppData.TestExtendedManifest.Descriptors['TestInput'];
+						let tmpValue = tmpPanel._resolveDescriptorAddress(tmpDescriptor, 'PictForm.Units');
+						Expect(tmpValue).to.equal('kg');
+
+						// Commit a change via extended property
+						tmpPanel.commitExtendedPropertyChange('PictForm.Units', 'lbs', 'String');
+						Expect(tmpDescriptor.PictForm.Units).to.equal('lbs');
+
+						// Clear the value
+						tmpPanel.commitExtendedPropertyChange('PictForm.Units', '', 'String');
+						Expect(tmpDescriptor.PictForm.Units).to.be.undefined;
+
+						// Set a top-level extended property
+						tmpPanel.commitExtendedPropertyChange('ExtraData', 'hello', 'String');
+						Expect(tmpDescriptor.ExtraData).to.equal('hello');
+
+						// Set a deeply nested extended property
+						tmpPanel.commitExtendedPropertyChange('PictForm.Configuration.Entity', 'MyEntity', 'String');
+						Expect(tmpDescriptor.PictForm.Configuration.Entity).to.equal('MyEntity');
+					}
+				);
+
+				test
+				(
+					'Should support programmatic add/remove of extended descriptor properties',
+					function ()
+					{
+						let tmpPict = new libPict({ Product: 'TestFormEditor' });
+						let tmpView = tmpPict.addView('TestExtendedAPI',
+						{
+							ViewIdentifier: 'TestExtendedAPI'
+						}, libPictSectionFormEditor);
+						tmpView.initialize();
+
+						// Start with none
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(0);
+
+						// Add via API
+						tmpView.addExtendedDescriptorProperty('PictForm.Units', 'Units', 'String', 'Unit of measure');
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(1);
+						Expect(tmpView._ExtendedDescriptorProperties[0].Name).to.equal('Units');
+
+						// Duplicate add is ignored
+						tmpView.addExtendedDescriptorProperty('PictForm.Units', 'Units Again');
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(1);
+
+						// Add another
+						tmpView.addExtendedDescriptorProperty('ExtraData');
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(2);
+						// Default name is derived from last segment
+						Expect(tmpView._ExtendedDescriptorProperties[1].Name).to.equal('ExtraData');
+
+						// Remove
+						tmpView.removeExtendedDescriptorProperty('PictForm.Units');
+						Expect(tmpView._ExtendedDescriptorProperties.length).to.equal(1);
+						Expect(tmpView._ExtendedDescriptorProperties[0].Address).to.equal('ExtraData');
 					}
 				);
 			}

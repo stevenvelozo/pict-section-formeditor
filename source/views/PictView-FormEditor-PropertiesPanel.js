@@ -3024,6 +3024,9 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
 		tmpHTML += this._renderInputTypeProperties(tmpInputType, tmpDescriptor, tmpPanelViewRef);
 
+		// Extended descriptor properties (configured via options or programmatic API)
+		tmpHTML += this._renderExtendedDescriptorProperties(tmpDescriptor, tmpPanelViewRef);
+
 		// Solver assignment and references for this input
 		tmpHTML += this._renderInputSolverInfo(tmpInputHash);
 
@@ -3746,6 +3749,195 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			tmpResolved.Descriptor[pPropertyHash] = pValue;
 		}
 
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*          Extended Descriptor Properties                                    */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Render extended descriptor properties defined via the
+	 * ExtendedDescriptorProperties configuration option or the
+	 * addExtendedDescriptorProperty() API.
+	 *
+	 * Each entry maps a display name to a dot-notation address within the
+	 * Descriptor object.  For example { Name: 'Units', Address: 'PictForm.Units' }
+	 * reads from and writes to Descriptor.PictForm.Units.
+	 *
+	 * @param {object} pDescriptor - The full Descriptor object for the selected input
+	 * @param {string} pPanelViewRef - The browser-accessible view reference string
+	 * @returns {string} HTML string
+	 */
+	_renderExtendedDescriptorProperties(pDescriptor, pPanelViewRef)
+	{
+		let tmpExtended = this._ParentFormEditor._ExtendedDescriptorProperties;
+		if (!tmpExtended || tmpExtended.length === 0)
+		{
+			return '';
+		}
+
+		let tmpHTML = '';
+		tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+		tmpHTML += '<div class="pict-fe-props-section-header">Extended Properties</div>';
+
+		for (let i = 0; i < tmpExtended.length; i++)
+		{
+			let tmpProp = tmpExtended[i];
+			let tmpCurrentValue = this._resolveDescriptorAddress(pDescriptor, tmpProp.Address);
+			let tmpDataType = tmpProp.DataType || 'String';
+			let tmpDescription = tmpProp.Description || '';
+			// Escape the address for safe embedding in an onclick attribute
+			let tmpEscapedAddress = this._escapeAttr(tmpProp.Address);
+
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += `<div class="pict-fe-props-label" title="${this._escapeAttr(tmpDescription)}">${this._escapeHTML(tmpProp.Name)}</div>`;
+
+			if (tmpDataType === 'Boolean')
+			{
+				let tmpChecked = tmpCurrentValue ? ' checked' : '';
+				tmpHTML += '<label class="pict-fe-props-checkbox-label">';
+				tmpHTML += `<input type="checkbox" class="pict-fe-props-checkbox"${tmpChecked} onchange="${pPanelViewRef}.commitExtendedPropertyChange('${tmpEscapedAddress}', this.checked, 'Boolean')" />`;
+				if (tmpDescription)
+				{
+					tmpHTML += ` ${this._escapeHTML(tmpDescription)}`;
+				}
+				tmpHTML += '</label>';
+			}
+			else if (tmpDataType === 'Number')
+			{
+				let tmpDisplayValue = (typeof tmpCurrentValue === 'number') ? String(tmpCurrentValue) : '';
+				tmpHTML += `<input class="pict-fe-props-input" type="number" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpDescription)}" onchange="${pPanelViewRef}.commitExtendedPropertyChange('${tmpEscapedAddress}', this.value, 'Number')" />`;
+			}
+			else
+			{
+				let tmpDisplayValue = (typeof tmpCurrentValue === 'string') ? tmpCurrentValue : (tmpCurrentValue !== null && tmpCurrentValue !== undefined ? String(tmpCurrentValue) : '');
+				tmpHTML += `<input class="pict-fe-props-input" type="text" value="${this._escapeAttr(tmpDisplayValue)}" placeholder="${this._escapeAttr(tmpDescription)}" onchange="${pPanelViewRef}.commitExtendedPropertyChange('${tmpEscapedAddress}', this.value, 'String')" />`;
+			}
+
+			tmpHTML += '</div>';
+		}
+
+		return tmpHTML;
+	}
+
+	/**
+	 * Resolve a dot-notation address within a Descriptor object.
+	 *
+	 * @param {object} pDescriptor - The Descriptor object
+	 * @param {string} pAddress - Dot-notation path (e.g. 'PictForm.Units')
+	 * @returns {*} The resolved value, or undefined if not found
+	 */
+	_resolveDescriptorAddress(pDescriptor, pAddress)
+	{
+		if (!pDescriptor || typeof pAddress !== 'string')
+		{
+			return undefined;
+		}
+
+		let tmpSegments = pAddress.split('.');
+		let tmpCurrent = pDescriptor;
+
+		for (let i = 0; i < tmpSegments.length; i++)
+		{
+			if (tmpCurrent === null || tmpCurrent === undefined || typeof tmpCurrent !== 'object')
+			{
+				return undefined;
+			}
+			tmpCurrent = tmpCurrent[tmpSegments[i]];
+		}
+
+		return tmpCurrent;
+	}
+
+	/**
+	 * Set a value at a dot-notation address within a Descriptor object,
+	 * creating intermediate objects as needed.
+	 *
+	 * @param {object} pDescriptor - The Descriptor object
+	 * @param {string} pAddress - Dot-notation path (e.g. 'PictForm.Units')
+	 * @param {*} pValue - The value to set
+	 */
+	_setDescriptorAddress(pDescriptor, pAddress, pValue)
+	{
+		if (!pDescriptor || typeof pAddress !== 'string')
+		{
+			return;
+		}
+
+		let tmpSegments = pAddress.split('.');
+		let tmpCurrent = pDescriptor;
+
+		// Navigate to (and create) intermediate objects
+		for (let i = 0; i < tmpSegments.length - 1; i++)
+		{
+			if (!tmpCurrent.hasOwnProperty(tmpSegments[i]) || typeof tmpCurrent[tmpSegments[i]] !== 'object')
+			{
+				tmpCurrent[tmpSegments[i]] = {};
+			}
+			tmpCurrent = tmpCurrent[tmpSegments[i]];
+		}
+
+		let tmpFinalKey = tmpSegments[tmpSegments.length - 1];
+
+		if (pValue === undefined || pValue === null || pValue === '')
+		{
+			delete tmpCurrent[tmpFinalKey];
+		}
+		else
+		{
+			tmpCurrent[tmpFinalKey] = pValue;
+		}
+	}
+
+	/**
+	 * Commit a change to an extended descriptor property.
+	 *
+	 * @param {string} pAddress - Dot-notation path within the Descriptor (e.g. 'PictForm.Units')
+	 * @param {*} pValue - The new value from the form control
+	 * @param {string} pDataType - 'String', 'Number', or 'Boolean'
+	 */
+	commitExtendedPropertyChange(pAddress, pValue, pDataType)
+	{
+		if (!this._SelectedInput || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		let tmpResolved = this._resolveSelectedDescriptor();
+		if (!tmpResolved || !tmpResolved.Descriptor)
+		{
+			return;
+		}
+
+		let tmpFinalValue;
+
+		switch (pDataType)
+		{
+			case 'Boolean':
+				tmpFinalValue = !!pValue;
+				break;
+
+			case 'Number':
+			{
+				let tmpNumValue = parseFloat(pValue);
+				if (isNaN(tmpNumValue) || pValue === '')
+				{
+					tmpFinalValue = undefined;
+				}
+				else
+				{
+					tmpFinalValue = tmpNumValue;
+				}
+				break;
+			}
+
+			default: // String
+				tmpFinalValue = (typeof pValue === 'string' && pValue.length > 0) ? pValue : undefined;
+				break;
+		}
+
+		this._setDescriptorAddress(tmpResolved.Descriptor, pAddress, tmpFinalValue);
 		this._ParentFormEditor.renderVisualEditor();
 	}
 

@@ -13,6 +13,24 @@ module.exports = (
 	// Which tab is active by default: 'visual', 'objecteditor', 'json'
 	ActiveTab: 'visual',
 
+	// Extended descriptor properties to display in the Input properties panel.
+	// Each entry defines a custom field that maps to a dot-notation address
+	// within the Descriptor object (e.g. 'PictForm.Units' for Descriptor.PictForm.Units).
+	//
+	// Example:
+	// [
+	//     { Name: 'Units', Address: 'PictForm.Units', DataType: 'String' },
+	//     { Name: 'Extra Data', Address: 'ExtraData', DataType: 'String' },
+	//     { Name: 'Entity', Address: 'PictForm.Configuration.Entity', DataType: 'String' }
+	// ]
+	//
+	// Each entry supports:
+	//   Name        - Display label in the properties panel
+	//   Address     - Dot-notation path relative to the Descriptor (required)
+	//   DataType    - 'String' (default), 'Number', or 'Boolean'
+	//   Description - Optional tooltip / placeholder text
+	ExtendedDescriptorProperties: [],
+
 	CSS: /*css*/`
 .pict-formeditor
 {
@@ -3395,6 +3413,48 @@ module.exports = (
 	font-size: 13px;
 	color: #C62828;
 	line-height: 1.5;
+}
+
+/* ---- Export Buttons ---- */
+.pict-fe-export-buttons
+{
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+.pict-fe-export-btn
+{
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px;
+	border: 1px solid #D4C4A8;
+	border-radius: 6px;
+	background: #FDFCFA;
+	color: #3D3229;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color 0.15s, background 0.15s;
+}
+.pict-fe-export-btn:hover
+{
+	border-color: #9E6B47;
+	background: #FAF5EE;
+}
+.pict-fe-export-btn:active
+{
+	background: #F3EAE0;
+}
+.pict-fe-export-btn svg
+{
+	flex-shrink: 0;
+}
+.pict-fe-import-export-divider
+{
+	border: none;
+	border-top: 1px solid #E8E0D4;
+	margin: 4px 0;
 }
 
 /* ---- Toast Notifications ---- */

@@ -16,6 +16,7 @@ const libChildPictManager = require('../providers/Pict-Provider-ChildPictManager
 const libPreviewCSS = require('../providers/Pict-Provider-PreviewCSS.js');
 const libFormEditorDocumentation = require('../providers/Pict-Provider-FormEditorDocumentation.js');
 const libManifestFactory = require('pict-section-form').ManifestFactory;
+const libManifestConversionToCSV = require('pict-section-form').ManifestConversionToCSV;
 
 class PictViewFormEditor extends libPictView
 {
@@ -43,6 +44,28 @@ class PictViewFormEditor extends libPictView
 		// Content editor (markdown editor overlay for Markdown/HTML inputs)
 		this._ContentEditorView = null;
 		this._ContentEditorContext = null;
+
+		// Extended descriptor properties for the Input properties panel.
+		// Populated from options.ExtendedDescriptorProperties and can be
+		// modified at runtime via addExtendedDescriptorProperty().
+		this._ExtendedDescriptorProperties = [];
+		if (Array.isArray(tmpOptions.ExtendedDescriptorProperties))
+		{
+			for (let i = 0; i < tmpOptions.ExtendedDescriptorProperties.length; i++)
+			{
+				let tmpProp = tmpOptions.ExtendedDescriptorProperties[i];
+				if (tmpProp && typeof tmpProp.Address === 'string' && tmpProp.Address.length > 0)
+				{
+					this._ExtendedDescriptorProperties.push(
+					{
+						Name: tmpProp.Name || tmpProp.Address,
+						Address: tmpProp.Address,
+						DataType: tmpProp.DataType || 'String',
+						Description: tmpProp.Description || ''
+					});
+				}
+			}
+		}
 
 		// Supported Manyfest DataTypes
 		this._ManyfestDataTypes =
@@ -108,7 +131,7 @@ class PictViewFormEditor extends libPictView
 		);
 		this._RenderingProvider._ParentFormEditor = this;
 
-		// Create the documentation provider for the embedded help system
+		// Create the documentation provider for the embedded help system.
 		let tmpDocumentationHash = `${pServiceHash || 'FormEditor'}-Documentation`;
 		this._DocumentationProvider = this.pict.addProvider(
 			tmpDocumentationHash,
@@ -206,6 +229,12 @@ class PictViewFormEditor extends libPictView
 		if (!this.fable.servicesMap.hasOwnProperty('ManifestFactory'))
 		{
 			this.fable.addServiceType('ManifestFactory', libManifestFactory);
+		}
+
+		// Register ManifestConversionToCSV service type if not already present (needed for CSV export)
+		if (!this.fable.servicesMap.hasOwnProperty('ManifestConversionToCSV'))
+		{
+			this.fable.addServiceType('ManifestConversionToCSV', libManifestConversionToCSV);
 		}
 
 		// Ensure the manifest data address exists in AppData
@@ -949,6 +978,167 @@ class PictViewFormEditor extends libPictView
 		let tmpStatusClass = (pType === 'error') ? 'pict-fe-import-status-error' : 'pict-fe-import-status-success';
 		let tmpHTML = `<div class="${tmpStatusClass}">${pMessage}</div>`;
 		this.pict.ContentAssignment.assignContent(`#FormEditor-ImportStatus-${tmpHash}`, tmpHTML);
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*                     Code Section: Export (CSV / JSON)                       */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Export the current manifest as a JSON file download.
+	 */
+	exportJSON()
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest)
+		{
+			this._showToast('error', 'No manifest data to export.');
+			return;
+		}
+
+		let tmpJSON = JSON.stringify(tmpManifest, null, '\t');
+		let tmpFileName = tmpManifest.Scope || tmpManifest.Form || 'manifest';
+		this._triggerFileDownload(tmpFileName + '.json', tmpJSON, 'application/json');
+		this._showToast('success', `Exported JSON: ${tmpFileName}.json`);
+	}
+
+	/**
+	 * Export the current manifest as a CSV file download.
+	 *
+	 * Uses ManifestConversionToCSV from pict-section-form to convert the
+	 * manifest to a tabular array, then formats as a CSV string.
+	 */
+	exportCSV()
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest)
+		{
+			this._showToast('error', 'No manifest data to export.');
+			return;
+		}
+
+		// Instantiate the conversion service without registering it globally
+		let tmpConverter = this.fable.instantiateServiceProviderWithoutRegistration('ManifestConversionToCSV', {}, `${this.UUID}-CSVExport`);
+
+		let tmpCSVDataArray = tmpConverter.createTabularArrayFromManifests(tmpManifest);
+
+		if (!tmpCSVDataArray || tmpCSVDataArray.length === 0)
+		{
+			this._showToast('error', 'Could not convert manifest to CSV.');
+			return;
+		}
+
+		// Convert the 2D array to a CSV string with proper escaping
+		let tmpCSVLines = [];
+		for (let i = 0; i < tmpCSVDataArray.length; i++)
+		{
+			let tmpRow = tmpCSVDataArray[i];
+			let tmpEscapedRow = [];
+			for (let j = 0; j < tmpRow.length; j++)
+			{
+				let tmpCell = tmpRow[j];
+				if ((typeof tmpCell === 'string') && ((tmpCell.indexOf(',') >= 0) || (tmpCell.indexOf('"') >= 0) || (tmpCell.indexOf('\n') >= 0)))
+				{
+					tmpEscapedRow.push('"' + tmpCell.replace(/"/g, '""') + '"');
+				}
+				else
+				{
+					tmpEscapedRow.push(tmpCell);
+				}
+			}
+			tmpCSVLines.push(tmpEscapedRow.join(','));
+		}
+		let tmpCSVString = tmpCSVLines.join('\n');
+
+		let tmpFileName = tmpManifest.Scope || tmpManifest.Form || 'manifest';
+		this._triggerFileDownload(tmpFileName + '.csv', tmpCSVString, 'text/csv');
+		this._showToast('success', `Exported CSV: ${tmpFileName}.csv`);
+	}
+
+	/**
+	 * Trigger a browser file download from an in-memory string.
+	 *
+	 * @param {string} pFileName - The suggested file name
+	 * @param {string} pContent - The file content
+	 * @param {string} pMimeType - MIME type for the blob
+	 */
+	_triggerFileDownload(pFileName, pContent, pMimeType)
+	{
+		if (typeof document === 'undefined')
+		{
+			return;
+		}
+
+		let tmpBlob = new Blob([pContent], { type: pMimeType });
+		let tmpURL = URL.createObjectURL(tmpBlob);
+
+		let tmpLink = document.createElement('a');
+		tmpLink.href = tmpURL;
+		tmpLink.download = pFileName;
+		tmpLink.style.display = 'none';
+		document.body.appendChild(tmpLink);
+		tmpLink.click();
+
+		// Clean up
+		document.body.removeChild(tmpLink);
+		URL.revokeObjectURL(tmpURL);
+	}
+
+	/* -------------------------------------------------------------------------- */
+	/*               Code Section: Extended Descriptor Properties                 */
+	/* -------------------------------------------------------------------------- */
+
+	/**
+	 * Add an extended descriptor property to the Input properties panel.
+	 *
+	 * @param {string} pAddress - Dot-notation path relative to the Descriptor (e.g. 'PictForm.Units')
+	 * @param {string} [pName] - Display label (defaults to the last segment of the address)
+	 * @param {string} [pDataType] - 'String' (default), 'Number', or 'Boolean'
+	 * @param {string} [pDescription] - Tooltip / placeholder text
+	 */
+	addExtendedDescriptorProperty(pAddress, pName, pDataType, pDescription)
+	{
+		if (typeof pAddress !== 'string' || pAddress.length === 0)
+		{
+			return;
+		}
+
+		// Avoid duplicates
+		for (let i = 0; i < this._ExtendedDescriptorProperties.length; i++)
+		{
+			if (this._ExtendedDescriptorProperties[i].Address === pAddress)
+			{
+				return;
+			}
+		}
+
+		let tmpSegments = pAddress.split('.');
+		let tmpDefaultName = tmpSegments[tmpSegments.length - 1];
+
+		this._ExtendedDescriptorProperties.push(
+		{
+			Name: pName || tmpDefaultName,
+			Address: pAddress,
+			DataType: pDataType || 'String',
+			Description: pDescription || ''
+		});
+	}
+
+	/**
+	 * Remove an extended descriptor property by address.
+	 *
+	 * @param {string} pAddress - Dot-notation path to remove
+	 */
+	removeExtendedDescriptorProperty(pAddress)
+	{
+		for (let i = 0; i < this._ExtendedDescriptorProperties.length; i++)
+		{
+			if (this._ExtendedDescriptorProperties[i].Address === pAddress)
+			{
+				this._ExtendedDescriptorProperties.splice(i, 1);
+				return;
+			}
+		}
 	}
 
 	/**

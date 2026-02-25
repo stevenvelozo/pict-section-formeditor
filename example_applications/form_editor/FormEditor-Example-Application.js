@@ -47,6 +47,10 @@ class FormEditorExampleApplication extends libPictApplication
 			ManifestDataAddress: 'AppData.FormConfig',
 			DefaultDestinationAddress: '#FormEditor-Container',
 			ActiveTab: 'visual',
+			ExtendedDescriptorProperties:
+			[
+				{ Name: 'Units', Address: 'PictForm.Units', DataType: 'String', Description: 'Unit of measure (e.g. kg, lbs, meters)' }
+			],
 			Renderables:
 			[
 				{

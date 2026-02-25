@@ -729,6 +729,15 @@ class PictProviderFormEditorIconography
 				'<circle cx="9" cy="18" r="' + tmpR + '" fill="currentColor"/>' +
 				'<circle cx="15" cy="18" r="' + tmpR + '" fill="currentColor"/>');
 		};
+
+		// Download — downward arrow into a tray (uses currentColor)
+		this._Icons.Action['Download'] = function(pSize, pColors, pSW)
+		{
+			return _svg(pSize,
+				'<path d="M12 3 L12 15" stroke="currentColor" stroke-width="' + pSW + '"/>' +
+				'<path d="M8 11 L12 15 L16 11" stroke="currentColor" stroke-width="' + pSW + '" fill="none"/>' +
+				'<path d="M4 17 L4 20 L20 20 L20 17" stroke="currentColor" stroke-width="' + pSW + '" fill="none"/>');
+		};
 	}
 
 	/* ======================================================================== */

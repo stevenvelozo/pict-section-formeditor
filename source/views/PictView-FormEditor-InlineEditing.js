@@ -47,12 +47,15 @@ class PictViewFormEditorInlineEditing extends libPictView
 		// Replace the span with an inline editor
 		let tmpEditorHTML = '';
 
+		// Build the commit call referencing the inline editing child view
+		let tmpInlineRef = `${tmpViewRef}._InlineEditingView`;
+
 		if (pProperty === 'Layout')
 		{
 			// Layout uses a select dropdown
 			// onclick stopPropagation prevents the parent span's onclick from re-calling beginEditProperty
 			let tmpLayouts = ['Record', 'Tabular', 'RecordSet'];
-			let tmpCommitCall = `${tmpViewRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')`;
+			let tmpCommitCall = `${tmpInlineRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')`;
 			tmpEditorHTML += `<select class="pict-fe-inline-edit-select" id="${tmpElementId}-Input" onclick="event.stopPropagation()" onchange="${tmpCommitCall}" onblur="setTimeout(function(){${tmpCommitCall}},150)" onkeydown="if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}">`;
 			for (let i = 0; i < tmpLayouts.length; i++)
 			{
@@ -66,7 +69,7 @@ class PictViewFormEditorInlineEditing extends libPictView
 			// Name and Hash use a text input
 			// onclick stopPropagation prevents the parent span's onclick from re-calling beginEditProperty
 			let tmpHashClass = (pProperty === 'Hash') ? ' pict-fe-inline-edit-hash' : '';
-			tmpEditorHTML += `<input class="pict-fe-inline-edit-input${tmpHashClass}" id="${tmpElementId}-Input" type="text" value="${this._ParentFormEditor._UtilitiesProvider._escapeAttr(tmpCurrentValue)}" onclick="event.stopPropagation()" onblur="${tmpViewRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')" onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}" />`;
+			tmpEditorHTML += `<input class="pict-fe-inline-edit-input${tmpHashClass}" id="${tmpElementId}-Input" type="text" value="${this._ParentFormEditor._UtilitiesProvider._escapeAttr(tmpCurrentValue)}" onclick="event.stopPropagation()" onblur="${tmpInlineRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')" onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}" />`;
 		}
 
 		this.pict.ContentAssignment.assignContent(`#${tmpElementId}`, tmpEditorHTML);
@@ -224,7 +227,8 @@ class PictViewFormEditorInlineEditing extends libPictView
 			}
 		}
 
-		let tmpCommitCall = `${tmpViewRef}.commitEditInputDataType(${pSectionIndex}, ${pGroupIndex}, ${pRowIndex}, ${pInputIndex})`;
+		let tmpInlineRef = `${tmpViewRef}._InlineEditingView`;
+		let tmpCommitCall = `${tmpInlineRef}.commitEditInputDataType(${pSectionIndex}, ${pGroupIndex}, ${pRowIndex}, ${pInputIndex})`;
 		let tmpEditorHTML = `<select class="pict-fe-inline-edit-select" id="${tmpElementId}-Input" onclick="event.stopPropagation()" onchange="${tmpCommitCall}" onblur="setTimeout(function(){${tmpCommitCall}},150)" onkeydown="if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}">`;
 		for (let i = 0; i < this._ParentFormEditor._ManyfestDataTypes.length; i++)
 		{

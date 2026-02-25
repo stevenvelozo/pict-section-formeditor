@@ -605,6 +605,25 @@ class FormEditorRendering extends libPictProvider
 		let tmpHTML = '';
 
 		tmpHTML += '<div class="pict-fe-import-container">';
+
+		// Export section
+		tmpHTML += '<h3 class="pict-fe-import-title">Export Form Configuration</h3>';
+		tmpHTML += '<p class="pict-fe-import-description">Download the current form configuration as a JSON manifest or CSV spreadsheet.</p>';
+		tmpHTML += '<div class="pict-fe-export-buttons">';
+		tmpHTML += `<button class="pict-fe-export-btn" onclick="${tmpViewRef}.exportJSON()">`;
+		tmpHTML += `${tmpParent._IconographyProvider.getIcon('Action', 'Download', 18)}`;
+		tmpHTML += '<span>Export JSON</span>';
+		tmpHTML += '</button>';
+		tmpHTML += `<button class="pict-fe-export-btn" onclick="${tmpViewRef}.exportCSV()">`;
+		tmpHTML += `${tmpParent._IconographyProvider.getIcon('Action', 'Download', 18)}`;
+		tmpHTML += '<span>Export CSV</span>';
+		tmpHTML += '</button>';
+		tmpHTML += '</div>';
+
+		// Divider
+		tmpHTML += '<hr class="pict-fe-import-export-divider" />';
+
+		// Import section
 		tmpHTML += '<h3 class="pict-fe-import-title">Import Form Configuration</h3>';
 		tmpHTML += '<p class="pict-fe-import-description">Drop a CSV or JSON file below to load a form configuration. CSV files are processed through ManifestFactory. JSON files are loaded directly as manifests. If the file contains multiple forms, the first will be loaded and the rest will be available in the Load Configuration selector.</p>';
 
