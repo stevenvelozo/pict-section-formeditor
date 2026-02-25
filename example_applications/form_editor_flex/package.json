@@ -1,0 +1,50 @@
+{
+	"name": "form_editor_flex_example",
+	"version": "1.0.0",
+	"description": "Example form editor application with flex-height layout and sticky properties panel",
+	"main": "FormEditorFlex-Example-Application.js",
+	"scripts": {
+		"start": "node FormEditorFlex-Example-Application.js",
+		"build": "npx quack build && npx quack copy"
+	},
+	"author": "steven",
+	"license": "MIT",
+	"copyFilesSettings": {
+		"whenFileExists": "overwrite"
+	},
+	"copyFiles": [
+		{
+			"from": "./html/*",
+			"to": "./dist/"
+		},
+		{
+			"from": "./html/manifests/*",
+			"to": "./dist/manifests/"
+		},
+		{
+			"from": "../../node_modules/pict/dist/*",
+			"to": "./dist/"
+		},
+		{
+			"from": "../../node_modules/pict-section-code/example_applications/code_editor/html/codejar.js",
+			"to": "./dist/codejar.js"
+		},
+		{
+			"from": "../../user-documentation/*",
+			"to": "./dist/docs/"
+		},
+		{
+			"from": "../../user-documentation/.pict_documentation_topics.json",
+			"to": "./dist/docs/.pict_documentation_topics.json"
+		},
+		{
+			"from": "../../user-documentation/solverfunctions/*",
+			"to": "./dist/docs/solverfunctions/"
+		}
+	],
+	"dependencies": {
+		"pict": "^1.0.348",
+		"pict-application": "^1.0.19",
+		"pict-view": "^1.0.66"
+	}
+}

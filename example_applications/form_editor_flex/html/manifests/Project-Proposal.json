@@ -1,0 +1,865 @@
+{
+	"Scope": "ProjectProposal",
+	"Sections": [
+		{
+			"Hash": "ProjectOverview",
+			"Name": "Project Overview",
+			"Groups": [
+				{
+					"Hash": "BasicInfo",
+					"Name": "Basic Information"
+				},
+				{
+					"Hash": "Stakeholders",
+					"Name": "Key Stakeholders"
+				}
+			]
+		},
+		{
+			"Hash": "Objectives",
+			"Name": "Goals & Objectives",
+			"Groups": [
+				{
+					"Hash": "PrimaryGoals",
+					"Name": "Primary Goals"
+				},
+				{
+					"Hash": "SuccessMetrics",
+					"Name": "Success Metrics"
+				},
+				{
+					"Hash": "Constraints",
+					"Name": "Constraints & Assumptions"
+				}
+			]
+		},
+		{
+			"Hash": "Scope",
+			"Name": "Project Scope",
+			"Groups": [
+				{
+					"Hash": "InScope",
+					"Name": "In Scope"
+				},
+				{
+					"Hash": "OutOfScope",
+					"Name": "Out of Scope"
+				},
+				{
+					"Hash": "Deliverables",
+					"Name": "Deliverables"
+				}
+			]
+		},
+		{
+			"Hash": "Timeline",
+			"Name": "Timeline & Milestones",
+			"Groups": [
+				{
+					"Hash": "Phases",
+					"Name": "Project Phases"
+				},
+				{
+					"Hash": "Dependencies",
+					"Name": "Dependencies"
+				}
+			]
+		},
+		{
+			"Hash": "Budget",
+			"Name": "Budget & Resources",
+			"Groups": [
+				{
+					"Hash": "Personnel",
+					"Name": "Personnel Costs"
+				},
+				{
+					"Hash": "Infrastructure",
+					"Name": "Infrastructure & Tools"
+				},
+				{
+					"Hash": "Contingency",
+					"Name": "Contingency"
+				}
+			]
+		},
+		{
+			"Hash": "Risks",
+			"Name": "Risk Assessment",
+			"Groups": [
+				{
+					"Hash": "TechnicalRisks",
+					"Name": "Technical Risks"
+				},
+				{
+					"Hash": "BusinessRisks",
+					"Name": "Business Risks"
+				},
+				{
+					"Hash": "Mitigation",
+					"Name": "Mitigation Strategies"
+				}
+			]
+		},
+		{
+			"Hash": "Team",
+			"Name": "Team Structure",
+			"Groups": [
+				{
+					"Hash": "CoreTeam",
+					"Name": "Core Team"
+				},
+				{
+					"Hash": "ExtendedTeam",
+					"Name": "Extended Team & Vendors"
+				},
+				{
+					"Hash": "RACI",
+					"Name": "Responsibility Matrix"
+				}
+			]
+		},
+		{
+			"Hash": "Technical",
+			"Name": "Technical Approach",
+			"Groups": [
+				{
+					"Hash": "Architecture",
+					"Name": "Architecture Overview"
+				},
+				{
+					"Hash": "TechStack",
+					"Name": "Technology Stack"
+				},
+				{
+					"Hash": "Integration",
+					"Name": "Integration Points"
+				},
+				{
+					"Hash": "Security",
+					"Name": "Security Requirements"
+				}
+			]
+		},
+		{
+			"Hash": "Approval",
+			"Name": "Approval & Sign-Off",
+			"Groups": [
+				{
+					"Hash": "ApprovalChain",
+					"Name": "Approval Chain"
+				}
+			]
+		}
+	],
+	"Descriptors": {
+		"Project.Name": {
+			"Name": "Project Name",
+			"Hash": "ProjectName",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 1 }
+		},
+		"Project.Code": {
+			"Name": "Project Code",
+			"Hash": "ProjectCode",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 1 }
+		},
+		"Project.Priority": {
+			"Name": "Priority",
+			"Hash": "Priority",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "critical", "text": "Critical"}, {"id": "high", "text": "High"}, {"id": "medium", "text": "Medium"}, {"id": "low", "text": "Low"}] }
+		},
+		"Project.Description": {
+			"Name": "Project Description",
+			"Hash": "ProjectDescription",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 2, "InputType": "TextArea" }
+		},
+		"Project.BusinessJustification": {
+			"Name": "Business Justification",
+			"Hash": "BusinessJustification",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 3, "InputType": "TextArea" }
+		},
+		"Project.StartDate": {
+			"Name": "Proposed Start Date",
+			"Hash": "StartDate",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 4, "InputType": "DateTime" }
+		},
+		"Project.EndDate": {
+			"Name": "Target End Date",
+			"Hash": "EndDate",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 4, "InputType": "DateTime" }
+		},
+		"Project.Department": {
+			"Name": "Requesting Department",
+			"Hash": "Department",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "BasicInfo", "Row": 4 }
+		},
+		"Stakeholder.Sponsor": {
+			"Name": "Executive Sponsor",
+			"Hash": "Sponsor",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "Stakeholders", "Row": 1 }
+		},
+		"Stakeholder.PM": {
+			"Name": "Project Manager",
+			"Hash": "ProjectManager",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "Stakeholders", "Row": 1 }
+		},
+		"Stakeholder.TechLead": {
+			"Name": "Technical Lead",
+			"Hash": "TechLead",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "Stakeholders", "Row": 2 }
+		},
+		"Stakeholder.BusinessLead": {
+			"Name": "Business Lead",
+			"Hash": "BusinessLead",
+			"DataType": "String",
+			"PictForm": { "Section": "ProjectOverview", "Group": "Stakeholders", "Row": 2 }
+		},
+		"Goal.Primary1": {
+			"Name": "Primary Goal 1",
+			"Hash": "PrimaryGoal1",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "PrimaryGoals", "Row": 1, "InputType": "TextArea" }
+		},
+		"Goal.Primary2": {
+			"Name": "Primary Goal 2",
+			"Hash": "PrimaryGoal2",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "PrimaryGoals", "Row": 2, "InputType": "TextArea" }
+		},
+		"Goal.Primary3": {
+			"Name": "Primary Goal 3",
+			"Hash": "PrimaryGoal3",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "PrimaryGoals", "Row": 3, "InputType": "TextArea" }
+		},
+		"Metric.KPI1Name": {
+			"Name": "KPI 1",
+			"Hash": "KPI1Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 1 }
+		},
+		"Metric.KPI1Target": {
+			"Name": "Target Value",
+			"Hash": "KPI1Target",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 1 }
+		},
+		"Metric.KPI1Baseline": {
+			"Name": "Current Baseline",
+			"Hash": "KPI1Baseline",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 1 }
+		},
+		"Metric.KPI2Name": {
+			"Name": "KPI 2",
+			"Hash": "KPI2Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 2 }
+		},
+		"Metric.KPI2Target": {
+			"Name": "Target Value",
+			"Hash": "KPI2Target",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 2 }
+		},
+		"Metric.KPI2Baseline": {
+			"Name": "Current Baseline",
+			"Hash": "KPI2Baseline",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 2 }
+		},
+		"Metric.KPI3Name": {
+			"Name": "KPI 3",
+			"Hash": "KPI3Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 3 }
+		},
+		"Metric.KPI3Target": {
+			"Name": "Target Value",
+			"Hash": "KPI3Target",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 3 }
+		},
+		"Metric.KPI3Baseline": {
+			"Name": "Current Baseline",
+			"Hash": "KPI3Baseline",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "SuccessMetrics", "Row": 3 }
+		},
+		"Constraint.Budget": {
+			"Name": "Budget Constraint",
+			"Hash": "BudgetConstraint",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "Constraints", "Row": 1, "InputType": "TextArea" }
+		},
+		"Constraint.Timeline": {
+			"Name": "Timeline Constraint",
+			"Hash": "TimelineConstraint",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "Constraints", "Row": 2, "InputType": "TextArea" }
+		},
+		"Constraint.Technical": {
+			"Name": "Technical Constraint",
+			"Hash": "TechnicalConstraint",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "Constraints", "Row": 3, "InputType": "TextArea" }
+		},
+		"Constraint.Assumptions": {
+			"Name": "Key Assumptions",
+			"Hash": "Assumptions",
+			"DataType": "String",
+			"PictForm": { "Section": "Objectives", "Group": "Constraints", "Row": 4, "InputType": "TextArea" }
+		},
+		"Scope.InScope": {
+			"Name": "In Scope Items",
+			"Hash": "InScopeItems",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "InScope", "Row": 1, "InputType": "TextArea" }
+		},
+		"Scope.OutOfScope": {
+			"Name": "Out of Scope Items",
+			"Hash": "OutOfScopeItems",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "OutOfScope", "Row": 1, "InputType": "TextArea" }
+		},
+		"Scope.Deliverable1": {
+			"Name": "Deliverable 1",
+			"Hash": "Deliverable1",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 1 }
+		},
+		"Scope.Deliverable1Date": {
+			"Name": "Due Date",
+			"Hash": "Deliverable1Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 1, "InputType": "DateTime" }
+		},
+		"Scope.Deliverable2": {
+			"Name": "Deliverable 2",
+			"Hash": "Deliverable2",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 2 }
+		},
+		"Scope.Deliverable2Date": {
+			"Name": "Due Date",
+			"Hash": "Deliverable2Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 2, "InputType": "DateTime" }
+		},
+		"Scope.Deliverable3": {
+			"Name": "Deliverable 3",
+			"Hash": "Deliverable3",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 3 }
+		},
+		"Scope.Deliverable3Date": {
+			"Name": "Due Date",
+			"Hash": "Deliverable3Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 3, "InputType": "DateTime" }
+		},
+		"Scope.Deliverable4": {
+			"Name": "Deliverable 4",
+			"Hash": "Deliverable4",
+			"DataType": "String",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 4 }
+		},
+		"Scope.Deliverable4Date": {
+			"Name": "Due Date",
+			"Hash": "Deliverable4Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Scope", "Group": "Deliverables", "Row": 4, "InputType": "DateTime" }
+		},
+		"Timeline.Phase1Name": {
+			"Name": "Phase 1",
+			"Hash": "Phase1Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 1 }
+		},
+		"Timeline.Phase1Start": {
+			"Name": "Start",
+			"Hash": "Phase1Start",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 1, "InputType": "DateTime" }
+		},
+		"Timeline.Phase1End": {
+			"Name": "End",
+			"Hash": "Phase1End",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 1, "InputType": "DateTime" }
+		},
+		"Timeline.Phase2Name": {
+			"Name": "Phase 2",
+			"Hash": "Phase2Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 2 }
+		},
+		"Timeline.Phase2Start": {
+			"Name": "Start",
+			"Hash": "Phase2Start",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 2, "InputType": "DateTime" }
+		},
+		"Timeline.Phase2End": {
+			"Name": "End",
+			"Hash": "Phase2End",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 2, "InputType": "DateTime" }
+		},
+		"Timeline.Phase3Name": {
+			"Name": "Phase 3",
+			"Hash": "Phase3Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 3 }
+		},
+		"Timeline.Phase3Start": {
+			"Name": "Start",
+			"Hash": "Phase3Start",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 3, "InputType": "DateTime" }
+		},
+		"Timeline.Phase3End": {
+			"Name": "End",
+			"Hash": "Phase3End",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 3, "InputType": "DateTime" }
+		},
+		"Timeline.Phase4Name": {
+			"Name": "Phase 4",
+			"Hash": "Phase4Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 4 }
+		},
+		"Timeline.Phase4Start": {
+			"Name": "Start",
+			"Hash": "Phase4Start",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 4, "InputType": "DateTime" }
+		},
+		"Timeline.Phase4End": {
+			"Name": "End",
+			"Hash": "Phase4End",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Timeline", "Group": "Phases", "Row": 4, "InputType": "DateTime" }
+		},
+		"Timeline.Dependency1": {
+			"Name": "Dependency 1",
+			"Hash": "Dependency1",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Dependencies", "Row": 1, "InputType": "TextArea" }
+		},
+		"Timeline.Dependency2": {
+			"Name": "Dependency 2",
+			"Hash": "Dependency2",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Dependencies", "Row": 2, "InputType": "TextArea" }
+		},
+		"Timeline.Dependency3": {
+			"Name": "Dependency 3",
+			"Hash": "Dependency3",
+			"DataType": "String",
+			"PictForm": { "Section": "Timeline", "Group": "Dependencies", "Row": 3, "InputType": "TextArea" }
+		},
+		"Budget.PersonnelTotal": {
+			"Name": "Total Personnel Cost",
+			"Hash": "PersonnelTotal",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Personnel", "Row": 1 }
+		},
+		"Budget.FTE": {
+			"Name": "FTE Required",
+			"Hash": "FTERequired",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Personnel", "Row": 1 }
+		},
+		"Budget.ContractorCost": {
+			"Name": "Contractor/Vendor Cost",
+			"Hash": "ContractorCost",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Personnel", "Row": 2 }
+		},
+		"Budget.TrainingCost": {
+			"Name": "Training Cost",
+			"Hash": "TrainingCost",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Personnel", "Row": 2 }
+		},
+		"Budget.HardwareCost": {
+			"Name": "Hardware Cost",
+			"Hash": "HardwareCost",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Infrastructure", "Row": 1 }
+		},
+		"Budget.SoftwareLicenses": {
+			"Name": "Software Licenses",
+			"Hash": "SoftwareLicenses",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Infrastructure", "Row": 1 }
+		},
+		"Budget.CloudServices": {
+			"Name": "Cloud Services (annual)",
+			"Hash": "CloudServices",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Infrastructure", "Row": 2 }
+		},
+		"Budget.OtherInfra": {
+			"Name": "Other Infrastructure",
+			"Hash": "OtherInfra",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Infrastructure", "Row": 2 }
+		},
+		"Budget.ContingencyPercent": {
+			"Name": "Contingency Percentage",
+			"Hash": "ContingencyPercent",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Contingency", "Row": 1 }
+		},
+		"Budget.ContingencyAmount": {
+			"Name": "Contingency Amount",
+			"Hash": "ContingencyAmount",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Contingency", "Row": 1 }
+		},
+		"Budget.TotalBudget": {
+			"Name": "Total Project Budget",
+			"Hash": "TotalBudget",
+			"DataType": "Number",
+			"PictForm": { "Section": "Budget", "Group": "Contingency", "Row": 2 }
+		},
+		"Risk.Tech1": {
+			"Name": "Technical Risk 1",
+			"Hash": "TechRisk1",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 1 }
+		},
+		"Risk.Tech1Impact": {
+			"Name": "Impact",
+			"Hash": "TechRisk1Impact",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}, {"id": "critical", "text": "Critical"}] }
+		},
+		"Risk.Tech1Probability": {
+			"Name": "Probability",
+			"Hash": "TechRisk1Probability",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}] }
+		},
+		"Risk.Tech2": {
+			"Name": "Technical Risk 2",
+			"Hash": "TechRisk2",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 2 }
+		},
+		"Risk.Tech2Impact": {
+			"Name": "Impact",
+			"Hash": "TechRisk2Impact",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}, {"id": "critical", "text": "Critical"}] }
+		},
+		"Risk.Tech2Probability": {
+			"Name": "Probability",
+			"Hash": "TechRisk2Probability",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "TechnicalRisks", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}] }
+		},
+		"Risk.Biz1": {
+			"Name": "Business Risk 1",
+			"Hash": "BizRisk1",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "BusinessRisks", "Row": 1 }
+		},
+		"Risk.Biz1Impact": {
+			"Name": "Impact",
+			"Hash": "BizRisk1Impact",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "BusinessRisks", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}, {"id": "critical", "text": "Critical"}] }
+		},
+		"Risk.Biz2": {
+			"Name": "Business Risk 2",
+			"Hash": "BizRisk2",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "BusinessRisks", "Row": 2 }
+		},
+		"Risk.Biz2Impact": {
+			"Name": "Impact",
+			"Hash": "BizRisk2Impact",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "BusinessRisks", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "low", "text": "Low"}, {"id": "medium", "text": "Medium"}, {"id": "high", "text": "High"}, {"id": "critical", "text": "Critical"}] }
+		},
+		"Risk.Mitigation1": {
+			"Name": "Mitigation Strategy 1",
+			"Hash": "Mitigation1",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "Mitigation", "Row": 1, "InputType": "TextArea" }
+		},
+		"Risk.Mitigation2": {
+			"Name": "Mitigation Strategy 2",
+			"Hash": "Mitigation2",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "Mitigation", "Row": 2, "InputType": "TextArea" }
+		},
+		"Risk.Mitigation3": {
+			"Name": "Mitigation Strategy 3",
+			"Hash": "Mitigation3",
+			"DataType": "String",
+			"PictForm": { "Section": "Risks", "Group": "Mitigation", "Row": 3, "InputType": "TextArea" }
+		},
+		"Team.Role1Name": {
+			"Name": "Role",
+			"Hash": "Role1Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 1 }
+		},
+		"Team.Role1Person": {
+			"Name": "Person",
+			"Hash": "Role1Person",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 1 }
+		},
+		"Team.Role1Allocation": {
+			"Name": "Allocation %",
+			"Hash": "Role1Allocation",
+			"DataType": "Number",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 1 }
+		},
+		"Team.Role2Name": {
+			"Name": "Role",
+			"Hash": "Role2Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 2 }
+		},
+		"Team.Role2Person": {
+			"Name": "Person",
+			"Hash": "Role2Person",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 2 }
+		},
+		"Team.Role2Allocation": {
+			"Name": "Allocation %",
+			"Hash": "Role2Allocation",
+			"DataType": "Number",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 2 }
+		},
+		"Team.Role3Name": {
+			"Name": "Role",
+			"Hash": "Role3Name",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 3 }
+		},
+		"Team.Role3Person": {
+			"Name": "Person",
+			"Hash": "Role3Person",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 3 }
+		},
+		"Team.Role3Allocation": {
+			"Name": "Allocation %",
+			"Hash": "Role3Allocation",
+			"DataType": "Number",
+			"PictForm": { "Section": "Team", "Group": "CoreTeam", "Row": 3 }
+		},
+		"Team.Vendor1": {
+			"Name": "Vendor / Partner",
+			"Hash": "Vendor1",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "ExtendedTeam", "Row": 1 }
+		},
+		"Team.Vendor1Scope": {
+			"Name": "Scope of Work",
+			"Hash": "Vendor1Scope",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "ExtendedTeam", "Row": 1 }
+		},
+		"Team.Vendor2": {
+			"Name": "Vendor / Partner",
+			"Hash": "Vendor2",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "ExtendedTeam", "Row": 2 }
+		},
+		"Team.Vendor2Scope": {
+			"Name": "Scope of Work",
+			"Hash": "Vendor2Scope",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "ExtendedTeam", "Row": 2 }
+		},
+		"Team.RACIDescription": {
+			"Name": "RACI Matrix Notes",
+			"Hash": "RACINotes",
+			"DataType": "String",
+			"PictForm": { "Section": "Team", "Group": "RACI", "Row": 1, "InputType": "TextArea" }
+		},
+		"Tech.ArchOverview": {
+			"Name": "Architecture Overview",
+			"Hash": "ArchOverview",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Architecture", "Row": 1, "InputType": "TextArea" }
+		},
+		"Tech.Scalability": {
+			"Name": "Scalability Approach",
+			"Hash": "Scalability",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Architecture", "Row": 2, "InputType": "TextArea" }
+		},
+		"Tech.Frontend": {
+			"Name": "Frontend Technology",
+			"Hash": "Frontend",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 1 }
+		},
+		"Tech.Backend": {
+			"Name": "Backend Technology",
+			"Hash": "Backend",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 1 }
+		},
+		"Tech.Database": {
+			"Name": "Database",
+			"Hash": "Database",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 1 }
+		},
+		"Tech.CI": {
+			"Name": "CI/CD Pipeline",
+			"Hash": "CICD",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 2 }
+		},
+		"Tech.Hosting": {
+			"Name": "Hosting / Cloud",
+			"Hash": "Hosting",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 2 }
+		},
+		"Tech.Monitoring": {
+			"Name": "Monitoring / Observability",
+			"Hash": "Monitoring",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "TechStack", "Row": 2 }
+		},
+		"Tech.Integration1": {
+			"Name": "Integration 1",
+			"Hash": "Integration1",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Integration", "Row": 1 }
+		},
+		"Tech.Integration1Type": {
+			"Name": "Type",
+			"Hash": "Integration1Type",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Integration", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "api", "text": "REST API"}, {"id": "webhook", "text": "Webhook"}, {"id": "file", "text": "File Transfer"}, {"id": "db", "text": "Database"}, {"id": "mq", "text": "Message Queue"}] }
+		},
+		"Tech.Integration2": {
+			"Name": "Integration 2",
+			"Hash": "Integration2",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Integration", "Row": 2 }
+		},
+		"Tech.Integration2Type": {
+			"Name": "Type",
+			"Hash": "Integration2Type",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Integration", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "api", "text": "REST API"}, {"id": "webhook", "text": "Webhook"}, {"id": "file", "text": "File Transfer"}, {"id": "db", "text": "Database"}, {"id": "mq", "text": "Message Queue"}] }
+		},
+		"Tech.AuthMethod": {
+			"Name": "Authentication Method",
+			"Hash": "AuthMethod",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Security", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "oauth", "text": "OAuth 2.0"}, {"id": "saml", "text": "SAML"}, {"id": "jwt", "text": "JWT"}, {"id": "api-key", "text": "API Key"}] }
+		},
+		"Tech.DataEncryption": {
+			"Name": "Data Encryption",
+			"Hash": "DataEncryption",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Security", "Row": 1 }
+		},
+		"Tech.ComplianceReqs": {
+			"Name": "Compliance Requirements",
+			"Hash": "ComplianceReqs",
+			"DataType": "String",
+			"PictForm": { "Section": "Technical", "Group": "Security", "Row": 2, "InputType": "TextArea" }
+		},
+		"Tech.PenTestRequired": {
+			"Name": "Penetration Testing Required",
+			"Hash": "PenTestRequired",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "Technical", "Group": "Security", "Row": 3, "InputType": "Boolean" }
+		},
+		"Tech.SecurityReview": {
+			"Name": "Security Review Required",
+			"Hash": "SecurityReview",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "Technical", "Group": "Security", "Row": 3, "InputType": "Boolean" }
+		},
+		"Approval.Approver1": {
+			"Name": "Approver 1",
+			"Hash": "Approver1",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 1 }
+		},
+		"Approval.Approver1Title": {
+			"Name": "Title",
+			"Hash": "Approver1Title",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 1 }
+		},
+		"Approval.Approver1Status": {
+			"Name": "Status",
+			"Hash": "Approver1Status",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "pending", "text": "Pending"}, {"id": "approved", "text": "Approved"}, {"id": "rejected", "text": "Rejected"}, {"id": "deferred", "text": "Deferred"}] }
+		},
+		"Approval.Approver2": {
+			"Name": "Approver 2",
+			"Hash": "Approver2",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 2 }
+		},
+		"Approval.Approver2Title": {
+			"Name": "Title",
+			"Hash": "Approver2Title",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 2 }
+		},
+		"Approval.Approver2Status": {
+			"Name": "Status",
+			"Hash": "Approver2Status",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "pending", "text": "Pending"}, {"id": "approved", "text": "Approved"}, {"id": "rejected", "text": "Rejected"}, {"id": "deferred", "text": "Deferred"}] }
+		},
+		"Approval.Approver3": {
+			"Name": "Approver 3",
+			"Hash": "Approver3",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 3 }
+		},
+		"Approval.Approver3Title": {
+			"Name": "Title",
+			"Hash": "Approver3Title",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 3 }
+		},
+		"Approval.Approver3Status": {
+			"Name": "Status",
+			"Hash": "Approver3Status",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 3, "InputType": "Option", "SelectOptions": [{"id": "pending", "text": "Pending"}, {"id": "approved", "text": "Approved"}, {"id": "rejected", "text": "Rejected"}, {"id": "deferred", "text": "Deferred"}] }
+		},
+		"Approval.FinalNotes": {
+			"Name": "Final Notes",
+			"Hash": "FinalNotes",
+			"DataType": "String",
+			"PictForm": { "Section": "Approval", "Group": "ApprovalChain", "Row": 4, "InputType": "TextArea" }
+		}
+	}
+}

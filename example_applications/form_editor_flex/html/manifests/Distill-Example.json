@@ -1,0 +1,200 @@
+{
+	"Scope": "DistillExample",
+
+	"PickLists": [
+		{
+			"Hash": "Books",
+			"ListAddress": "AppData.AuthorsBooks",
+			"ListSourceAddress": "Books[]",
+			"TextTemplate": "{~D:Record.Title~}",
+			"IDTemplate": "{~D:Record.IDBook~}",
+			"Sorted": true,
+			"UpdateFrequency": "Always"
+		}
+	],
+
+	"InitialBundle": [
+		{
+			"Entity": "Author",
+			"Filter": "FBV~IDAuthor~EQ~100",
+			"Destination": "AppData.CurrentAuthor",
+			"SingleRecord": true
+		},
+		{
+			"Entity": "BookAuthorJoin",
+			"Filter": "FBV~IDAuthor~EQ~{~D:AppData.CurrentAuthor.IDAuthor~}",
+			"Destination": "AppData.BookAuthorJoins"
+		},
+		{
+			"Entity": "Book",
+			"Filter": "FBL~IDBook~INN~{~PJU:,^IDBook^AppData.BookAuthorJoins~}",
+			"Destination": "AppData.Books"
+		},
+		{
+			"Type": "Custom",
+			"Protocol": "HTTP",
+			"Host": "localhost",
+			"Port": 9999,
+			"URL": "/1.0/BookAuthorJoin/Schema",
+			"Destination": "AppData.BookAuthorJoinSchema"
+		}
+	],
+
+	"Sections": [
+		{
+			"Hash": "Book",
+			"Name": "Book Data Distillation",
+			"Description": "Entity bundle example with MapJoin, Custom, and per-input providers",
+			"Groups": [
+				{
+					"Hash": "Author",
+					"Name": "Author",
+					"Rows": [
+						{ "Inputs": ["Author.IDAuthor"] },
+						{ "Inputs": ["Author.Name"] }
+					]
+				},
+				{
+					"Hash": "BookGrid",
+					"Name": "Book Grid",
+					"Layout": "Tabular",
+					"RecordSetAddress": "AppData.Books",
+					"RecordManifest": {
+						"Scope": "BookRecord",
+						"Descriptors": {
+							"Title": { "Name": "Title", "Hash": "Title", "DataType": "String" },
+							"IDBook": { "Name": "ID", "Hash": "IDBook", "DataType": "Number" }
+						}
+					},
+					"Rows": [
+						{ "Inputs": ["Book.Title"] }
+					]
+				}
+			]
+		},
+		{
+			"Hash": "Schemas",
+			"Name": "Schema Viewer",
+			"Description": "Demonstrates section-level InitialBundle",
+			"InitialBundle": [
+				{
+					"Type": "Custom",
+					"URL": "Author/Schema",
+					"Destination": "AppData.AuthorSchema"
+				}
+			],
+			"Groups": [
+				{
+					"Hash": "SchemaInfo",
+					"Name": "Schema Info",
+					"Rows": [
+						{ "Inputs": ["Schema.AuthorSchema"] }
+					]
+				}
+			]
+		}
+	],
+
+	"Descriptors": {
+		"Author.IDAuthor": {
+			"Name": "Author ID",
+			"Hash": "IDAuthor",
+			"DataType": "Number",
+			"Default": 100,
+			"PictForm": {
+				"Section": "Book",
+				"Group": "Author",
+				"Row": 1,
+				"Width": 1,
+				"Providers": ["Pict-Input-EntityBundleRequest", "Pict-Input-AutofillTriggerGroup"],
+				"EntitiesBundle": [
+					{
+						"Entity": "Author",
+						"Filter": "FBV~IDAuthor~EQ~{~D:Record.Value~}",
+						"Destination": "AppData.CurrentAuthor",
+						"SingleRecord": true
+					},
+					{
+						"Entity": "BookAuthorJoin",
+						"Filter": "FBV~IDAuthor~EQ~{~D:AppData.CurrentAuthor.IDAuthor~}",
+						"Destination": "AppData.BookAuthorJoins"
+					},
+					{
+						"Entity": "Book",
+						"Filter": "FBL~IDBook~INN~{~PJU:,^IDBook^AppData.BookAuthorJoins~}",
+						"Destination": "AppData.Books"
+					},
+					{
+						"Type": "MapJoin",
+						"DestinationRecordSetAddress": "AppData.Books",
+						"DestinationJoinValue": "IDBook",
+						"JoinJoinValueLHS": "IDBook",
+						"Joins": "AppData.BookAuthorJoins",
+						"JoinJoinValueRHS": "IDBookAuthorJoin",
+						"JoinRecordSetAddress": "AppData.BookAuthorJoins",
+						"JoinValue": "IDBookAuthorJoin",
+						"RecordDestinationAddress": "BookAuthorJoins"
+					},
+					{
+						"Type": "Custom",
+						"Protocol": "HTTP",
+						"Host": "localhost",
+						"Port": 9999,
+						"URL": "/1.0/Book/Schema?Author={~D:AppData.CurrentAuthor.IDAuthor~}",
+						"Destination": "AppData.BookSchema"
+					},
+					{
+						"Type": "Custom",
+						"URL": "Author/Schema",
+						"Destination": "AppData.AuthorSchema"
+					}
+				],
+				"EntityBundleTriggerGroup": "BookTriggerGroup",
+				"EntityBundleTriggerOnInitialize": true,
+				"AutofillTriggerGroup": {
+					"TriggerGroupHash": "BookTriggerGroup",
+					"PostSolvers": ["refreshTabularSection(\"BookGrid\", \"BookGrid\")"]
+				}
+			}
+		},
+		"Author.Name": {
+			"Name": "Author Name",
+			"Hash": "AuthorName",
+			"DataType": "String",
+			"PictForm": {
+				"Section": "Book",
+				"Group": "Author",
+				"Row": 2,
+				"Width": 1,
+				"Providers": ["Pict-Input-AutofillTriggerGroup"],
+				"AutofillTriggerGroup": {
+					"TriggerGroupHash": "BookTriggerGroup",
+					"TriggerAddress": "AppData.CurrentAuthor.Name"
+				}
+			}
+		},
+		"Book.Title": {
+			"Name": "Book Title",
+			"Hash": "BookTitle",
+			"DataType": "String",
+			"PictForm": {
+				"Section": "Book",
+				"Group": "BookGrid",
+				"Row": 1,
+				"Width": 1
+			}
+		},
+		"Schema.AuthorSchema": {
+			"Name": "Author Schema",
+			"Hash": "AuthorSchema",
+			"DataType": "String",
+			"PictForm": {
+				"Section": "Schemas",
+				"Group": "SchemaInfo",
+				"Row": 1,
+				"Width": 1,
+				"InputType": "TextArea"
+			}
+		}
+	}
+}

@@ -1,0 +1,232 @@
+{
+	"Scope": "SuperSimpleForm",
+
+	"Sections": [
+		{
+			"Hash": "Area",
+
+			"Name": "Rectangular Area Calculator",
+			"Description": "Calculate the area of a Rectangle",
+
+			"CustomCSS": "h3 { color: #ff00ff; font-size: 1.5em; }",
+
+			"Solvers":
+				[
+					"Area = Height * Width",
+					"WidthCubeArea = Width ^ 3",
+					"HeightCubeArea = Height ^ 3",
+					"DTPN = Height * Width",
+					"ITPNRO = Height * Width",
+					"ITDRO = Height * Width",
+					"ITPRO = Height * Width",
+					"LoggedValues = logvalues(\"ITPRO\", ITPRO)",
+					"SetGroupVisibility(\"Area\", \"Help\", if(Height,\"GT\", 99, 0, 1))",
+					"SetSectionVisibility(\"Marshaling\", if(ITPRO,\"LT\", 10000, 0, 1))",
+					"ColorSectionBackground(\"Marshaling\",\"#FF00FF\", 1)",
+					"ColorGroupBackground(\"Area\", \"Help\", ContentBackgroundColor, 1)",
+					"SectionsAllAvailable = StringGetSegments(DisplayControlAvailableSections, \",\")",
+					"SectionsToHide = StringGetSegments(DisplayControlHideSections, \",\")",
+					"SectionsToShow = DifferenceArrays(SectionsAllAvailable,SectionsToHide)",
+					"ShowSections(SectionsToShow)",
+					"HideSections(SectionsToHide)"
+				],
+			"MetaTemplates":
+				[
+					{
+						"HashPostfix": "-Template-Wrap-Prefix",
+						"Template": "<h1>Rectangular Area Solver Micro-app</h1><div><a href=\"#\" onclick=\"{~P~}.PictApplication.solve()\">[ solve ]</a> <a href=\"#\" onclick=\"{~P~}.views.PictFormMetacontroller.showSupportViewInlineEditor()\">[ debug ]</a></div><hr />"
+					}
+				]
+		},
+		{
+			"Hash": "Marshaling",
+			"Name": "Example Marshaling Section - Hidden when Height * Width is less than 10,000",
+			"Description": "An example section to demonstrate marshaling of different data types."
+		},
+		{
+			"Hash": "DisplayControl",
+			"Name": "Controls the Display of Many Other Sections"
+		},
+		{
+			"Hash": "SectionA",
+			"Name": "This is SectionA hash"
+		},
+		{
+			"Hash": "SectionB",
+			"Name": "This is SectionB hash"
+		},
+		{
+			"Hash": "SectionC",
+			"Name": "This is SectionC hash"
+		},
+		{
+			"Hash": "SectionD",
+			"Name": "This is SectionD hash"
+		},
+		{
+			"Hash": "SectionE",
+			"Name": "This is SectionE hash"
+		}
+	],
+
+	"Descriptors":
+		{
+			"Name":
+				{
+					"Name":"Rectangular Object's Name",
+					"Hash":"Name",
+					"DataType":"String"
+					,"PictForm": { "Section":"Area", "Row":1, "Width":1 }
+				},
+			"Type":
+				{
+					"Name":"Type of Object",
+					"Hash":"Type",
+					"DataType":"String"
+					,"PictForm": { "Section":"Area", "Row":1, "Width":1 }
+				},
+
+			"Width":
+				{
+					"Name":"Width",
+					"Hash":"Width",
+					"DataType":"Number",
+					"Default": 100
+					,"PictForm": { "Section":"Area", "Row":2, "Width":1 }
+				},
+			"Height":
+				{
+					"Name":"Height",
+					"Hash":"Height",
+					"DataType":"Number",
+					"Default": 100
+					,"PictForm": { "Section":"Area", "Row":2, "Width":1 }
+				},
+
+			"Solutions.WidthCubeArea":
+				{
+					"Name":"Area of Width Cubed",
+					"Hash":"WidthCubeArea",
+					"DataType":"String"
+					,"PictForm": { "Section":"Area", "Row":3, "Width":1 }
+				},
+			"Solutions.HeightCubeArea":
+				{
+					"Name":"Area of Height Cubed",
+					"Hash":"HeightCubeArea",
+					"DataType":"String"
+					,"PictForm": { "Section":"Area", "Row":3, "Width":1 }
+				},
+
+			"Solutions.Area":
+				{
+					"Name":"Area of Rectangle",
+					"Hash":"Area",
+					"DataType":"PreciseNumber"
+					
+					,"PictForm": {"Section":"Area", "Row":4, "Width":2 }
+				},
+
+			"Help.Content":
+				{
+					"Name":"Area of a Rectangle",
+					"Hash":"HelpContent",
+					"DataType":"String",
+					"Default": "<p>To calculate the area of a rectangle, you multiply its length by its width. The length is one side of the rectangle, and the width is the adjacent side at a right angle. Since a rectangle has opposite sides that are equal and all angles are right angles, this simple multiplication gives the total space inside the rectangle, expressed in square units.</p>"
+					,"PictForm": { "InputType": "HTML", "Section":"Area", "Group":"Help" }
+				},
+			"ContentBackgroundColor":
+				{
+					"Name":"Content Background Color",
+					"Hash":"ContentBackgroundColor",
+					"DataType":"String",
+					"Default": "#FFFFEE"
+					,"PictForm": { "InputType": "Color", "Section":"Area", "Group":"Help", "Row":2 }
+				},
+
+
+
+			"DTPN":
+				{
+					"Name":"DataType PreciseNumber",
+					"Hash":"DTPN",
+					"DataType":"PreciseNumber"
+					,"PictForm": {"InputType": "PreciseNumberReadOnly", "Section":"Marshaling", "Row":1, "Width":3 }
+				},
+			"ITPNRO":
+				{
+					"Name":"InputType PreciseNumberReadOnly",
+					"Hash":"ITPNRO",
+					"DataType":"PreciseNumber",
+					"InputType": "PreciseNumberReadOnly"
+					,"PictForm": { 
+						"InputType": "PreciseNumberReadOnly", 
+						"DecimalPrecision": 2,
+						"AddCommas": false,
+						"DigitsPrefix": "$", 
+						"DigitsPostfix": " (estimated)", 
+						"Section":"Marshaling", "Row":1, "Width":3 }
+				},
+
+
+
+			"DisplayControlAvailableSections":
+				{
+					"Name":"Comma Separated List of Section Hashes",
+					"Hash":"DisplayControlAvailableSections",
+					"DataType":"String",
+					"Default": "SectionA,SectionB,SectionC,SectionD,SectionE"
+					,"PictForm": { "Section":"DisplayControl", "Row":1, "Width":1 }
+				},
+
+			"DisplayControlHideSections":
+				{
+					"Name":"Comma Separated List of Section Hashes to Hide",
+					"Hash":"DisplayControlHideSections",
+					"DataType":"String",
+					"Default": "SectionB,SectionD"
+					,"PictForm": { "Section":"DisplayControl", "Row":2, "Width":1 }
+				},
+
+			"SectionA.Amount":
+				{
+					"Name":"Amount in Section A",
+					"Hash":"SectionAAmount",
+					"DataType":"Number",
+					"Default": 10
+					,"PictForm": { "Section":"SectionA", "Row":1, "Width":1 }
+				},
+			"SectionB.Amount":
+				{
+					"Name":"Amount in Section B",
+					"Hash":"SectionBAmount",
+					"DataType":"Number",
+					"Default": 20
+					,"PictForm": { "Section":"SectionB", "Row":1, "Width":1 }
+				},
+			"SectionC.Amount":
+				{
+					"Name":"Amount in Section C",
+					"Hash":"SectionCAmount",
+					"DataType":"Number",
+					"Default": 30
+					,"PictForm": { "Section":"SectionC", "Row":1, "Width":1 }
+				},
+			"SectionD.Amount":
+				{
+					"Name":"Amount in Section D",
+					"Hash":"SectionDAmount",
+					"DataType":"Number",
+					"Default": 40
+					,"PictForm": { "Section":"SectionD", "Row":1, "Width":1 }
+				},
+			"SectionE.Amount":
+				{
+					"Name":"Amount in Section E",
+					"Hash":"SectionEAmount",
+					"DataType":"Number",
+					"Default": 50
+					,"PictForm": { "Section":"SectionE", "Row":1, "Width":1 }
+				}
+		}
+}

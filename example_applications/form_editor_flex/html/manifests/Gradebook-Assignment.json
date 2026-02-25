@@ -1,0 +1,38 @@
+{
+	"Scope": "Assignment",
+
+	"Descriptors":
+		{
+			"Title":
+			{
+				"Name": "Assignment Title",
+				"Hash": "Title",
+				"DataType": "String",
+				"Default": "(unnamed assignment)",
+				"PictForm": { "Section": "AssignmentGrid", "Group":"AssignmentGrid", "InputType": "ReadOnly" }
+			},
+			"Weight":
+			{
+				"Name": "Weight",
+				"Hash": "AssignmentWeight",
+				"DataType": "String",
+				"Default": "1.0",
+				"PictForm": { "Section": "AssignmentGrid", "Group":"AssignmentGrid" }
+			},
+			"Points":
+			{
+				"Name": "Points",
+				"Hash": "AssignmentPoints",
+				"DataType": "String",
+				"Default": "100",
+				"PictForm": { "Section": "AssignmentGrid", "Group":"AssignmentGrid" }
+			},
+			"EffectiveWeight":
+			{
+				"Name": "Effective Weight",
+				"Hash": "ClassWeight",
+				"DataType": "String",
+				"PictForm": { "Section": "AssignmentGrid", "Group":"AssignmentGrid" }
+			}
+		}
+}

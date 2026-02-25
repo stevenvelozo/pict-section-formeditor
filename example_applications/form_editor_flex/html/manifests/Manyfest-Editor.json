@@ -1,0 +1,347 @@
+{
+	"Scope": "Manyfest",
+	"Sections": [
+		{
+			"Hash": "MainManyfest",
+			"Name": "Main Manyfest Data",
+			"Groups": [
+				{
+					"Hash": "Description",
+					"Name": "Description"
+				}
+			]
+		},
+		{
+			"Hash": "ManyfestSections",
+			"Name": "Form Interface Sections",
+			"Groups": [
+				{
+					"Hash": "FormSections",
+					"Name": "Form Sections",
+					"Layout": "Tabular",
+					"RecordSetAddress": "ManyfestRecord.Sections",
+					"RecordManifest": "ManyfestSection"
+				}
+			]
+		},
+		{
+			"Hash": "ManyfestDescriptors",
+			"Name": "Data Descriptors",
+			"Groups": [
+				{
+					"Hash": "DescriptorGrid",
+					"Name": "Manyfest Descriptors",
+					"Layout": "Tabular",
+					"RecordSetAddress": "ManyfestRecord.Descriptors",
+					"RecordManifest": "ManyfestDescriptor"
+				}
+			]
+		},
+		{
+			"Hash": "ManyfestTabular",
+			"Name": "Tabular Manyfest Representation",
+			"IncludeInDefaultDynamicRender": false,
+			"Groups": [
+				{
+					"Hash": "ManyfestTabular",
+					"Name": "Manyfest Table",
+					"Layout": "TuiGrid",
+					"RecordSetAddress": "ManyfestRecord.Descriptors",
+					"RecordManifest": "ManyfestTabular"
+				}
+			]
+		}
+	],
+	"Descriptors": {
+		"ManyfestRecord.Scope": {
+			"Name": "Data Scope",
+			"Hash": "Scope",
+			"DataType": "String",
+			"Default": "DefaultManyfestScope",
+			"PictForm": {
+				"Section": "MainManyfest",
+				"Group": "Description"
+			}
+		},
+		"ManyfestRecord.Name": {
+			"Name": "Name",
+			"Hash": "Name",
+			"DataType": "String",
+			"Default": "Default Manyfest",
+			"PictForm": {
+				"Section": "MainManyfest",
+				"Group": "Description"
+			}
+		},
+		"ManyfestRecord.Description": {
+			"Name": "Description",
+			"Hash": "Description",
+			"DataType": "String",
+			"Default": "",
+			"PictForm": {
+				"Section": "MainManyfest",
+				"Group": "Description",
+				"InputType": "TextArea"
+			}
+		},
+		"ManyfestRecord.Sections": {
+			"Name": "Pict Form Sections",
+			"Hash": "ManifestSections",
+			"DataType": "Array",
+			"Default": []
+		},
+		"ManyfestRecord.Groups": {
+			"Name": "Pict Form Groups",
+			"Hash": "ManifestGroups",
+			"DataType": "Array"
+		},
+		"ManyfestRecord.Descriptors": {
+			"Name": "Manifest Data Descriptors",
+			"Hash": "ManifestDescriptors",
+			"DataType": "Object",
+			"Default": [],
+			"PictForm": {
+				"Section": "ManyfestDescriptors",
+				"Group": "DescriptorGrid"
+			}
+		}
+	},
+	"ReferenceManifests": {
+		"ManyfestSection": {
+			"Scope": "ManyfestSection",
+			"Descriptors": {
+				"Name": {
+					"Name": "Section Name",
+					"Hash": "Name",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestSection",
+						"Group": "SectionGrid"
+					}
+				}
+			}
+		},
+		"ManyfestDescriptor": {
+			"Scope": "ManyfestDescriptor",
+			"Descriptors": {
+				"Name": {
+					"Name": "Data Property Name",
+					"Hash": "Name",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestDescriptors",
+						"Group": "DescriptorGrid"
+					}
+				},
+				"NameShort": {
+					"Name": "Short Name",
+					"Hash": "NameShort",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestDescriptors",
+						"Group": "DescriptorGrid"
+					}
+				},
+				"Description": {
+					"Name": "Description",
+					"Hash": "Description",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestDescriptors",
+						"Group": "DescriptorGrid",
+						"InputType": "TextArea"
+					}
+				},
+				"DataType": {
+					"Name": "Data Type",
+					"Hash": "DataType",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestDescriptors",
+						"Group": "DescriptorGrid",
+						"InputType": "SelectList",
+						"SelectOptions": [
+							"String",
+							"Integer",
+							"Float",
+							"Number",
+							"Boolean",
+							"Binary",
+							"YesNo",
+							"DateTime",
+							"Array",
+							"Object",
+							"Null"
+						]
+					}
+				},
+				"Default": {
+					"Name": "Default Value",
+					"Hash": "DefaultValue",
+					"DataType": "String",
+					"PictForm": {
+						"Section": "ManyfestDescriptors",
+						"Group": "DescriptorGrid"
+					}
+				}
+			}
+		},
+		"ManyfestTabular": {
+			"Scope": "ManyfestTabular",
+			"Descriptors": {
+				"Form": {
+					"Name": "Form",
+					"Hash": "Form",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Form"
+					}
+				},
+				"FormName": {
+					"Name": "Form Name",
+					"Hash": "FormName",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Form Name"
+					}
+				},
+				"SubManifest": {
+					"Name": "SubManifest",
+					"Hash": "SubManifest",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "SubManifest"
+					}
+				},
+				"SectionName": {
+					"Name": "Section Name",
+					"Hash": "SectionName",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Section Name"
+					}
+				},
+				"GroupName": {
+					"Name": "Group Name",
+					"Hash": "GroupName",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Group Name"
+					}
+				},
+				"Row": {
+					"Name": "Row",
+					"Hash": "Row",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Row"
+					}
+				},
+				"Width": {
+					"Name": "Width",
+					"Hash": "Width",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Width"
+					}
+				},
+				"InputAddress": {
+					"Name": "Input Address",
+					"Hash": "InputAddress",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Input Address"
+					}
+				},
+				"InputName": {
+					"Name": "Input Name",
+					"Hash": "InputName",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Input Name"
+					}
+				},
+				"InputHash": {
+					"Name": "Input Hash",
+					"Hash": "InputHash",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Input Hash"
+					}
+				},
+				"InputExtra": {
+					"Name": "Input Extra",
+					"Hash": "InputExtra",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Input Extra"
+					}
+				},
+				"Units": {
+					"Name": "Units",
+					"Hash": "Units",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Units"
+					}
+				},
+				"DataType": {
+					"Name": "DataType",
+					"Hash": "DataType",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "DataType"
+					}
+				},
+				"InputType": {
+					"Name": "InputType",
+					"Hash": "InputType",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "InputType"
+					}
+				},
+				"Equation": {
+					"Name": "Equation",
+					"Hash": "Equation",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Equation"
+					}
+				},
+				"Default": {
+					"Name": "Default",
+					"Hash": "Default",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Default"
+					}
+				},
+				"Description": {
+					"Name": "Description",
+					"Hash": "Description",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Description"
+					}
+				},
+				"Tooltiup": {
+					"Name": "Tooltiup",
+					"Hash": "Tooltiup",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Tooltiup"
+					}
+				},
+				"InputNotes": {
+					"Name": "Input Notes",
+					"Hash": "InputNotes",
+					"DataType": "String",
+					"PictForm": {
+						"ColumnSource": "Input Notes"
+					}
+				}
+			}
+		}
+	}
+}

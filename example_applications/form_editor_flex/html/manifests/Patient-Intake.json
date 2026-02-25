@@ -1,0 +1,815 @@
+{
+	"Scope": "PatientIntake",
+	"Sections": [
+		{
+			"Hash": "Demographics",
+			"Name": "Patient Demographics",
+			"Groups": [
+				{
+					"Hash": "Identity",
+					"Name": "Identity"
+				},
+				{
+					"Hash": "Contact",
+					"Name": "Contact Information"
+				},
+				{
+					"Hash": "Emergency",
+					"Name": "Emergency Contact"
+				}
+			]
+		},
+		{
+			"Hash": "Insurance",
+			"Name": "Insurance Information",
+			"Groups": [
+				{
+					"Hash": "PrimaryInsurance",
+					"Name": "Primary Insurance"
+				},
+				{
+					"Hash": "SecondaryInsurance",
+					"Name": "Secondary Insurance"
+				}
+			]
+		},
+		{
+			"Hash": "MedicalHistory",
+			"Name": "Medical History",
+			"Groups": [
+				{
+					"Hash": "CurrentConditions",
+					"Name": "Current Conditions"
+				},
+				{
+					"Hash": "PastSurgeries",
+					"Name": "Past Surgeries"
+				},
+				{
+					"Hash": "Allergies",
+					"Name": "Allergies"
+				},
+				{
+					"Hash": "Medications",
+					"Name": "Current Medications"
+				}
+			]
+		},
+		{
+			"Hash": "FamilyHistory",
+			"Name": "Family Medical History",
+			"Groups": [
+				{
+					"Hash": "FamilyConditions",
+					"Name": "Family Conditions"
+				}
+			]
+		},
+		{
+			"Hash": "SocialHistory",
+			"Name": "Social History",
+			"Groups": [
+				{
+					"Hash": "Lifestyle",
+					"Name": "Lifestyle"
+				},
+				{
+					"Hash": "Occupation",
+					"Name": "Occupation & Environment"
+				}
+			]
+		},
+		{
+			"Hash": "ReviewOfSystems",
+			"Name": "Review of Systems",
+			"Groups": [
+				{
+					"Hash": "General",
+					"Name": "General"
+				},
+				{
+					"Hash": "Cardiovascular",
+					"Name": "Cardiovascular"
+				},
+				{
+					"Hash": "Respiratory",
+					"Name": "Respiratory"
+				},
+				{
+					"Hash": "Gastrointestinal",
+					"Name": "Gastrointestinal"
+				},
+				{
+					"Hash": "Musculoskeletal",
+					"Name": "Musculoskeletal"
+				},
+				{
+					"Hash": "Neurological",
+					"Name": "Neurological"
+				}
+			]
+		},
+		{
+			"Hash": "Consent",
+			"Name": "Consent & Acknowledgment",
+			"Groups": [
+				{
+					"Hash": "ConsentForms",
+					"Name": "Consent Forms"
+				}
+			]
+		}
+	],
+	"Descriptors": {
+		"Patient.FirstName": {
+			"Name": "First Name",
+			"Hash": "FirstName",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 1 }
+		},
+		"Patient.MiddleName": {
+			"Name": "Middle Name",
+			"Hash": "MiddleName",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 1 }
+		},
+		"Patient.LastName": {
+			"Name": "Last Name",
+			"Hash": "LastName",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 1 }
+		},
+		"Patient.Suffix": {
+			"Name": "Suffix",
+			"Hash": "Suffix",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 1 }
+		},
+		"Patient.DOB": {
+			"Name": "Date of Birth",
+			"Hash": "DOB",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 2, "InputType": "DateTime" }
+		},
+		"Patient.SSN": {
+			"Name": "Social Security Number",
+			"Hash": "SSN",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 2 }
+		},
+		"Patient.Gender": {
+			"Name": "Gender",
+			"Hash": "Gender",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "M", "text": "Male"}, {"id": "F", "text": "Female"}, {"id": "NB", "text": "Non-binary"}, {"id": "O", "text": "Other"}] }
+		},
+		"Patient.MaritalStatus": {
+			"Name": "Marital Status",
+			"Hash": "MaritalStatus",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 3, "InputType": "Option", "SelectOptions": [{"id": "S", "text": "Single"}, {"id": "M", "text": "Married"}, {"id": "D", "text": "Divorced"}, {"id": "W", "text": "Widowed"}] }
+		},
+		"Patient.Race": {
+			"Name": "Race/Ethnicity",
+			"Hash": "Race",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 3 }
+		},
+		"Patient.PreferredLanguage": {
+			"Name": "Preferred Language",
+			"Hash": "PreferredLanguage",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Identity", "Row": 3 }
+		},
+		"Contact.Address1": {
+			"Name": "Street Address",
+			"Hash": "Address1",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 1 }
+		},
+		"Contact.Address2": {
+			"Name": "Address Line 2",
+			"Hash": "Address2",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 1 }
+		},
+		"Contact.City": {
+			"Name": "City",
+			"Hash": "City",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 2 }
+		},
+		"Contact.State": {
+			"Name": "State",
+			"Hash": "State",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 2 }
+		},
+		"Contact.Zip": {
+			"Name": "Zip Code",
+			"Hash": "Zip",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 2 }
+		},
+		"Contact.HomePhone": {
+			"Name": "Home Phone",
+			"Hash": "HomePhone",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 3 }
+		},
+		"Contact.CellPhone": {
+			"Name": "Cell Phone",
+			"Hash": "CellPhone",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 3 }
+		},
+		"Contact.Email": {
+			"Name": "Email Address",
+			"Hash": "Email",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 3 }
+		},
+		"Contact.PreferredContact": {
+			"Name": "Preferred Contact Method",
+			"Hash": "PreferredContact",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Contact", "Row": 4, "InputType": "Option", "SelectOptions": [{"id": "phone", "text": "Phone"}, {"id": "email", "text": "Email"}, {"id": "text", "text": "Text Message"}] }
+		},
+		"Emergency.Name": {
+			"Name": "Emergency Contact Name",
+			"Hash": "EmergencyName",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Emergency", "Row": 1 }
+		},
+		"Emergency.Relationship": {
+			"Name": "Relationship",
+			"Hash": "EmergencyRelationship",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Emergency", "Row": 1 }
+		},
+		"Emergency.Phone": {
+			"Name": "Emergency Phone",
+			"Hash": "EmergencyPhone",
+			"DataType": "String",
+			"PictForm": { "Section": "Demographics", "Group": "Emergency", "Row": 1 }
+		},
+		"Insurance.Primary.Carrier": {
+			"Name": "Insurance Carrier",
+			"Hash": "PrimaryCarrier",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 1 }
+		},
+		"Insurance.Primary.PolicyNumber": {
+			"Name": "Policy Number",
+			"Hash": "PrimaryPolicyNumber",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 1 }
+		},
+		"Insurance.Primary.GroupNumber": {
+			"Name": "Group Number",
+			"Hash": "PrimaryGroupNumber",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 1 }
+		},
+		"Insurance.Primary.Subscriber": {
+			"Name": "Subscriber Name",
+			"Hash": "PrimarySubscriber",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 2 }
+		},
+		"Insurance.Primary.SubscriberDOB": {
+			"Name": "Subscriber Date of Birth",
+			"Hash": "PrimarySubscriberDOB",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 2, "InputType": "DateTime" }
+		},
+		"Insurance.Primary.RelationToSubscriber": {
+			"Name": "Relation to Subscriber",
+			"Hash": "PrimaryRelation",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "PrimaryInsurance", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "self", "text": "Self"}, {"id": "spouse", "text": "Spouse"}, {"id": "child", "text": "Child"}, {"id": "other", "text": "Other"}] }
+		},
+		"Insurance.Secondary.Carrier": {
+			"Name": "Secondary Carrier",
+			"Hash": "SecondaryCarrier",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "SecondaryInsurance", "Row": 1 }
+		},
+		"Insurance.Secondary.PolicyNumber": {
+			"Name": "Policy Number",
+			"Hash": "SecondaryPolicyNumber",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "SecondaryInsurance", "Row": 1 }
+		},
+		"Insurance.Secondary.GroupNumber": {
+			"Name": "Group Number",
+			"Hash": "SecondaryGroupNumber",
+			"DataType": "String",
+			"PictForm": { "Section": "Insurance", "Group": "SecondaryInsurance", "Row": 1 }
+		},
+		"Medical.ChiefComplaint": {
+			"Name": "Chief Complaint / Reason for Visit",
+			"Hash": "ChiefComplaint",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 1, "InputType": "TextArea" }
+		},
+		"Medical.OnsetDate": {
+			"Name": "Date of Onset",
+			"Hash": "OnsetDate",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 2, "InputType": "DateTime" }
+		},
+		"Medical.Severity": {
+			"Name": "Severity (1-10)",
+			"Hash": "Severity",
+			"DataType": "Number",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 2 }
+		},
+		"Medical.Diabetes": {
+			"Name": "Diabetes",
+			"Hash": "Diabetes",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 3, "InputType": "Boolean" }
+		},
+		"Medical.Hypertension": {
+			"Name": "Hypertension",
+			"Hash": "Hypertension",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 3, "InputType": "Boolean" }
+		},
+		"Medical.HeartDisease": {
+			"Name": "Heart Disease",
+			"Hash": "HeartDisease",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 3, "InputType": "Boolean" }
+		},
+		"Medical.Asthma": {
+			"Name": "Asthma",
+			"Hash": "Asthma",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 4, "InputType": "Boolean" }
+		},
+		"Medical.Cancer": {
+			"Name": "Cancer",
+			"Hash": "Cancer",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 4, "InputType": "Boolean" }
+		},
+		"Medical.Arthritis": {
+			"Name": "Arthritis",
+			"Hash": "Arthritis",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 4, "InputType": "Boolean" }
+		},
+		"Medical.MentalHealth": {
+			"Name": "Mental Health Conditions",
+			"Hash": "MentalHealth",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "CurrentConditions", "Row": 5, "InputType": "TextArea" }
+		},
+		"Medical.PastSurgery1": {
+			"Name": "Surgery 1 - Procedure",
+			"Hash": "PastSurgery1",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 1 }
+		},
+		"Medical.PastSurgery1Date": {
+			"Name": "Surgery 1 - Date",
+			"Hash": "PastSurgery1Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 1, "InputType": "DateTime" }
+		},
+		"Medical.PastSurgery2": {
+			"Name": "Surgery 2 - Procedure",
+			"Hash": "PastSurgery2",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 2 }
+		},
+		"Medical.PastSurgery2Date": {
+			"Name": "Surgery 2 - Date",
+			"Hash": "PastSurgery2Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 2, "InputType": "DateTime" }
+		},
+		"Medical.PastSurgery3": {
+			"Name": "Surgery 3 - Procedure",
+			"Hash": "PastSurgery3",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 3 }
+		},
+		"Medical.PastSurgery3Date": {
+			"Name": "Surgery 3 - Date",
+			"Hash": "PastSurgery3Date",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "MedicalHistory", "Group": "PastSurgeries", "Row": 3, "InputType": "DateTime" }
+		},
+		"Medical.Allergy1": {
+			"Name": "Allergy 1",
+			"Hash": "Allergy1",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 1 }
+		},
+		"Medical.Allergy1Reaction": {
+			"Name": "Reaction",
+			"Hash": "Allergy1Reaction",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 1 }
+		},
+		"Medical.Allergy1Severity": {
+			"Name": "Severity",
+			"Hash": "Allergy1Severity",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "mild", "text": "Mild"}, {"id": "moderate", "text": "Moderate"}, {"id": "severe", "text": "Severe"}, {"id": "life-threatening", "text": "Life-Threatening"}] }
+		},
+		"Medical.Allergy2": {
+			"Name": "Allergy 2",
+			"Hash": "Allergy2",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 2 }
+		},
+		"Medical.Allergy2Reaction": {
+			"Name": "Reaction",
+			"Hash": "Allergy2Reaction",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 2 }
+		},
+		"Medical.Allergy2Severity": {
+			"Name": "Severity",
+			"Hash": "Allergy2Severity",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "mild", "text": "Mild"}, {"id": "moderate", "text": "Moderate"}, {"id": "severe", "text": "Severe"}, {"id": "life-threatening", "text": "Life-Threatening"}] }
+		},
+		"Medical.Allergy3": {
+			"Name": "Allergy 3",
+			"Hash": "Allergy3",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 3 }
+		},
+		"Medical.Allergy3Reaction": {
+			"Name": "Reaction",
+			"Hash": "Allergy3Reaction",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 3 }
+		},
+		"Medical.Allergy3Severity": {
+			"Name": "Severity",
+			"Hash": "Allergy3Severity",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Allergies", "Row": 3, "InputType": "Option", "SelectOptions": [{"id": "mild", "text": "Mild"}, {"id": "moderate", "text": "Moderate"}, {"id": "severe", "text": "Severe"}, {"id": "life-threatening", "text": "Life-Threatening"}] }
+		},
+		"Medical.Medication1": {
+			"Name": "Medication 1",
+			"Hash": "Medication1",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 1 }
+		},
+		"Medical.Medication1Dose": {
+			"Name": "Dosage",
+			"Hash": "Medication1Dose",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 1 }
+		},
+		"Medical.Medication1Freq": {
+			"Name": "Frequency",
+			"Hash": "Medication1Freq",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 1 }
+		},
+		"Medical.Medication2": {
+			"Name": "Medication 2",
+			"Hash": "Medication2",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 2 }
+		},
+		"Medical.Medication2Dose": {
+			"Name": "Dosage",
+			"Hash": "Medication2Dose",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 2 }
+		},
+		"Medical.Medication2Freq": {
+			"Name": "Frequency",
+			"Hash": "Medication2Freq",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 2 }
+		},
+		"Medical.Medication3": {
+			"Name": "Medication 3",
+			"Hash": "Medication3",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 3 }
+		},
+		"Medical.Medication3Dose": {
+			"Name": "Dosage",
+			"Hash": "Medication3Dose",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 3 }
+		},
+		"Medical.Medication3Freq": {
+			"Name": "Frequency",
+			"Hash": "Medication3Freq",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 3 }
+		},
+		"Medical.Medication4": {
+			"Name": "Medication 4",
+			"Hash": "Medication4",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 4 }
+		},
+		"Medical.Medication4Dose": {
+			"Name": "Dosage",
+			"Hash": "Medication4Dose",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 4 }
+		},
+		"Medical.Medication4Freq": {
+			"Name": "Frequency",
+			"Hash": "Medication4Freq",
+			"DataType": "String",
+			"PictForm": { "Section": "MedicalHistory", "Group": "Medications", "Row": 4 }
+		},
+		"Family.MotherConditions": {
+			"Name": "Mother - Conditions",
+			"Hash": "MotherConditions",
+			"DataType": "String",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 1, "InputType": "TextArea" }
+		},
+		"Family.FatherConditions": {
+			"Name": "Father - Conditions",
+			"Hash": "FatherConditions",
+			"DataType": "String",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 2, "InputType": "TextArea" }
+		},
+		"Family.SiblingConditions": {
+			"Name": "Siblings - Conditions",
+			"Hash": "SiblingConditions",
+			"DataType": "String",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 3, "InputType": "TextArea" }
+		},
+		"Family.GrandparentConditions": {
+			"Name": "Grandparents - Conditions",
+			"Hash": "GrandparentConditions",
+			"DataType": "String",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 4, "InputType": "TextArea" }
+		},
+		"Family.HeartDiseaseHistory": {
+			"Name": "Heart Disease in Family",
+			"Hash": "FamilyHeartDisease",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 5, "InputType": "Boolean" }
+		},
+		"Family.DiabetesHistory": {
+			"Name": "Diabetes in Family",
+			"Hash": "FamilyDiabetes",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 5, "InputType": "Boolean" }
+		},
+		"Family.CancerHistory": {
+			"Name": "Cancer in Family",
+			"Hash": "FamilyCancer",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 5, "InputType": "Boolean" }
+		},
+		"Family.MentalHealthHistory": {
+			"Name": "Mental Health in Family",
+			"Hash": "FamilyMentalHealth",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 6, "InputType": "Boolean" }
+		},
+		"Family.StrokeHistory": {
+			"Name": "Stroke in Family",
+			"Hash": "FamilyStroke",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "FamilyHistory", "Group": "FamilyConditions", "Row": 6, "InputType": "Boolean" }
+		},
+		"Social.SmokingStatus": {
+			"Name": "Smoking Status",
+			"Hash": "SmokingStatus",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 1, "InputType": "Option", "SelectOptions": [{"id": "never", "text": "Never"}, {"id": "former", "text": "Former"}, {"id": "current", "text": "Current"}] }
+		},
+		"Social.PacksPerDay": {
+			"Name": "Packs Per Day",
+			"Hash": "PacksPerDay",
+			"DataType": "Number",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 1 }
+		},
+		"Social.YearsSmoking": {
+			"Name": "Years Smoking",
+			"Hash": "YearsSmoking",
+			"DataType": "Number",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 1 }
+		},
+		"Social.AlcoholUse": {
+			"Name": "Alcohol Use",
+			"Hash": "AlcoholUse",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 2, "InputType": "Option", "SelectOptions": [{"id": "none", "text": "None"}, {"id": "occasional", "text": "Occasional"}, {"id": "moderate", "text": "Moderate"}, {"id": "heavy", "text": "Heavy"}] }
+		},
+		"Social.DrinksPerWeek": {
+			"Name": "Drinks Per Week",
+			"Hash": "DrinksPerWeek",
+			"DataType": "Number",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 2 }
+		},
+		"Social.DrugUse": {
+			"Name": "Recreational Drug Use",
+			"Hash": "DrugUse",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 3, "InputType": "TextArea" }
+		},
+		"Social.ExerciseFrequency": {
+			"Name": "Exercise Frequency",
+			"Hash": "ExerciseFrequency",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 4, "InputType": "Option", "SelectOptions": [{"id": "none", "text": "None"}, {"id": "occasional", "text": "1-2 days/week"}, {"id": "moderate", "text": "3-4 days/week"}, {"id": "frequent", "text": "5+ days/week"}] }
+		},
+		"Social.Diet": {
+			"Name": "Dietary Habits",
+			"Hash": "Diet",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Lifestyle", "Row": 4 }
+		},
+		"Social.Occupation": {
+			"Name": "Occupation",
+			"Hash": "OccupationTitle",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Occupation", "Row": 1 }
+		},
+		"Social.Employer": {
+			"Name": "Employer",
+			"Hash": "Employer",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Occupation", "Row": 1 }
+		},
+		"Social.HazardExposure": {
+			"Name": "Occupational Hazard Exposure",
+			"Hash": "HazardExposure",
+			"DataType": "String",
+			"PictForm": { "Section": "SocialHistory", "Group": "Occupation", "Row": 2, "InputType": "TextArea" }
+		},
+		"ROS.Fatigue": {
+			"Name": "Fatigue",
+			"Hash": "ROSFatigue",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "General", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Fever": {
+			"Name": "Fever",
+			"Hash": "ROSFever",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "General", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.WeightChange": {
+			"Name": "Unexplained Weight Change",
+			"Hash": "ROSWeightChange",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "General", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.NightSweats": {
+			"Name": "Night Sweats",
+			"Hash": "ROSNightSweats",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "General", "Row": 2, "InputType": "Boolean" }
+		},
+		"ROS.ChestPain": {
+			"Name": "Chest Pain",
+			"Hash": "ROSChestPain",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Cardiovascular", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Palpitations": {
+			"Name": "Palpitations",
+			"Hash": "ROSPalpitations",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Cardiovascular", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Edema": {
+			"Name": "Edema / Swelling",
+			"Hash": "ROSEdema",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Cardiovascular", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.ShortnessOfBreath": {
+			"Name": "Shortness of Breath",
+			"Hash": "ROSShortnessOfBreath",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Respiratory", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Cough": {
+			"Name": "Chronic Cough",
+			"Hash": "ROSCough",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Respiratory", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Wheezing": {
+			"Name": "Wheezing",
+			"Hash": "ROSWheezing",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Respiratory", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Nausea": {
+			"Name": "Nausea / Vomiting",
+			"Hash": "ROSNausea",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Gastrointestinal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.AbdominalPain": {
+			"Name": "Abdominal Pain",
+			"Hash": "ROSAbdominalPain",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Gastrointestinal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.BowelChanges": {
+			"Name": "Changes in Bowel Habits",
+			"Hash": "ROSBowelChanges",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Gastrointestinal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.JointPain": {
+			"Name": "Joint Pain",
+			"Hash": "ROSJointPain",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Musculoskeletal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Stiffness": {
+			"Name": "Stiffness",
+			"Hash": "ROSStiffness",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Musculoskeletal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.MuscleWeakness": {
+			"Name": "Muscle Weakness",
+			"Hash": "ROSMuscleWeakness",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Musculoskeletal", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.BackPain": {
+			"Name": "Back Pain",
+			"Hash": "ROSBackPain",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Musculoskeletal", "Row": 2, "InputType": "Boolean" }
+		},
+		"ROS.Headaches": {
+			"Name": "Headaches",
+			"Hash": "ROSHeadaches",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Neurological", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Dizziness": {
+			"Name": "Dizziness",
+			"Hash": "ROSDizziness",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Neurological", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Numbness": {
+			"Name": "Numbness / Tingling",
+			"Hash": "ROSNumbness",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Neurological", "Row": 1, "InputType": "Boolean" }
+		},
+		"ROS.Seizures": {
+			"Name": "Seizures",
+			"Hash": "ROSSeizures",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Neurological", "Row": 2, "InputType": "Boolean" }
+		},
+		"ROS.MemoryLoss": {
+			"Name": "Memory Loss",
+			"Hash": "ROSMemoryLoss",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "ReviewOfSystems", "Group": "Neurological", "Row": 2, "InputType": "Boolean" }
+		},
+		"Consent.TreatmentConsent": {
+			"Name": "I consent to treatment",
+			"Hash": "TreatmentConsent",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "Consent", "Group": "ConsentForms", "Row": 1, "InputType": "Boolean" }
+		},
+		"Consent.PrivacyAcknowledgment": {
+			"Name": "I acknowledge the privacy policy",
+			"Hash": "PrivacyAcknowledgment",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "Consent", "Group": "ConsentForms", "Row": 2, "InputType": "Boolean" }
+		},
+		"Consent.FinancialResponsibility": {
+			"Name": "I accept financial responsibility",
+			"Hash": "FinancialResponsibility",
+			"DataType": "Boolean",
+			"PictForm": { "Section": "Consent", "Group": "ConsentForms", "Row": 3, "InputType": "Boolean" }
+		},
+		"Consent.Signature": {
+			"Name": "Signature",
+			"Hash": "Signature",
+			"DataType": "String",
+			"PictForm": { "Section": "Consent", "Group": "ConsentForms", "Row": 4 }
+		},
+		"Consent.SignatureDate": {
+			"Name": "Date",
+			"Hash": "SignatureDate",
+			"DataType": "DateTime",
+			"PictForm": { "Section": "Consent", "Group": "ConsentForms", "Row": 4, "InputType": "DateTime" }
+		}
+	}
+}
