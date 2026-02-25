@@ -54,7 +54,7 @@ class PictViewFormEditorInlineEditing extends libPictView
 		{
 			// Layout uses a select dropdown
 			// onclick stopPropagation prevents the parent span's onclick from re-calling beginEditProperty
-			let tmpLayouts = ['Record', 'Tabular', 'RecordSet'];
+			let tmpLayouts = ['Record', 'Vertical', 'Tabular', 'RecordSet'];
 			let tmpCommitCall = `${tmpInlineRef}.commitEditProperty('${pType}', ${pSectionIndex}, ${pGroupIndex}, '${pProperty}')`;
 			tmpEditorHTML += `<select class="pict-fe-inline-edit-select" id="${tmpElementId}-Input" onclick="event.stopPropagation()" onchange="${tmpCommitCall}" onblur="setTimeout(function(){${tmpCommitCall}},150)" onkeydown="if(event.key==='Escape'){this.dataset.cancelled='true';this.blur();}">`;
 			for (let i = 0; i < tmpLayouts.length; i++)

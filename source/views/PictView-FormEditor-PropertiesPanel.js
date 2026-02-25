@@ -2650,7 +2650,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpHTML += '<div class="pict-fe-props-field">';
 		tmpHTML += '<div class="pict-fe-props-label">Layout</div>';
 		tmpHTML += `<select class="pict-fe-props-input" onchange="${tmpPanelViewRef}.commitGroupPropertyChange('Layout', this.value)">`;
-		let tmpLayouts = ['Record', 'Tabular', 'RecordSet'];
+		let tmpLayouts = ['Record', 'Vertical', 'Tabular', 'RecordSet'];
 		for (let i = 0; i < tmpLayouts.length; i++)
 		{
 			let tmpSelected = (tmpLayouts[i] === tmpLayout) ? ' selected' : '';
@@ -2692,6 +2692,31 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			}
 			tmpHTML += '</select>';
 			tmpHTML += this._renderRecordManifestSummary(tmpRecordManifest);
+			tmpHTML += '</div>';
+
+			// Row count settings
+			tmpHTML += '<div class="pict-fe-props-section-divider"></div>';
+
+			let tmpMinimumRowCount = (typeof tmpGroup.MinimumRowCount === 'number') ? tmpGroup.MinimumRowCount : '';
+			let tmpMaximumRowCount = (typeof tmpGroup.MaximumRowCount === 'number') ? tmpGroup.MaximumRowCount : '';
+
+			// MinimumRowCount field
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += '<div class="pict-fe-props-label">MinimumRowCount</div>';
+			tmpHTML += `<input class="pict-fe-props-input" type="number" min="0" step="1" value="${this._escapeAttr(String(tmpMinimumRowCount))}" placeholder="e.g. 3" onchange="${tmpPanelViewRef}.commitGroupPropertyChangeNumeric('MinimumRowCount', this.value)" />`;
+			tmpHTML += '</div>';
+
+			// MaximumRowCount field
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += '<div class="pict-fe-props-label">MaximumRowCount</div>';
+			tmpHTML += `<input class="pict-fe-props-input" type="number" min="0" step="1" value="${this._escapeAttr(String(tmpMaximumRowCount))}" placeholder="e.g. 10" onchange="${tmpPanelViewRef}.commitGroupPropertyChangeNumeric('MaximumRowCount', this.value)" />`;
+			tmpHTML += '</div>';
+
+			// DefaultRows field (JSON array of row prototypes)
+			let tmpDefaultRows = Array.isArray(tmpGroup.DefaultRows) ? JSON.stringify(tmpGroup.DefaultRows, null, 2) : '';
+			tmpHTML += '<div class="pict-fe-props-field">';
+			tmpHTML += '<div class="pict-fe-props-label">DefaultRows</div>';
+			tmpHTML += `<textarea class="pict-fe-props-input pict-fe-props-input-mono" rows="4" placeholder="[\n  { &quot;Key&quot;: &quot;Value&quot; }\n]" onchange="${tmpPanelViewRef}.commitGroupPropertyChangeJSON('DefaultRows', this.value)">${this._escapeHTML(tmpDefaultRows)}</textarea>`;
 			tmpHTML += '</div>';
 
 			// RecordSetSolvers
@@ -2791,6 +2816,67 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		this._ParentFormEditor._ManifestOpsProvider.updateGroupProperty(this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex, pProperty, pValue);
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Commit a numeric group property change.
+	 * Converts the value to a number before storing; clears the property when the field is empty.
+	 *
+	 * @param {string} pProperty - e.g. 'MinimumRowCount', 'MaximumRowCount'
+	 * @param {string} pValue - The raw input string
+	 */
+	commitGroupPropertyChangeNumeric(pProperty, pValue)
+	{
+		if (!this._SelectedGroup || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		let tmpValue = parseInt(pValue, 10);
+		if (isNaN(tmpValue) || pValue === '')
+		{
+			// Clear the property when empty or invalid
+			this._ParentFormEditor._ManifestOpsProvider.updateGroupProperty(this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex, pProperty, undefined);
+		}
+		else
+		{
+			this._ParentFormEditor._ManifestOpsProvider.updateGroupProperty(this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex, pProperty, tmpValue);
+		}
+		this._ParentFormEditor.renderVisualEditor();
+	}
+
+	/**
+	 * Commit a JSON group property change.
+	 * Parses the value as JSON before storing; clears the property when empty or invalid.
+	 *
+	 * @param {string} pProperty - e.g. 'DefaultRows'
+	 * @param {string} pValue - The raw JSON string
+	 */
+	commitGroupPropertyChangeJSON(pProperty, pValue)
+	{
+		if (!this._SelectedGroup || !this._ParentFormEditor)
+		{
+			return;
+		}
+
+		if (!pValue || pValue.trim() === '')
+		{
+			this._ParentFormEditor._ManifestOpsProvider.updateGroupProperty(this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex, pProperty, undefined);
+		}
+		else
+		{
+			try
+			{
+				let tmpParsed = JSON.parse(pValue);
+				this._ParentFormEditor._ManifestOpsProvider.updateGroupProperty(this._SelectedGroup.SectionIndex, this._SelectedGroup.GroupIndex, pProperty, tmpParsed);
+			}
+			catch (pError)
+			{
+				this.log.warn(`Invalid JSON for group property ${pProperty}: ${pError.message}`);
+				return;
+			}
+		}
 		this._ParentFormEditor.renderVisualEditor();
 	}
 

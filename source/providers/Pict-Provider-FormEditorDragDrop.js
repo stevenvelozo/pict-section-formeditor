@@ -269,6 +269,38 @@ class FormEditorDragDrop extends libPictProvider
 				}
 				break;
 			}
+			case 'subcolumn':
+			{
+				// Reorder a column within a Tabular/RecordSet group's ReferenceManifest Descriptors.
+				// Indices: [sectionIndex, groupIndex, columnKeyIndex]
+				let tmpRefManifest = this._resolveSubcolumnRefManifest(tmpManifest, tmpSourceIndices);
+				if (!tmpRefManifest)
+				{
+					return;
+				}
+
+				let tmpKeys = Object.keys(tmpRefManifest.Descriptors);
+				let tmpFromIdx = tmpSourceIndices[2];
+				let tmpToIdx = tmpTargetIndices[2];
+
+				if (tmpFromIdx === tmpToIdx || tmpFromIdx < 0 || tmpFromIdx >= tmpKeys.length || tmpToIdx < 0 || tmpToIdx >= tmpKeys.length)
+				{
+					return;
+				}
+
+				let tmpInsertIdx = this._computeInsertIndex(tmpFromIdx, tmpToIdx, true, tmpInsertPosition);
+				let tmpMovedKey = tmpKeys.splice(tmpFromIdx, 1)[0];
+				tmpKeys.splice(tmpInsertIdx, 0, tmpMovedKey);
+
+				// Rebuild the Descriptors object in the new key order
+				let tmpNewDescriptors = {};
+				for (let k = 0; k < tmpKeys.length; k++)
+				{
+					tmpNewDescriptors[tmpKeys[k]] = tmpRefManifest.Descriptors[tmpKeys[k]];
+				}
+				tmpRefManifest.Descriptors = tmpNewDescriptors;
+				break;
+			}
 			default:
 				return;
 		}
@@ -346,6 +378,41 @@ class FormEditorDragDrop extends libPictProvider
 		}
 
 		return tmpLogicalTarget;
+	}
+
+	/**
+	 * Resolve the ReferenceManifest for a subcolumn drag operation.
+	 *
+	 * @param {object} pManifest - The root manifest
+	 * @param {Array} pIndices - [sectionIndex, groupIndex, columnKeyIndex]
+	 * @returns {object|null} The ReferenceManifest, or null if not found
+	 */
+	_resolveSubcolumnRefManifest(pManifest, pIndices)
+	{
+		if (!pManifest || !Array.isArray(pManifest.Sections))
+		{
+			return null;
+		}
+
+		let tmpSection = pManifest.Sections[pIndices[0]];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return null;
+		}
+
+		let tmpGroup = tmpSection.Groups[pIndices[1]];
+		if (!tmpGroup || !tmpGroup.RecordManifest)
+		{
+			return null;
+		}
+
+		let tmpRefManifest = this._ParentFormEditor._ManifestOpsProvider._resolveReferenceManifest(tmpGroup.RecordManifest);
+		if (!tmpRefManifest || !tmpRefManifest.Descriptors || typeof tmpRefManifest.Descriptors !== 'object')
+		{
+			return null;
+		}
+
+		return tmpRefManifest;
 	}
 
 	/**
@@ -541,6 +608,37 @@ class FormEditorDragDrop extends libPictProvider
 					tmpDescriptor.PictForm.Group = tmpTargetGroup.Hash || '';
 					tmpDescriptor.PictForm.Row = tmpContainerIndices[2] + 1;
 				}
+				break;
+			}
+			case 'subcolumn':
+			{
+				// Container is a Tabular/RecordSet group; indices = [sectionIndex, groupIndex]
+				// Move the subcolumn to the end of the Descriptors object
+				let tmpRefManifest = this._resolveSubcolumnRefManifest(tmpManifest, tmpSourceIndices);
+				if (!tmpRefManifest)
+				{
+					return;
+				}
+
+				let tmpKeys = Object.keys(tmpRefManifest.Descriptors);
+				let tmpFromIdx = tmpSourceIndices[2];
+
+				if (tmpFromIdx < 0 || tmpFromIdx >= tmpKeys.length)
+				{
+					return;
+				}
+
+				// Move the key to the end
+				let tmpMovedKey = tmpKeys.splice(tmpFromIdx, 1)[0];
+				tmpKeys.push(tmpMovedKey);
+
+				// Rebuild the Descriptors object in the new key order
+				let tmpNewDescriptors = {};
+				for (let k = 0; k < tmpKeys.length; k++)
+				{
+					tmpNewDescriptors[tmpKeys[k]] = tmpRefManifest.Descriptors[tmpKeys[k]];
+				}
+				tmpRefManifest.Descriptors = tmpNewDescriptors;
 				break;
 			}
 			default:

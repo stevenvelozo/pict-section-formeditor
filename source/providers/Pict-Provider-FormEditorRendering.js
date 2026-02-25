@@ -291,7 +291,7 @@ class FormEditorRendering extends libPictProvider
 		tmpHTML += '</div>';
 
 		// Group body — render based on layout type
-		if (tmpCurrentLayout === 'Record')
+		if (tmpCurrentLayout === 'Record' || tmpCurrentLayout === 'Vertical')
 		{
 			tmpHTML += this._renderGroupBody(pGroup, pSectionIndex, pGroupIndex);
 		}
@@ -442,7 +442,7 @@ class FormEditorRendering extends libPictProvider
 			let tmpColumnKeys = Object.keys(tmpDescriptors);
 			if (tmpColumnKeys.length > 0)
 			{
-				tmpHTML += '<div class="pict-fe-tabular-columns-list">';
+				tmpHTML += `<div class="pict-fe-tabular-columns-list"${tmpParent._DragDropProvider._buildContainerDropAttributes('subcolumn', [pSectionIndex, pGroupIndex])}>`;
 				for (let c = 0; c < tmpColumnKeys.length; c++)
 				{
 					tmpHTML += this._renderSubmanifestColumn(
@@ -506,7 +506,7 @@ class FormEditorRendering extends libPictProvider
 				tmpHTML += '</div>';
 
 				// Columns as input cards
-				tmpHTML += '<div class="pict-fe-row-inputs">';
+				tmpHTML += `<div class="pict-fe-row-inputs"${tmpParent._DragDropProvider._buildContainerDropAttributes('subcolumn', [pSectionIndex, pGroupIndex])}>`;
 				for (let c = 0; c < tmpColumns.length; c++)
 				{
 					tmpHTML += this._renderSubmanifestColumn(
@@ -584,7 +584,8 @@ class FormEditorRendering extends libPictProvider
 		let tmpEscapedAddress = tmpParent._UtilitiesProvider._escapeAttr(pColumnAddress).replace(/'/g, "\\'");
 
 		let tmpHTML = '';
-		tmpHTML += `<div class="pict-fe-input${tmpSelectedClass}" id="FormEditor-SubCol-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${pColumnIndex}" title="${tmpTooltip}" onclick="${tmpViewRef}._ManifestOpsProvider.selectSubmanifestColumn(${pSectionIndex}, ${pGroupIndex}, '${tmpEscapedAddress}')">`;
+		tmpHTML += `<div class="pict-fe-input${tmpSelectedClass}" id="FormEditor-SubCol-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${pColumnIndex}" title="${tmpTooltip}"${tmpParent._DragDropProvider._buildDragAttributes('subcolumn', [pSectionIndex, pGroupIndex, pColumnIndex])} onclick="${tmpViewRef}._ManifestOpsProvider.selectSubmanifestColumn(${pSectionIndex}, ${pGroupIndex}, '${tmpEscapedAddress}')">`;
+		tmpHTML += tmpParent._DragDropProvider._buildDragHandleHTML(10);
 		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-datatype">${tmpDataTypeIconHTML}</span>`;
 		tmpHTML += `<span class="pict-fe-input-ordinal">${tmpOrdinal}</span>`;
 		tmpHTML += `<span class="pict-fe-input-name">${tmpParent._UtilitiesProvider._escapeHTML(tmpParent._UtilitiesProvider._truncateMiddle(tmpDisplayText, 20))}</span>`;
