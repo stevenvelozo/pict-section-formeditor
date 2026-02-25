@@ -26,13 +26,13 @@
     "dependencies": {
         "pict-section-code": "^1.0.2",
         "pict-section-content": "^0.0.6",
-        "pict-section-form": "^1.0.190",
+        "pict-section-form": "^1.0.192",
         "pict-section-markdowneditor": "^1.0.0",
         "pict-section-objecteditor": "^1.0.0",
         "pict-view": "^1.0.66"
     },
     "devDependencies": {
-        "pict": "^1.0.351",
+        "pict": "^1.0.353",
         "quackage": "^1.0.56"
     },
     "mocha": {
