@@ -32,7 +32,7 @@
         "pict-view": "^1.0.66"
     },
     "devDependencies": {
-        "pict": "^1.0.353",
+        "pict": "^1.0.354",
         "quackage": "^1.0.56"
     },
     "mocha": {
