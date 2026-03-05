@@ -10,8 +10,8 @@ module.exports = (
 	// Address in AppData where the form configuration manifest lives
 	ManifestDataAddress: false,
 
-	// Which tab is active by default: 'visual', 'objecteditor', 'json'
-	ActiveTab: 'visual',
+	// Which tab is active by default: 'formoverview', 'visual', 'objecteditor', 'json', etc.
+	ActiveTab: 'formoverview',
 
 	// Extended descriptor properties to display in the Input properties panel.
 	// Each entry defines a custom field that maps to a dot-notation address
@@ -3740,6 +3740,258 @@ module.exports = (
 .pict-fe-help-body .pict-content-code-wrap .attr-name { color: #986801 !important; }
 .pict-fe-help-body .pict-content .pict-content-code-wrap .attr-value,
 .pict-fe-help-body .pict-content-code-wrap .attr-value { color: #50A14F !important; }
+
+/* ---- JSON Tab Header ---- */
+.pict-fe-json-header
+{
+	display: flex;
+	align-items: center;
+	padding: 6px 12px;
+	border-bottom: 1px solid #E8E0D4;
+	background: #FDFCFA;
+}
+.pict-fe-json-readonly-label
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: #3D3229;
+	cursor: pointer;
+	user-select: none;
+}
+.pict-fe-json-readonly-label input[type="checkbox"]
+{
+	cursor: pointer;
+}
+
+/* ---- Form Overview Tab ---- */
+.pict-fe-overview-header
+{
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	border-bottom: 1px solid #E8E0D4;
+}
+.pict-fe-overview-title
+{
+	font-size: 15px;
+	font-weight: 600;
+	color: #3D3229;
+}
+.pict-fe-overview-labels
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 6px 2px 6px;
+}
+.pict-fe-overview-label
+{
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: #8A7F72;
+	padding: 0 6px;
+}
+.pict-fe-overview-actions-spacer
+{
+	width: 64px;
+	flex-shrink: 0;
+}
+.pict-fe-overview-tree
+{
+	display: flex;
+	flex-direction: column;
+	padding: 4px 6px;
+}
+.pict-fe-overview-row
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 6px;
+	border-radius: 3px;
+	transition: background 0.1s;
+}
+.pict-fe-overview-row:hover
+{
+	background: #F5F0E8;
+}
+.pict-fe-overview-section
+{
+	font-weight: 600;
+	margin-top: 6px;
+}
+.pict-fe-overview-section:first-child
+{
+	margin-top: 0;
+}
+.pict-fe-overview-group
+{
+	font-weight: 500;
+}
+.pict-fe-overview-input
+{
+	font-weight: 400;
+}
+.pict-fe-overview-indent
+{
+	flex-shrink: 0;
+}
+.pict-fe-overview-depth-0
+{
+	width: 0px;
+}
+.pict-fe-overview-depth-1
+{
+	width: 20px;
+	border-left: 2px solid #E8E0D4;
+	margin-left: 6px;
+	height: 100%;
+}
+.pict-fe-overview-depth-2
+{
+	width: 40px;
+	border-left: 2px solid #E8E0D4;
+	margin-left: 26px;
+	height: 100%;
+}
+.pict-fe-overview-icon
+{
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	width: 16px;
+}
+.pict-fe-overview-field
+{
+	padding: 3px 6px;
+	border: 1px solid #E8E3DA;
+	border-radius: 3px;
+	font-size: 12px;
+	font-family: inherit;
+	color: #3D3229;
+	background: #FFF;
+	box-sizing: border-box;
+	transition: border-color 0.15s, box-shadow 0.15s;
+	min-width: 0;
+}
+.pict-fe-overview-field:focus
+{
+	outline: none;
+	border-color: #9E6B47;
+	box-shadow: 0 0 0 2px rgba(158, 107, 71, 0.15);
+}
+.pict-fe-overview-field-name
+{
+	flex: 2;
+	min-width: 80px;
+}
+.pict-fe-overview-field-hash
+{
+	flex: 2;
+	min-width: 60px;
+	font-family: monospace;
+	font-size: 11px;
+	color: #8A7F72;
+}
+.pict-fe-overview-field-address
+{
+	flex: 3;
+	min-width: 80px;
+	font-family: monospace;
+	font-size: 11px;
+	color: #6B7F5A;
+}
+.pict-fe-overview-actions
+{
+	display: flex;
+	gap: 4px;
+	flex-shrink: 0;
+}
+.pict-fe-overview-empty
+{
+	padding: 24px;
+	text-align: center;
+	color: #8A7F72;
+	font-size: 13px;
+}
+.pict-fe-overview-empty-inline
+{
+	color: #8A7F72;
+	font-size: 12px;
+	font-style: italic;
+	padding: 4px 0;
+}
+.pict-fe-overview-row-separator
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 6px;
+	margin-top: 2px;
+}
+.pict-fe-overview-row-separator-label
+{
+	font-size: 10px;
+	color: #8A7F72;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	white-space: nowrap;
+	font-weight: 600;
+}
+.pict-fe-overview-row-separator-line
+{
+	flex: 1;
+	height: 1px;
+	background: #D4C9B8;
+	border: none;
+}
+.pict-fe-overview-column
+{
+	font-weight: 400;
+}
+.pict-fe-overview-layout-badge
+{
+	display: inline-block;
+	font-size: 10px;
+	padding: 1px 6px;
+	border-radius: 3px;
+	background: #E8E0D4;
+	color: #6B5D4F;
+	white-space: nowrap;
+	font-weight: 600;
+}
+.pict-fe-overview-column-empty
+{
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 6px;
+}
+.pict-fe-overview-row[draggable]
+{
+	cursor: grab;
+}
+.pict-fe-overview-row[draggable]:active
+{
+	cursor: grabbing;
+}
+.pict-fe-overview-dragging
+{
+	opacity: 0.4;
+}
+.pict-fe-overview-drop-above
+{
+	border-top: 2px solid #8B6914;
+}
+.pict-fe-overview-drop-below
+{
+	border-bottom: 2px solid #8B6914;
+}
 `,
 
 	Templates:

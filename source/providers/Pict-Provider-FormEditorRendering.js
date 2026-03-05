@@ -22,15 +22,17 @@ class FormEditorRendering extends libPictProvider
 
 		// Tab bar
 		tmpHTML += '<div class="pict-fe-tabbar">';
-		tmpHTML += `<button class="pict-fe-tab pict-fe-tab-active" id="FormEditor-Tab-Visual-${tmpHash}" onclick="${tmpViewRef}.switchTab('visual')">Visual Editor</button>`;
+		tmpHTML += `<button class="pict-fe-tab pict-fe-tab-active" id="FormEditor-Tab-FormOverview-${tmpHash}" onclick="${tmpViewRef}.switchTab('formoverview')">Form Overview</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Visual-${tmpHash}" onclick="${tmpViewRef}.switchTab('visual')">Visual Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-SolverEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('solvereditor')">Solver Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Solvers-${tmpHash}" onclick="${tmpViewRef}.switchTab('solvers')">Solvers</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ListData-${tmpHash}" onclick="${tmpViewRef}.switchTab('listdata')">List Data</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-EntityData-${tmpHash}" onclick="${tmpViewRef}.switchTab('entitydata')">Providers</button>`;
-		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ObjectEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('objecteditor')">Object Editor</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-JSON-${tmpHash}" onclick="${tmpViewRef}.switchTab('json')">JSON</button>`;
 		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Import-${tmpHash}" onclick="${tmpViewRef}.switchTab('import')">Import</button>`;
-		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Preview-${tmpHash}" onclick="${tmpViewRef}.switchTab('preview')">Preview</button>`;
+		// Object Editor and Preview tabs are hidden by default but panels remain for programmatic access
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-ObjectEditor-${tmpHash}" onclick="${tmpViewRef}.switchTab('objecteditor')" style="display:none;">Object Editor</button>`;
+		tmpHTML += `<button class="pict-fe-tab" id="FormEditor-Tab-Preview-${tmpHash}" onclick="${tmpViewRef}.switchTab('preview')" style="display:none;">Preview</button>`;
 		tmpHTML += '</div>';
 
 		// Editor layout: tab content panels + resize handle + properties panel
@@ -39,8 +41,13 @@ class FormEditorRendering extends libPictProvider
 		// Tab content panels (stacked, only one active at a time)
 		tmpHTML += '<div class="pict-fe-editor-content">';
 
+		// Form Overview panel
+		tmpHTML += `<div class="pict-fe-tabcontent pict-fe-tabcontent-active" id="FormEditor-Panel-FormOverview-${tmpHash}">`;
+		tmpHTML += `<div id="FormEditor-FormOverviewTab-Container-${tmpHash}"></div>`;
+		tmpHTML += '</div>';
+
 		// Visual editor panel
-		tmpHTML += `<div class="pict-fe-tabcontent pict-fe-tabcontent-active" id="FormEditor-Panel-Visual-${tmpHash}"></div>`;
+		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-Visual-${tmpHash}"></div>`;
 
 		// Solver editor tab panel
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-SolverEditor-${tmpHash}">`;
@@ -69,6 +76,9 @@ class FormEditorRendering extends libPictProvider
 
 		// JSON panel
 		tmpHTML += `<div class="pict-fe-tabcontent" id="FormEditor-Panel-JSON-${tmpHash}">`;
+		tmpHTML += '<div class="pict-fe-json-header">';
+		tmpHTML += `<label class="pict-fe-json-readonly-label"><input type="checkbox" id="FormEditor-JSON-ReadOnly-${tmpHash}" checked onchange="${tmpViewRef}._toggleJSONReadOnly(this.checked)" /> Read Only</label>`;
+		tmpHTML += '</div>';
 		tmpHTML += `<div id="FormEditor-CodeEditor-Container-${tmpHash}"></div>`;
 		tmpHTML += '</div>';
 
@@ -661,6 +671,262 @@ class FormEditorRendering extends libPictProvider
 				tmpDropZone.addEventListener('click', () => { tmpFileInput.click(); });
 			}
 		}
+	}
+
+	renderFormOverviewTabPanel()
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+		let tmpManifest = tmpParent._resolveManifestData();
+
+		if (!tmpManifest)
+		{
+			return;
+		}
+
+		// Ensure Groups are populated on Sections (they may be auto-generated from Descriptors)
+		tmpParent._ManifestOpsProvider._ensureSectionGroups();
+
+		let tmpHTML = '';
+
+		// Header
+		tmpHTML += '<div class="pict-fe-overview-header">';
+		tmpHTML += '<div class="pict-fe-overview-title">Form Overview</div>';
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-primary" onclick="${tmpViewRef}._formOverviewAddSection()">`;
+		tmpHTML += `<span class="pict-fe-icon pict-fe-icon-add">${tmpParent._IconographyProvider.getIcon('Action', 'Add', 12)}</span> Add Section</button>`;
+		tmpHTML += '</div>';
+
+		// Column labels
+		tmpHTML += '<div class="pict-fe-overview-labels">';
+		tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-0"></span>';
+		tmpHTML += '<span class="pict-fe-overview-icon"></span>';
+		tmpHTML += '<span class="pict-fe-overview-label pict-fe-overview-field-name">Name</span>';
+		tmpHTML += '<span class="pict-fe-overview-label pict-fe-overview-field-hash">Hash</span>';
+		tmpHTML += '<span class="pict-fe-overview-label pict-fe-overview-field-address">Address</span>';
+		tmpHTML += '<span class="pict-fe-overview-actions-spacer"></span>';
+		tmpHTML += '</div>';
+
+		// Tree body
+		tmpHTML += '<div class="pict-fe-overview-tree">';
+
+		let tmpSections = tmpManifest.Sections;
+		if (!Array.isArray(tmpSections) || tmpSections.length === 0)
+		{
+			tmpHTML += '<div class="pict-fe-overview-empty">No sections defined. Click "Add Section" to begin.</div>';
+		}
+		else
+		{
+			for (let i = 0; i < tmpSections.length; i++)
+			{
+				tmpHTML += this._renderOverviewSection(tmpSections[i], i, tmpManifest);
+			}
+		}
+
+		tmpHTML += '</div>'; // overview-tree
+
+		this.pict.ContentAssignment.assignContent(`#FormEditor-FormOverviewTab-Container-${tmpHash}`, tmpHTML);
+	}
+
+	_renderOverviewSection(pSection, pSectionIndex, pManifest)
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+
+		let tmpSName = tmpParent._UtilitiesProvider._escapeAttr(pSection.Name || '');
+		let tmpSHash = tmpParent._UtilitiesProvider._escapeAttr(pSection.Hash || '');
+
+		let tmpHTML = '';
+
+		// Section row
+		tmpHTML += `<div class="pict-fe-overview-row pict-fe-overview-section" draggable="true" ondragstart="${tmpViewRef}._formOverviewDragStart(event,'section',${pSectionIndex})" ondragover="${tmpViewRef}._formOverviewDragOver(event,'section',${pSectionIndex})" ondrop="${tmpViewRef}._formOverviewDrop(event,'section',${pSectionIndex})" ondragend="${tmpViewRef}._formOverviewDragEnd(event)">`;
+		tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-0"></span>';
+		tmpHTML += `<span class="pict-fe-overview-icon">${tmpParent._IconographyProvider.getIcon('Section', 'Default', 14)}</span>`;
+		tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-name" id="FormEditor-Overview-Section-Name-${tmpHash}-${pSectionIndex}" type="text" value="${tmpSName}" placeholder="Section Name" onblur="${tmpViewRef}._formOverviewCommitField('section',${pSectionIndex},-1,-1,'Name',this.value)" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'section',${pSectionIndex},-1,-1,'Name')" />`;
+		tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-hash" id="FormEditor-Overview-Section-Hash-${tmpHash}-${pSectionIndex}" type="text" value="${tmpSHash}" placeholder="Hash" onblur="${tmpViewRef}._formOverviewCommitField('section',${pSectionIndex},-1,-1,'Hash',this.value)" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'section',${pSectionIndex},-1,-1,'Hash')" />`;
+		tmpHTML += '<span class="pict-fe-overview-field-address"></span>'; // empty spacer to keep columns aligned
+		tmpHTML += '<div class="pict-fe-overview-actions">';
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}._formOverviewAddGroup(${pSectionIndex})" title="Add Group">+ Group</button>`;
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger" onclick="${tmpViewRef}._formOverviewRemoveSection(${pSectionIndex})" title="Remove section">\u00D7</button>`;
+		tmpHTML += '</div>';
+		tmpHTML += '</div>';
+
+		// Groups for this section
+		let tmpGroups = pSection.Groups;
+		if (Array.isArray(tmpGroups))
+		{
+			for (let j = 0; j < tmpGroups.length; j++)
+			{
+				tmpHTML += this._renderOverviewGroup(tmpGroups[j], pSectionIndex, j, pManifest);
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	_renderOverviewGroup(pGroup, pSectionIndex, pGroupIndex, pManifest)
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+
+		let tmpGName = tmpParent._UtilitiesProvider._escapeAttr(pGroup.Name || '');
+		let tmpGHash = tmpParent._UtilitiesProvider._escapeAttr(pGroup.Hash || '');
+
+		let tmpIsTabular = (pGroup.Layout === 'Tabular' || pGroup.Layout === 'RecordSet');
+
+		let tmpHTML = '';
+
+		// Group row
+		tmpHTML += `<div class="pict-fe-overview-row pict-fe-overview-group" draggable="true" ondragstart="${tmpViewRef}._formOverviewDragStart(event,'group',${pSectionIndex},${pGroupIndex})" ondragover="${tmpViewRef}._formOverviewDragOver(event,'group',${pSectionIndex},${pGroupIndex})" ondrop="${tmpViewRef}._formOverviewDrop(event,'group',${pSectionIndex},${pGroupIndex})" ondragend="${tmpViewRef}._formOverviewDragEnd(event)">`;
+		tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-1"></span>';
+		tmpHTML += `<span class="pict-fe-overview-icon">${tmpParent._IconographyProvider.getIcon('Group', 'Default', 14)}</span>`;
+		tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-name" id="FormEditor-Overview-Group-Name-${tmpHash}-${pSectionIndex}-${pGroupIndex}" type="text" value="${tmpGName}" placeholder="Group Name" onblur="${tmpViewRef}._formOverviewCommitField('group',${pSectionIndex},${pGroupIndex},-1,'Name',this.value)" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'group',${pSectionIndex},${pGroupIndex},-1,'Name')" />`;
+		tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-hash" id="FormEditor-Overview-Group-Hash-${tmpHash}-${pSectionIndex}-${pGroupIndex}" type="text" value="${tmpGHash}" placeholder="Hash" onblur="${tmpViewRef}._formOverviewCommitField('group',${pSectionIndex},${pGroupIndex},-1,'Hash',this.value)" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'group',${pSectionIndex},${pGroupIndex},-1,'Hash')" />`;
+		tmpHTML += '<span class="pict-fe-overview-field-address"></span>'; // empty spacer
+		tmpHTML += '<div class="pict-fe-overview-actions">';
+		if (tmpIsTabular)
+		{
+			tmpHTML += `<span class="pict-fe-overview-layout-badge">\u229E ${pGroup.Layout}</span>`;
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}._formOverviewAddColumn(${pSectionIndex},${pGroupIndex})" title="Add Column">+ Col</button>`;
+		}
+		else
+		{
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}._formOverviewAddRow(${pSectionIndex},${pGroupIndex})" title="Add Row">+ Row</button>`;
+		}
+		tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger" onclick="${tmpViewRef}._formOverviewRemoveGroup(${pSectionIndex},${pGroupIndex})" title="Remove group">\u00D7</button>`;
+		tmpHTML += '</div>';
+		tmpHTML += '</div>';
+
+		if (tmpIsTabular)
+		{
+			// Tabular/RecordSet group: render columns from the ReferenceManifest
+			tmpHTML += this._renderOverviewTabularColumns(pGroup, pSectionIndex, pGroupIndex);
+		}
+		else
+		{
+			// Regular group: render inputs grouped by rows
+			tmpHTML += this._renderOverviewGroupInputs(pGroup, pSectionIndex, pGroupIndex, pManifest);
+		}
+
+		return tmpHTML;
+	}
+
+	_renderOverviewGroupInputs(pGroup, pSectionIndex, pGroupIndex, pManifest)
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+
+		let tmpHTML = '';
+
+		// Inputs for this group (derived from Descriptors via rows)
+		let tmpRows = tmpParent._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		for (let k = 0; k < tmpRows.length; k++)
+		{
+			let tmpRow = tmpRows[k];
+			if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+			{
+				continue;
+			}
+
+			// Row separator
+			tmpHTML += '<div class="pict-fe-overview-row-separator">';
+			tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-2"></span>';
+			tmpHTML += `<span class="pict-fe-overview-row-separator-label">Row ${k + 1}</span>`;
+			tmpHTML += '<span class="pict-fe-overview-row-separator-line"></span>';
+			tmpHTML += '<div class="pict-fe-overview-actions">';
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm" onclick="${tmpViewRef}._formOverviewAddInputToRow(${pSectionIndex},${pGroupIndex},${k})" title="Add input to this row">+ Input</button>`;
+			tmpHTML += '</div>';
+			tmpHTML += '</div>';
+
+			for (let m = 0; m < tmpRow.Inputs.length; m++)
+			{
+				let tmpAddress = tmpRow.Inputs[m];
+				let tmpDescriptor = (pManifest.Descriptors && pManifest.Descriptors[tmpAddress]) ? pManifest.Descriptors[tmpAddress] : null;
+				let tmpIName = tmpParent._UtilitiesProvider._escapeAttr(tmpDescriptor ? (tmpDescriptor.Name || '') : '');
+				let tmpIHash = tmpParent._UtilitiesProvider._escapeAttr(tmpDescriptor ? (tmpDescriptor.Hash || tmpAddress) : tmpAddress);
+				let tmpIAddr = tmpParent._UtilitiesProvider._escapeAttr(tmpAddress);
+
+				tmpHTML += `<div class="pict-fe-overview-row pict-fe-overview-input" draggable="true" ondragstart="${tmpViewRef}._formOverviewDragStart(event,'input',${pSectionIndex},${pGroupIndex},${k},${m})" ondragover="${tmpViewRef}._formOverviewDragOver(event,'input',${pSectionIndex},${pGroupIndex},${k},${m})" ondrop="${tmpViewRef}._formOverviewDrop(event,'input',${pSectionIndex},${pGroupIndex},${k},${m})" ondragend="${tmpViewRef}._formOverviewDragEnd(event)">`;
+				tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-2"></span>';
+				let tmpType = tmpDescriptor ? (tmpDescriptor.DataType || 'String') : 'String';
+				let tmpDTIcon = tmpParent._IconographyProvider.getDataTypeIcon(tmpType, 12);
+				if (!tmpDTIcon)
+				{
+					tmpDTIcon = tmpParent._IconographyProvider.getIcon('Input', 'Default', 12);
+				}
+				tmpHTML += `<span class="pict-fe-overview-icon">${tmpDTIcon}</span>`;
+				tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-name" id="FormEditor-Overview-Input-Name-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${k}-${m}" type="text" value="${tmpIName}" placeholder="Input Name" onblur="${tmpViewRef}._formOverviewCommitField('input',${pSectionIndex},${pGroupIndex},${k},'Name',this.value,${m})" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'input',${pSectionIndex},${pGroupIndex},${k},'Name',${m})" />`;
+				tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-hash" id="FormEditor-Overview-Input-Hash-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${k}-${m}" type="text" value="${tmpIHash}" placeholder="Hash" onblur="${tmpViewRef}._formOverviewCommitField('input',${pSectionIndex},${pGroupIndex},${k},'Hash',this.value,${m})" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'input',${pSectionIndex},${pGroupIndex},${k},'Hash',${m})" />`;
+				tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-address" id="FormEditor-Overview-Input-Address-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${k}-${m}" type="text" value="${tmpIAddr}" placeholder="Data Address" onblur="${tmpViewRef}._formOverviewCommitField('input',${pSectionIndex},${pGroupIndex},${k},'Address',this.value,${m})" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'input',${pSectionIndex},${pGroupIndex},${k},'Address',${m})" />`;
+				tmpHTML += '<div class="pict-fe-overview-actions">';
+				tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger" onclick="${tmpViewRef}._formOverviewRemoveInput(${pSectionIndex},${pGroupIndex},${k},${m})" title="Remove input">\u00D7</button>`;
+				tmpHTML += '</div>';
+				tmpHTML += '</div>';
+			}
+		}
+
+		return tmpHTML;
+	}
+
+	_renderOverviewTabularColumns(pGroup, pSectionIndex, pGroupIndex)
+	{
+		let tmpParent = this._ParentFormEditor;
+		let tmpHash = tmpParent.Hash;
+		let tmpViewRef = tmpParent._browserViewRef();
+
+		let tmpHTML = '';
+
+		if (!pGroup.RecordManifest)
+		{
+			tmpHTML += '<div class="pict-fe-overview-row pict-fe-overview-column-empty">';
+			tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-2"></span>';
+			tmpHTML += '<span class="pict-fe-overview-empty-inline">(No manifest bound)</span>';
+			tmpHTML += '</div>';
+			return tmpHTML;
+		}
+
+		let tmpRefManifest = tmpParent._ManifestOpsProvider._resolveReferenceManifest(pGroup.RecordManifest);
+		if (!tmpRefManifest || !tmpRefManifest.Descriptors)
+		{
+			tmpHTML += '<div class="pict-fe-overview-row pict-fe-overview-column-empty">';
+			tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-2"></span>';
+			tmpHTML += `<span class="pict-fe-overview-empty-inline">(Manifest "${pGroup.RecordManifest}" not found)</span>`;
+			tmpHTML += '</div>';
+			return tmpHTML;
+		}
+
+		let tmpColumnAddresses = Object.keys(tmpRefManifest.Descriptors);
+		for (let c = 0; c < tmpColumnAddresses.length; c++)
+		{
+			let tmpColAddr = tmpColumnAddresses[c];
+			let tmpColDesc = tmpRefManifest.Descriptors[tmpColAddr];
+			let tmpColName = tmpParent._UtilitiesProvider._escapeAttr(tmpColDesc ? (tmpColDesc.Name || '') : '');
+			let tmpColHash = tmpParent._UtilitiesProvider._escapeAttr(tmpColDesc ? (tmpColDesc.Hash || tmpColAddr) : tmpColAddr);
+			let tmpEscColAddr = tmpParent._UtilitiesProvider._escapeAttr(tmpColAddr);
+
+			tmpHTML += `<div class="pict-fe-overview-row pict-fe-overview-column" draggable="true" ondragstart="${tmpViewRef}._formOverviewDragStart(event,'column',${pSectionIndex},${pGroupIndex},0,${c})" ondragover="${tmpViewRef}._formOverviewDragOver(event,'column',${pSectionIndex},${pGroupIndex},0,${c})" ondrop="${tmpViewRef}._formOverviewDrop(event,'column',${pSectionIndex},${pGroupIndex},0,${c})" ondragend="${tmpViewRef}._formOverviewDragEnd(event)">`;
+			tmpHTML += '<span class="pict-fe-overview-indent pict-fe-overview-depth-2"></span>';
+
+			let tmpType = tmpColDesc ? (tmpColDesc.DataType || 'String') : 'String';
+			let tmpDTIcon = tmpParent._IconographyProvider.getDataTypeIcon(tmpType, 12);
+			if (!tmpDTIcon)
+			{
+				tmpDTIcon = tmpParent._IconographyProvider.getIcon('Input', 'Default', 12);
+			}
+			tmpHTML += `<span class="pict-fe-overview-icon">${tmpDTIcon}</span>`;
+			tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-name" id="FormEditor-Overview-Column-Name-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${c}" type="text" value="${tmpColName}" placeholder="Column Name" onblur="${tmpViewRef}._formOverviewCommitField('column',${pSectionIndex},${pGroupIndex},-1,'Name',this.value,${c})" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'column',${pSectionIndex},${pGroupIndex},-1,'Name',${c})" />`;
+			tmpHTML += `<input class="pict-fe-overview-field pict-fe-overview-field-hash" id="FormEditor-Overview-Column-Hash-${tmpHash}-${pSectionIndex}-${pGroupIndex}-${c}" type="text" value="${tmpColHash}" placeholder="Hash" onblur="${tmpViewRef}._formOverviewCommitField('column',${pSectionIndex},${pGroupIndex},-1,'Hash',this.value,${c})" onkeydown="${tmpViewRef}._formOverviewHandleKeydown(event,'column',${pSectionIndex},${pGroupIndex},-1,'Hash',${c})" />`;
+			tmpHTML += '<span class="pict-fe-overview-field-address"></span>'; // spacer — columns use Descriptor key as address
+			tmpHTML += '<div class="pict-fe-overview-actions">';
+			tmpHTML += `<button class="pict-fe-btn pict-fe-btn-sm pict-fe-btn-danger" onclick="${tmpViewRef}._formOverviewRemoveColumn(${pSectionIndex},${pGroupIndex},'${tmpEscColAddr}')" title="Remove column">\u00D7</button>`;
+			tmpHTML += '</div>';
+			tmpHTML += '</div>';
+		}
+
+		return tmpHTML;
 	}
 
 	_renderRow(pRow, pSectionIndex, pGroupIndex, pRowIndex)

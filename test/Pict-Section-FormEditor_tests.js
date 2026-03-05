@@ -156,7 +156,7 @@ suite
 						Expect(tmpView._CodeEditorView).to.be.an('object');
 						Expect(tmpView._CodeEditorView.options.Language).to.equal('json');
 						Expect(tmpView._CodeEditorView.options.LineNumbers).to.equal(true);
-						Expect(tmpView._CodeEditorView.options.ReadOnly).to.equal(false);
+						Expect(tmpView._CodeEditorView.options.ReadOnly).to.equal(true);
 					}
 				);
 				test
@@ -1411,7 +1411,7 @@ suite
 							ManifestDataAddress: 'AppData.FormConfig'
 						}, libPictSectionFormEditor);
 
-						Expect(tmpView._ActiveTab).to.equal('visual');
+						Expect(tmpView._ActiveTab).to.equal('formoverview');
 					}
 				);
 				test

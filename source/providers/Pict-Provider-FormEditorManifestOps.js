@@ -1407,6 +1407,35 @@ class FormEditorManifestOps extends libPictProvider
 	}
 
 	/**
+	 * Normalize row numbers across all groups in the manifest.
+	 * Fixes gaps in row numbering (e.g. rows 5, 8, 12 become 1, 2, 3).
+	 * Called after importing or pasting JSON to clean up messy manifests.
+	 */
+	normalizeAllRowNumbers()
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return;
+		}
+
+		this._ensureSectionGroups();
+
+		for (let i = 0; i < tmpManifest.Sections.length; i++)
+		{
+			let tmpSection = tmpManifest.Sections[i];
+			if (!tmpSection || !Array.isArray(tmpSection.Groups))
+			{
+				continue;
+			}
+			for (let j = 0; j < tmpSection.Groups.length; j++)
+			{
+				this._reindexGroupRows(i, j);
+			}
+		}
+	}
+
+	/**
 	 * Swap two Descriptor keys in the manifest's Descriptors object to
 	 * control intra-row input ordering (Object.keys insertion order).
 	 *
