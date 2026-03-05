@@ -13,26 +13,14 @@ class FormEditorManifestOps extends libPictProvider
 	}
 
 	/**
-	 * Reconcile the manifest structure so that every Descriptor's PictForm
-	 * reference is reflected in its Section's Group's Rows[].Inputs[] arrays.
-	 *
-	 * Existing manifests store layout information entirely in the Descriptors'
-	 * PictForm objects (Section, Group, Row) and do not carry Rows/Inputs
-	 * arrays on the Groups.  This method builds those arrays from the
-	 * Descriptors so the visual editor can render them.
-	 *
-	 * It is safe to call repeatedly — it only adds missing structure and never
-	 * removes or duplicates entries.
+	 * Ensure every Section has a Groups array and that every Descriptor's
+	 * PictForm.Group is represented.  Creates default groups for sections
+	 * that have Descriptors but no Groups defined.  Does NOT build Rows.
 	 */
-	_reconcileManifestStructure()
+	_ensureSectionGroups()
 	{
 		let tmpManifest = this._resolveManifestData();
-		if (!tmpManifest)
-		{
-			return;
-		}
-
-		if (!Array.isArray(tmpManifest.Sections))
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
 		{
 			return;
 		}
@@ -42,151 +30,72 @@ class FormEditorManifestOps extends libPictProvider
 			return;
 		}
 
-		// Build a quick lookup: SectionHash -> section index
+		// Build a lookup: SectionHash -> section object
 		let tmpSectionMap = {};
 		for (let i = 0; i < tmpManifest.Sections.length; i++)
 		{
 			let tmpSection = tmpManifest.Sections[i];
 			if (tmpSection.Hash)
 			{
-				tmpSectionMap[tmpSection.Hash] = i;
+				tmpSectionMap[tmpSection.Hash] = tmpSection;
 			}
-
-			// Ensure every section has a Groups array
 			if (!Array.isArray(tmpSection.Groups))
 			{
 				tmpSection.Groups = [];
 			}
 		}
 
-		// Build a lookup: SectionHash -> GroupHash -> group index
-		let tmpGroupMap = {};
+		// Build a set of existing group hashes per section
+		let tmpGroupHashSet = {};
 		for (let i = 0; i < tmpManifest.Sections.length; i++)
 		{
 			let tmpSection = tmpManifest.Sections[i];
-			let tmpSectionHash = tmpSection.Hash || '';
-			tmpGroupMap[tmpSectionHash] = {};
+			let tmpSHash = tmpSection.Hash || '';
+			tmpGroupHashSet[tmpSHash] = {};
 			for (let j = 0; j < tmpSection.Groups.length; j++)
 			{
-				let tmpGroup = tmpSection.Groups[j];
-				if (tmpGroup.Hash)
+				if (tmpSection.Groups[j].Hash)
 				{
-					tmpGroupMap[tmpSectionHash][tmpGroup.Hash] = j;
+					tmpGroupHashSet[tmpSHash][tmpSection.Groups[j].Hash] = true;
 				}
 			}
 		}
 
-		// Build a set of all Addresses already present in any Rows[].Inputs[]
-		let tmpExistingAddresses = {};
-		for (let i = 0; i < tmpManifest.Sections.length; i++)
-		{
-			let tmpSection = tmpManifest.Sections[i];
-			for (let j = 0; j < tmpSection.Groups.length; j++)
-			{
-				let tmpGroup = tmpSection.Groups[j];
-				if (Array.isArray(tmpGroup.Rows))
-				{
-					for (let k = 0; k < tmpGroup.Rows.length; k++)
-					{
-						let tmpRow = tmpGroup.Rows[k];
-						if (tmpRow && Array.isArray(tmpRow.Inputs))
-						{
-							for (let m = 0; m < tmpRow.Inputs.length; m++)
-							{
-								tmpExistingAddresses[tmpRow.Inputs[m]] = true;
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Walk every Descriptor and place it into the correct Rows[].Inputs[]
+		// Scan Descriptors and create missing groups
 		let tmpDescriptorKeys = Object.keys(tmpManifest.Descriptors);
-		for (let d = 0; d < tmpDescriptorKeys.length; d++)
+		for (let i = 0; i < tmpDescriptorKeys.length; i++)
 		{
-			let tmpAddress = tmpDescriptorKeys[d];
-
-			// Skip if already placed
-			if (tmpExistingAddresses[tmpAddress])
-			{
-				continue;
-			}
-
-			let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+			let tmpDescriptor = tmpManifest.Descriptors[tmpDescriptorKeys[i]];
 			if (!tmpDescriptor || !tmpDescriptor.PictForm)
 			{
 				continue;
 			}
 
-			let tmpPictForm = tmpDescriptor.PictForm;
-			let tmpSectionHash = tmpPictForm.Section;
-			if (!tmpSectionHash || !tmpSectionMap.hasOwnProperty(tmpSectionHash))
+			let tmpSHash = tmpDescriptor.PictForm.Section;
+			if (!tmpSHash || !tmpSectionMap[tmpSHash])
 			{
 				continue;
 			}
 
-			let tmpSectionIndex = tmpSectionMap[tmpSectionHash];
-			let tmpSection = tmpManifest.Sections[tmpSectionIndex];
+			let tmpSection = tmpSectionMap[tmpSHash];
+			let tmpGHash = tmpDescriptor.PictForm.Group || '';
 
-			// Resolve the group — if PictForm.Group is missing, use the first
-			// group; create a default group if none exist.
-			let tmpGroupHash = tmpPictForm.Group || null;
-			let tmpGroupIndex = -1;
-
-			if (tmpGroupHash && tmpGroupMap[tmpSectionHash].hasOwnProperty(tmpGroupHash))
+			if (!tmpGHash)
 			{
-				tmpGroupIndex = tmpGroupMap[tmpSectionHash][tmpGroupHash];
-			}
-			else if (!tmpGroupHash && tmpSection.Groups.length > 0)
-			{
-				// Default to first group when PictForm.Group is omitted
-				tmpGroupIndex = 0;
-			}
-
-			if (tmpGroupIndex < 0)
-			{
-				// Create a default group for this section
-				let tmpNewGroupHash = tmpGroupHash || (tmpSectionHash + 'Group_Default');
-				let tmpNewGroupName = tmpGroupHash || 'Default';
-				tmpSection.Groups.push(
+				// Descriptor has no group — ensure a default group exists
+				if (tmpSection.Groups.length === 0)
 				{
-					Hash: tmpNewGroupHash,
-					Name: tmpNewGroupName,
-					Layout: 'Record'
-				});
-				tmpGroupIndex = tmpSection.Groups.length - 1;
-				tmpGroupMap[tmpSectionHash][tmpNewGroupHash] = tmpGroupIndex;
+					let tmpDefaultHash = tmpSHash + 'Group_Default';
+					tmpSection.Groups.push({ Hash: tmpDefaultHash, Name: 'Default', Layout: 'Record' });
+					tmpGroupHashSet[tmpSHash][tmpDefaultHash] = true;
+				}
 			}
-
-			let tmpGroup = tmpSection.Groups[tmpGroupIndex];
-
-			// Ensure the group has a Rows array
-			if (!Array.isArray(tmpGroup.Rows))
+			else if (!tmpGroupHashSet[tmpSHash][tmpGHash])
 			{
-				tmpGroup.Rows = [];
+				// Descriptor references a group that doesn't exist — create it
+				tmpSection.Groups.push({ Hash: tmpGHash, Name: tmpGHash, Layout: 'Record' });
+				tmpGroupHashSet[tmpSHash][tmpGHash] = true;
 			}
-
-			// PictForm.Row is 1-based; pad with empty rows if necessary.
-			// Row may be a number or a string (e.g. "2") in real-world manifests.
-			let tmpRowNumber = parseInt(tmpPictForm.Row, 10);
-			if (isNaN(tmpRowNumber) || tmpRowNumber < 1)
-			{
-				tmpRowNumber = 1;
-			}
-			let tmpRowIndex = tmpRowNumber - 1;
-			while (tmpGroup.Rows.length <= tmpRowIndex)
-			{
-				tmpGroup.Rows.push({ Inputs: [] });
-			}
-
-			let tmpRow = tmpGroup.Rows[tmpRowIndex];
-			if (!Array.isArray(tmpRow.Inputs))
-			{
-				tmpRow.Inputs = [];
-			}
-
-			tmpRow.Inputs.push(tmpAddress);
 		}
 	}
 
@@ -360,7 +269,7 @@ class FormEditorManifestOps extends libPictProvider
 		{
 			// Clean up Descriptor entries for all inputs in this group
 			let tmpGroup = tmpSection.Groups[pGroupIndex];
-			this._removeDescriptorsForGroup(tmpManifest, tmpGroup);
+			this._removeDescriptorsForGroup(tmpManifest, tmpGroup, tmpSection);
 
 			tmpSection.Groups.splice(pGroupIndex, 1);
 			this._ParentFormEditor.renderVisualEditor();
@@ -446,14 +355,13 @@ class FormEditorManifestOps extends libPictProvider
 			return;
 		}
 
-		if (!Array.isArray(tmpGroup.Rows))
-		{
-			tmpGroup.Rows = [];
-		}
+		// Compute current rows to determine the next row number
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		let tmpNextRowNum = tmpRows.length + 1;
 
-		tmpGroup.Rows.push({ Inputs: [] });
-
-		this._ParentFormEditor.renderVisualEditor();
+		// Auto-create the first input in the new row (rows are derived
+		// from Descriptors, so an empty row cannot exist)
+		this._addInputAtRow(pSectionIndex, pGroupIndex, tmpNextRowNum);
 	}
 
 	removeRow(pSectionIndex, pGroupIndex, pRowIndex)
@@ -471,15 +379,18 @@ class FormEditorManifestOps extends libPictProvider
 		}
 
 		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		if (!tmpGroup)
 		{
 			return;
 		}
 
-		if (pRowIndex >= 0 && pRowIndex < tmpGroup.Rows.length)
+		// Compute rows from Descriptors
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+
+		if (pRowIndex >= 0 && pRowIndex < tmpRows.length)
 		{
-			// Clean up Descriptor entries for all inputs in this row
-			let tmpRow = tmpGroup.Rows[pRowIndex];
+			// Delete all Descriptors in this row
+			let tmpRow = tmpRows[pRowIndex];
 			if (tmpRow && Array.isArray(tmpRow.Inputs) && tmpManifest.Descriptors)
 			{
 				for (let i = 0; i < tmpRow.Inputs.length; i++)
@@ -492,10 +403,8 @@ class FormEditorManifestOps extends libPictProvider
 				}
 			}
 
-			tmpGroup.Rows.splice(pRowIndex, 1);
-
-			// Update PictForm.Row for inputs in subsequent rows
-			this._syncRowIndices(tmpManifest, tmpGroup);
+			// Reindex remaining rows to close the gap
+			this._reindexGroupRows(pSectionIndex, pGroupIndex);
 
 			this._ParentFormEditor.renderVisualEditor();
 		}
@@ -516,15 +425,26 @@ class FormEditorManifestOps extends libPictProvider
 		}
 
 		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows) || pRowIndex <= 0)
+		if (!tmpGroup)
 		{
 			return;
 		}
 
-		let tmpRow = tmpGroup.Rows.splice(pRowIndex, 1)[0];
-		tmpGroup.Rows.splice(pRowIndex - 1, 0, tmpRow);
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		if (pRowIndex <= 0 || pRowIndex >= tmpRows.length)
+		{
+			return;
+		}
 
-		this._syncRowIndices(tmpManifest, tmpGroup);
+		// Swap PictForm.Row values between this row and the one above
+		let tmpCurrentRow = tmpRows[pRowIndex];
+		let tmpAboveRow = tmpRows[pRowIndex - 1];
+		let tmpCurrentRowNum = pRowIndex + 1;
+		let tmpAboveRowNum = pRowIndex;
+
+		this._setRowNumberForInputs(tmpManifest, tmpCurrentRow.Inputs, tmpAboveRowNum);
+		this._setRowNumberForInputs(tmpManifest, tmpAboveRow.Inputs, tmpCurrentRowNum);
+
 		this._ParentFormEditor.renderVisualEditor();
 	}
 
@@ -543,15 +463,26 @@ class FormEditorManifestOps extends libPictProvider
 		}
 
 		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows) || pRowIndex >= tmpGroup.Rows.length - 1)
+		if (!tmpGroup)
 		{
 			return;
 		}
 
-		let tmpRow = tmpGroup.Rows.splice(pRowIndex, 1)[0];
-		tmpGroup.Rows.splice(pRowIndex + 1, 0, tmpRow);
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		if (pRowIndex < 0 || pRowIndex >= tmpRows.length - 1)
+		{
+			return;
+		}
 
-		this._syncRowIndices(tmpManifest, tmpGroup);
+		// Swap PictForm.Row values between this row and the one below
+		let tmpCurrentRow = tmpRows[pRowIndex];
+		let tmpBelowRow = tmpRows[pRowIndex + 1];
+		let tmpCurrentRowNum = pRowIndex + 1;
+		let tmpBelowRowNum = pRowIndex + 2;
+
+		this._setRowNumberForInputs(tmpManifest, tmpCurrentRow.Inputs, tmpBelowRowNum);
+		this._setRowNumberForInputs(tmpManifest, tmpBelowRow.Inputs, tmpCurrentRowNum);
+
 		this._ParentFormEditor.renderVisualEditor();
 	}
 
@@ -570,20 +501,40 @@ class FormEditorManifestOps extends libPictProvider
 		}
 
 		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		if (!tmpGroup)
 		{
 			return;
 		}
 
-		let tmpRow = tmpGroup.Rows[pRowIndex];
-		if (!tmpRow)
+		let tmpRowNum = pRowIndex + 1;
+		this._addInputAtRow(pSectionIndex, pGroupIndex, tmpRowNum);
+	}
+
+	/**
+	 * Internal helper: create a new Descriptor for the given row number.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @param {number} pRowNum - 1-based row number
+	 */
+	_addInputAtRow(pSectionIndex, pGroupIndex, pRowNum)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
 		{
 			return;
 		}
 
-		if (!Array.isArray(tmpRow.Inputs))
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
 		{
-			tmpRow.Inputs = [];
+			return;
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup)
+		{
+			return;
 		}
 
 		if (!tmpManifest.Descriptors || typeof tmpManifest.Descriptors !== 'object')
@@ -591,25 +542,32 @@ class FormEditorManifestOps extends libPictProvider
 			tmpManifest.Descriptors = {};
 		}
 
-		// Generate a unique address for this input using short format
-		let tmpInputNum = tmpRow.Inputs.length + 1;
 		let tmpSectionHash = tmpSection.Hash || 'S';
 		let tmpGroupHash = tmpGroup.Hash || 'G';
-		let tmpRowNum = pRowIndex + 1;
-		let tmpInputHash = `${tmpGroupHash}_R${tmpRowNum}_Input${tmpInputNum}`;
+
+		// Count existing inputs in this row to generate a unique number
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		let tmpExistingCount = 0;
+		if (pRowNum - 1 >= 0 && pRowNum - 1 < tmpRows.length && tmpRows[pRowNum - 1])
+		{
+			tmpExistingCount = tmpRows[pRowNum - 1].Inputs.length;
+		}
+		let tmpInputNum = tmpExistingCount + 1;
+
+		let tmpInputHash = `${tmpGroupHash}_R${pRowNum}_Input${tmpInputNum}`;
 		let tmpAddress = tmpInputHash;
 
 		// Ensure the address is unique in the Descriptors
 		while (tmpManifest.Descriptors.hasOwnProperty(tmpAddress))
 		{
 			tmpInputNum++;
-			tmpInputHash = `${tmpGroupHash}_R${tmpRowNum}_Input${tmpInputNum}`;
+			tmpInputHash = `${tmpGroupHash}_R${pRowNum}_Input${tmpInputNum}`;
 			tmpAddress = tmpInputHash;
 		}
 
 		let tmpInputName = `Input ${tmpInputNum}`;
 
-		// Create the Descriptor entry
+		// Create the Descriptor entry — no Rows array manipulation needed
 		tmpManifest.Descriptors[tmpAddress] =
 		{
 			Name: tmpInputName,
@@ -619,12 +577,9 @@ class FormEditorManifestOps extends libPictProvider
 			{
 				Section: tmpSectionHash,
 				Group: tmpGroupHash,
-				Row: tmpRowNum
+				Row: pRowNum
 			}
 		};
-
-		// Store the Address reference in the row's Inputs array
-		tmpRow.Inputs.push(tmpAddress);
 
 		this._ParentFormEditor.renderVisualEditor();
 	}
@@ -644,12 +599,20 @@ class FormEditorManifestOps extends libPictProvider
 		}
 
 		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		if (!tmpGroup)
 		{
 			return;
 		}
 
-		let tmpRow = tmpGroup.Rows[pRowIndex];
+		// Compute rows from Descriptors
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+
+		if (pRowIndex < 0 || pRowIndex >= tmpRows.length)
+		{
+			return;
+		}
+
+		let tmpRow = tmpRows[pRowIndex];
 		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
 		{
 			return;
@@ -664,7 +627,6 @@ class FormEditorManifestOps extends libPictProvider
 				delete tmpManifest.Descriptors[tmpAddress];
 			}
 
-			tmpRow.Inputs.splice(pInputIndex, 1);
 			this._ParentFormEditor.renderVisualEditor();
 		}
 	}
@@ -679,25 +641,13 @@ class FormEditorManifestOps extends libPictProvider
 	 */
 	moveInputLeft(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
 	{
-		let tmpManifest = this._resolveManifestData();
-		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		if (pRowIndex < 0 || pRowIndex >= tmpRows.length)
 		{
 			return;
 		}
 
-		let tmpSection = tmpManifest.Sections[pSectionIndex];
-		if (!tmpSection || !Array.isArray(tmpSection.Groups))
-		{
-			return;
-		}
-
-		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
-		{
-			return;
-		}
-
-		let tmpRow = tmpGroup.Rows[pRowIndex];
+		let tmpRow = tmpRows[pRowIndex];
 		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
 		{
 			return;
@@ -708,8 +658,8 @@ class FormEditorManifestOps extends libPictProvider
 			return;
 		}
 
-		let tmpItem = tmpRow.Inputs.splice(pInputIndex, 1)[0];
-		tmpRow.Inputs.splice(pInputIndex - 1, 0, tmpItem);
+		// Swap Descriptor key order to move input left
+		this._swapDescriptorOrder(tmpRow.Inputs[pInputIndex], tmpRow.Inputs[pInputIndex - 1]);
 
 		// Update the selection to follow the moved input
 		this._ParentFormEditor._SelectedInputIndices = [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex - 1];
@@ -731,25 +681,13 @@ class FormEditorManifestOps extends libPictProvider
 	 */
 	moveInputRight(pSectionIndex, pGroupIndex, pRowIndex, pInputIndex)
 	{
-		let tmpManifest = this._resolveManifestData();
-		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		if (pRowIndex < 0 || pRowIndex >= tmpRows.length)
 		{
 			return;
 		}
 
-		let tmpSection = tmpManifest.Sections[pSectionIndex];
-		if (!tmpSection || !Array.isArray(tmpSection.Groups))
-		{
-			return;
-		}
-
-		let tmpGroup = tmpSection.Groups[pGroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
-		{
-			return;
-		}
-
-		let tmpRow = tmpGroup.Rows[pRowIndex];
+		let tmpRow = tmpRows[pRowIndex];
 		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
 		{
 			return;
@@ -760,8 +698,8 @@ class FormEditorManifestOps extends libPictProvider
 			return;
 		}
 
-		let tmpItem = tmpRow.Inputs.splice(pInputIndex, 1)[0];
-		tmpRow.Inputs.splice(pInputIndex + 1, 0, tmpItem);
+		// Swap Descriptor key order to move input right
+		this._swapDescriptorOrder(tmpRow.Inputs[pInputIndex], tmpRow.Inputs[pInputIndex + 1]);
 
 		// Update the selection to follow the moved input
 		this._ParentFormEditor._SelectedInputIndices = [pSectionIndex, pGroupIndex, pRowIndex, pInputIndex + 1];
@@ -1292,6 +1230,301 @@ class FormEditorManifestOps extends libPictProvider
 		setTimeout(function () { tmpSelf._UtilitiesProvider._alignPanelToSelection(); }, 0);
 	}
 
+	/**
+	 * Compute the Rows for a group on-the-fly from Descriptors.
+	 *
+	 * Scans all Descriptors whose PictForm.Section matches pSectionHash
+	 * and PictForm.Group matches pGroupHash, groups them by PictForm.Row,
+	 * and returns a contiguous array of { Inputs: [address, ...] } objects.
+	 *
+	 * @param {string} pSectionHash
+	 * @param {string} pGroupHash
+	 * @param {boolean} [pIsFirstGroup] - When true, also matches Descriptors
+	 *        whose PictForm.Group is missing (legacy default-to-first-group).
+	 * @returns {Array<{Inputs: Array<string>}>}
+	 */
+	getRowsForGroup(pSectionHash, pGroupHash, pIsFirstGroup)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Descriptors || typeof tmpManifest.Descriptors !== 'object')
+		{
+			return [];
+		}
+
+		let tmpRowMap = {};
+		let tmpDescriptorKeys = Object.keys(tmpManifest.Descriptors);
+
+		for (let i = 0; i < tmpDescriptorKeys.length; i++)
+		{
+			let tmpAddress = tmpDescriptorKeys[i];
+			let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+			if (!tmpDescriptor || !tmpDescriptor.PictForm)
+			{
+				continue;
+			}
+
+			let tmpPictForm = tmpDescriptor.PictForm;
+
+			// Section must match
+			if (tmpPictForm.Section !== pSectionHash)
+			{
+				continue;
+			}
+
+			// Group must match, or be missing when this is the first group
+			let tmpDescGroup = tmpPictForm.Group;
+			if (tmpDescGroup === pGroupHash)
+			{
+				// Exact match
+			}
+			else if (pIsFirstGroup && (!tmpDescGroup || tmpDescGroup === ''))
+			{
+				// Legacy: no group set, default to first group
+			}
+			else
+			{
+				continue;
+			}
+
+			let tmpRowNumber = parseInt(tmpPictForm.Row, 10);
+			if (isNaN(tmpRowNumber) || tmpRowNumber < 1)
+			{
+				tmpRowNumber = 1;
+			}
+
+			if (!tmpRowMap[tmpRowNumber])
+			{
+				tmpRowMap[tmpRowNumber] = [];
+			}
+			tmpRowMap[tmpRowNumber].push(tmpAddress);
+		}
+
+		// Sort by row number and return as contiguous array
+		let tmpRowNumbers = Object.keys(tmpRowMap).map(Number).sort(function(a, b) { return a - b; });
+		let tmpResult = [];
+		for (let i = 0; i < tmpRowNumbers.length; i++)
+		{
+			tmpResult.push({ Inputs: tmpRowMap[tmpRowNumbers[i]] });
+		}
+		return tmpResult;
+	}
+
+	/**
+	 * Convenience wrapper that resolves section/group indices to hashes
+	 * and calls getRowsForGroup().
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 * @returns {Array<{Inputs: Array<string>}>}
+	 */
+	getRowsForGroupByIndex(pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
+		{
+			return [];
+		}
+
+		let tmpSection = tmpManifest.Sections[pSectionIndex];
+		if (!tmpSection || !Array.isArray(tmpSection.Groups))
+		{
+			return [];
+		}
+
+		let tmpGroup = tmpSection.Groups[pGroupIndex];
+		if (!tmpGroup)
+		{
+			return [];
+		}
+
+		return this.getRowsForGroup(tmpSection.Hash || '', tmpGroup.Hash || '', pGroupIndex === 0);
+	}
+
+	/**
+	 * Strip Rows arrays from all Groups in a manifest object (in-place).
+	 * Use this to clean corrupted manifests that have Rows baked in.
+	 *
+	 * @param {object} pManifest - The manifest to clean
+	 */
+	stripRowsFromManifest(pManifest)
+	{
+		if (!pManifest || !Array.isArray(pManifest.Sections))
+		{
+			return;
+		}
+
+		for (let i = 0; i < pManifest.Sections.length; i++)
+		{
+			let tmpSection = pManifest.Sections[i];
+			if (Array.isArray(tmpSection.Groups))
+			{
+				for (let j = 0; j < tmpSection.Groups.length; j++)
+				{
+					delete tmpSection.Groups[j].Rows;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Recompute contiguous 1-based PictForm.Row values for all Descriptors
+	 * in a group.  Call after row removal or reorder to close gaps.
+	 *
+	 * @param {number} pSectionIndex
+	 * @param {number} pGroupIndex
+	 */
+	_reindexGroupRows(pSectionIndex, pGroupIndex)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Descriptors)
+		{
+			return;
+		}
+
+		let tmpRows = this.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+
+		for (let i = 0; i < tmpRows.length; i++)
+		{
+			let tmpRow = tmpRows[i];
+			if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+			{
+				continue;
+			}
+
+			for (let j = 0; j < tmpRow.Inputs.length; j++)
+			{
+				let tmpAddress = tmpRow.Inputs[j];
+				if (typeof tmpAddress === 'string' && tmpManifest.Descriptors.hasOwnProperty(tmpAddress))
+				{
+					let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
+					if (tmpDescriptor && tmpDescriptor.PictForm)
+					{
+						tmpDescriptor.PictForm.Row = i + 1;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Swap two Descriptor keys in the manifest's Descriptors object to
+	 * control intra-row input ordering (Object.keys insertion order).
+	 *
+	 * @param {string} pAddress1
+	 * @param {string} pAddress2
+	 */
+	_swapDescriptorOrder(pAddress1, pAddress2)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Descriptors)
+		{
+			return;
+		}
+
+		let tmpKeys = Object.keys(tmpManifest.Descriptors);
+		let tmpIndex1 = tmpKeys.indexOf(pAddress1);
+		let tmpIndex2 = tmpKeys.indexOf(pAddress2);
+
+		if (tmpIndex1 < 0 || tmpIndex2 < 0)
+		{
+			return;
+		}
+
+		// Swap the keys
+		tmpKeys[tmpIndex1] = pAddress2;
+		tmpKeys[tmpIndex2] = pAddress1;
+
+		// Rebuild the Descriptors object in new order
+		let tmpNewDescriptors = {};
+		for (let i = 0; i < tmpKeys.length; i++)
+		{
+			tmpNewDescriptors[tmpKeys[i]] = tmpManifest.Descriptors[tmpKeys[i]];
+		}
+		tmpManifest.Descriptors = tmpNewDescriptors;
+	}
+
+	/**
+	 * Rebuild the Descriptors object so that pDesiredAddresses appear in the
+	 * given order, replacing any previous ordering of those keys.  All other
+	 * keys remain in their original order.  The block of reordered keys is
+	 * placed at the position of the first occurrence of any key in the set.
+	 *
+	 * @param {Array<string>} pDesiredAddresses - Addresses in the desired order
+	 */
+	_reorderDescriptorsForRow(pDesiredAddresses)
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest || !tmpManifest.Descriptors || !Array.isArray(pDesiredAddresses) || pDesiredAddresses.length === 0)
+		{
+			return;
+		}
+
+		let tmpDesiredSet = {};
+		for (let i = 0; i < pDesiredAddresses.length; i++)
+		{
+			tmpDesiredSet[pDesiredAddresses[i]] = true;
+		}
+
+		let tmpOldKeys = Object.keys(tmpManifest.Descriptors);
+		let tmpNonRowKeys = [];
+		let tmpFirstRowKeyPosition = -1;
+
+		for (let i = 0; i < tmpOldKeys.length; i++)
+		{
+			if (tmpDesiredSet[tmpOldKeys[i]])
+			{
+				if (tmpFirstRowKeyPosition < 0)
+				{
+					tmpFirstRowKeyPosition = tmpNonRowKeys.length;
+				}
+			}
+			else
+			{
+				tmpNonRowKeys.push(tmpOldKeys[i]);
+			}
+		}
+
+		if (tmpFirstRowKeyPosition < 0)
+		{
+			tmpFirstRowKeyPosition = tmpNonRowKeys.length;
+		}
+
+		// Insert desired addresses at the position of the first removed key
+		let tmpFinalKeys = tmpNonRowKeys.slice(0, tmpFirstRowKeyPosition)
+			.concat(pDesiredAddresses)
+			.concat(tmpNonRowKeys.slice(tmpFirstRowKeyPosition));
+
+		let tmpNewDescriptors = {};
+		for (let i = 0; i < tmpFinalKeys.length; i++)
+		{
+			if (tmpManifest.Descriptors[tmpFinalKeys[i]])
+			{
+				tmpNewDescriptors[tmpFinalKeys[i]] = tmpManifest.Descriptors[tmpFinalKeys[i]];
+			}
+		}
+
+		tmpManifest.Descriptors = tmpNewDescriptors;
+	}
+
+	/**
+	 * Return a deep clone of the manifest with runtime-only properties
+	 * (such as Rows on Groups) stripped out.
+	 *
+	 * @returns {object|null}
+	 */
+	getCleanManifestForExport()
+	{
+		let tmpManifest = this._resolveManifestData();
+		if (!tmpManifest)
+		{
+			return null;
+		}
+
+		let tmpClone = JSON.parse(JSON.stringify(tmpManifest));
+		this.stripRowsFromManifest(tmpClone);
+		return tmpClone;
+	}
+
 	_resolveManifestData()
 	{
 		let tmpAddress = this._ParentFormEditor.options.ManifestDataAddress;
@@ -1355,72 +1588,63 @@ class FormEditorManifestOps extends libPictProvider
 	}
 
 	/**
-	 * Synchronize PictForm.Row indices for all inputs in a group's rows.
-	 *
-	 * Called after row reorder or removal so each Descriptor's PictForm.Row
-	 * value matches the input's actual position (1-based).
+	 * Set PictForm.Row to the given value for a list of Descriptor addresses.
 	 *
 	 * @param {object} pManifest - The manifest data object
-	 * @param {object} pGroup - The group whose rows need syncing
+	 * @param {Array<string>} pAddresses - Descriptor address keys
+	 * @param {number} pRowNumber - 1-based row number to assign
 	 */
-	_syncRowIndices(pManifest, pGroup)
+	_setRowNumberForInputs(pManifest, pAddresses, pRowNumber)
 	{
-		if (!pGroup || !Array.isArray(pGroup.Rows) || !pManifest || !pManifest.Descriptors)
+		if (!pManifest || !pManifest.Descriptors || !Array.isArray(pAddresses))
 		{
 			return;
 		}
 
-		for (let i = 0; i < pGroup.Rows.length; i++)
+		for (let i = 0; i < pAddresses.length; i++)
 		{
-			let tmpRow = pGroup.Rows[i];
-			if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+			let tmpAddress = pAddresses[i];
+			if (typeof tmpAddress === 'string' && pManifest.Descriptors.hasOwnProperty(tmpAddress))
 			{
-				continue;
-			}
-
-			for (let j = 0; j < tmpRow.Inputs.length; j++)
-			{
-				let tmpAddress = tmpRow.Inputs[j];
-				if (typeof tmpAddress === 'string' && pManifest.Descriptors.hasOwnProperty(tmpAddress))
+				let tmpDescriptor = pManifest.Descriptors[tmpAddress];
+				if (tmpDescriptor && tmpDescriptor.PictForm)
 				{
-					let tmpDescriptor = pManifest.Descriptors[tmpAddress];
-					if (tmpDescriptor && tmpDescriptor.PictForm)
-					{
-						tmpDescriptor.PictForm.Row = i + 1;
-					}
+					tmpDescriptor.PictForm.Row = pRowNumber;
 				}
 			}
 		}
 	}
 
 	/**
-	 * Remove all Descriptor entries for inputs within a group.
+	 * Remove all Descriptor entries for inputs within a group by scanning
+	 * Descriptors for matching Section+Group hashes.
 	 *
 	 * @param {object} pManifest - The manifest data object
 	 * @param {object} pGroup - The group being removed
+	 * @param {object} [pSection] - The containing section (used to match hashes)
 	 */
-	_removeDescriptorsForGroup(pManifest, pGroup)
+	_removeDescriptorsForGroup(pManifest, pGroup, pSection)
 	{
-		if (!pGroup || !Array.isArray(pGroup.Rows) || !pManifest || !pManifest.Descriptors)
+		if (!pGroup || !pManifest || !pManifest.Descriptors)
 		{
 			return;
 		}
 
-		for (let i = 0; i < pGroup.Rows.length; i++)
+		let tmpGroupHash = pGroup.Hash || '';
+		let tmpSectionHash = (pSection && pSection.Hash) ? pSection.Hash : '';
+
+		let tmpKeys = Object.keys(pManifest.Descriptors);
+		for (let i = 0; i < tmpKeys.length; i++)
 		{
-			let tmpRow = pGroup.Rows[i];
-			if (!tmpRow || !Array.isArray(tmpRow.Inputs))
+			let tmpDescriptor = pManifest.Descriptors[tmpKeys[i]];
+			if (!tmpDescriptor || !tmpDescriptor.PictForm)
 			{
 				continue;
 			}
 
-			for (let j = 0; j < tmpRow.Inputs.length; j++)
+			if (tmpDescriptor.PictForm.Section === tmpSectionHash && tmpDescriptor.PictForm.Group === tmpGroupHash)
 			{
-				let tmpAddress = tmpRow.Inputs[j];
-				if (typeof tmpAddress === 'string' && pManifest.Descriptors.hasOwnProperty(tmpAddress))
-				{
-					delete pManifest.Descriptors[tmpAddress];
-				}
+				delete pManifest.Descriptors[tmpKeys[i]];
 			}
 		}
 	}
@@ -1440,7 +1664,7 @@ class FormEditorManifestOps extends libPictProvider
 
 		for (let i = 0; i < pSection.Groups.length; i++)
 		{
-			this._removeDescriptorsForGroup(pManifest, pSection.Groups[i]);
+			this._removeDescriptorsForGroup(pManifest, pSection.Groups[i], pSection);
 		}
 	}
 }

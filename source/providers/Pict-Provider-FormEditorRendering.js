@@ -108,8 +108,11 @@ class FormEditorRendering extends libPictProvider
 			return;
 		}
 
-		// Ensure Rows/Inputs arrays are populated from Descriptors
-		tmpParent._ManifestOpsProvider._reconcileManifestStructure();
+		// Strip any Rows that may have leaked onto Groups from corrupted data
+		tmpParent._ManifestOpsProvider.stripRowsFromManifest(tmpManifest);
+
+		// Ensure every section has groups for its Descriptors
+		tmpParent._ManifestOpsProvider._ensureSectionGroups();
 
 		let tmpViewRef = tmpParent._browserViewRef();
 		let tmpHTML = '';
@@ -309,12 +312,12 @@ class FormEditorRendering extends libPictProvider
 	{
 		let tmpParent = this._ParentFormEditor;
 		let tmpViewRef = tmpParent._browserViewRef();
-		let tmpRows = pGroup.Rows;
+		let tmpRows = tmpParent._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
 
 		let tmpHTML = '';
 		tmpHTML += `<div class="pict-fe-group-body"${tmpParent._DragDropProvider._buildContainerDropAttributes('row', [pSectionIndex, pGroupIndex])}>`;
 
-		if (Array.isArray(tmpRows) && tmpRows.length > 0)
+		if (tmpRows.length > 0)
 		{
 			for (let k = 0; k < tmpRows.length; k++)
 			{
@@ -675,9 +678,7 @@ class FormEditorRendering extends libPictProvider
 		tmpHTML += `<span class="pict-fe-row-label">Row ${pRowIndex + 1}</span>`;
 		tmpHTML += '<div class="pict-fe-row-actions">';
 
-		let tmpManifest = tmpParent._resolveManifestData();
-		let tmpGroup = tmpManifest.Sections[pSectionIndex].Groups[pGroupIndex];
-		let tmpRowCount = tmpGroup.Rows ? tmpGroup.Rows.length : 0;
+		let tmpRowCount = tmpParent._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex).length;
 
 		if (pRowIndex > 0)
 		{

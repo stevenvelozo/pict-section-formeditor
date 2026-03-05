@@ -214,9 +214,8 @@ class PictViewFormEditorInlineEditing extends libPictView
 		let tmpCurrentValue = 'String';
 		if (tmpManifest && tmpManifest.Sections)
 		{
-			let tmpSection = tmpManifest.Sections[pSectionIndex];
-			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[pGroupIndex] : null;
-			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[pRowIndex] : null;
+			let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+			let tmpRow = (pRowIndex >= 0 && pRowIndex < tmpRows.length) ? tmpRows[pRowIndex] : null;
 			if (tmpRow && Array.isArray(tmpRow.Inputs))
 			{
 				let tmpAddress = tmpRow.Inputs[pInputIndex];
@@ -293,9 +292,8 @@ class PictViewFormEditorInlineEditing extends libPictView
 		let tmpManifest = this._ParentFormEditor._resolveManifestData();
 		if (tmpManifest && tmpManifest.Sections)
 		{
-			let tmpSection = tmpManifest.Sections[pSectionIndex];
-			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[pGroupIndex] : null;
-			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[pRowIndex] : null;
+			let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+			let tmpRow = (pRowIndex >= 0 && pRowIndex < tmpRows.length) ? tmpRows[pRowIndex] : null;
 			if (tmpRow && Array.isArray(tmpRow.Inputs))
 			{
 				let tmpAddress = tmpRow.Inputs[pInputIndex];

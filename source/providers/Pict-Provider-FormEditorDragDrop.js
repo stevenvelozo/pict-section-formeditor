@@ -193,69 +193,104 @@ class FormEditorDragDrop extends libPictProvider
 			}
 			case 'row':
 			{
-				let tmpSourceSection = tmpManifest.Sections[tmpSourceIndices[0]];
+				let tmpMOps = this._ParentFormEditor._ManifestOpsProvider;
 				let tmpTargetSection = tmpManifest.Sections[tmpTargetIndices[0]];
-				if (!tmpSourceSection || !Array.isArray(tmpSourceSection.Groups) || !tmpTargetSection || !Array.isArray(tmpTargetSection.Groups))
+				let tmpTargetGroup = tmpTargetSection && tmpTargetSection.Groups ? tmpTargetSection.Groups[tmpTargetIndices[1]] : null;
+				if (!tmpTargetSection || !tmpTargetGroup)
 				{
 					return;
-				}
-				let tmpSourceGroup = tmpSourceSection.Groups[tmpSourceIndices[1]];
-				let tmpTargetGroup = tmpTargetSection.Groups[tmpTargetIndices[1]];
-				if (!tmpSourceGroup || !Array.isArray(tmpSourceGroup.Rows) || !tmpTargetGroup)
-				{
-					return;
-				}
-				if (!Array.isArray(tmpTargetGroup.Rows))
-				{
-					tmpTargetGroup.Rows = [];
 				}
 
-				let tmpItem = tmpSourceGroup.Rows.splice(tmpSourceIndices[2], 1)[0];
+				// Get source row's addresses before any changes
+				let tmpSourceRows = tmpMOps.getRowsForGroupByIndex(tmpSourceIndices[0], tmpSourceIndices[1]);
+				let tmpSourceRow = tmpSourceRows[tmpSourceIndices[2]];
+				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs))
+				{
+					return;
+				}
+				let tmpMovedAddresses = tmpSourceRow.Inputs.slice();
 
 				let tmpSameContainer = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]);
 				let tmpInsertIdx = this._computeInsertIndex(tmpSourceIndices[2], tmpTargetIndices[2], tmpSameContainer, tmpInsertPosition);
-				tmpTargetGroup.Rows.splice(tmpInsertIdx, 0, tmpItem);
 
-				// Sync row indices on both source and target groups
-				this._ParentFormEditor._ManifestOpsProvider._syncRowIndices(tmpManifest, tmpSourceGroup);
+				// Update PictForm.Section/Group on moved descriptors
+				for (let i = 0; i < tmpMovedAddresses.length; i++)
+				{
+					let tmpDescriptor = tmpManifest.Descriptors[tmpMovedAddresses[i]];
+					if (tmpDescriptor && tmpDescriptor.PictForm)
+					{
+						tmpDescriptor.PictForm.Section = tmpTargetSection.Hash || '';
+						tmpDescriptor.PictForm.Group = tmpTargetGroup.Hash || '';
+					}
+				}
+
+				// Build desired row order for the target group
+				let tmpTargetRows = tmpMOps.getRowsForGroupByIndex(tmpTargetIndices[0], tmpTargetIndices[1]);
+
+				// Find and remove the moved row from the list
+				for (let i = tmpTargetRows.length - 1; i >= 0; i--)
+				{
+					if (tmpTargetRows[i].Inputs.length > 0 && tmpMovedAddresses.indexOf(tmpTargetRows[i].Inputs[0]) >= 0)
+					{
+						tmpTargetRows.splice(i, 1);
+						break;
+					}
+				}
+
+				// Insert at the computed position
+				tmpTargetRows.splice(tmpInsertIdx, 0, { Inputs: tmpMovedAddresses });
+
+				// Reassign Row numbers based on desired order
+				for (let i = 0; i < tmpTargetRows.length; i++)
+				{
+					tmpMOps._setRowNumberForInputs(tmpManifest, tmpTargetRows[i].Inputs, i + 1);
+				}
+
+				// Reindex source group for cross-container moves
 				if (!tmpSameContainer)
 				{
-					this._ParentFormEditor._ManifestOpsProvider._syncRowIndices(tmpManifest, tmpTargetGroup);
+					tmpMOps._reindexGroupRows(tmpSourceIndices[0], tmpSourceIndices[1]);
 				}
 				break;
 			}
 			case 'input':
 			{
-				let tmpSourceSection = tmpManifest.Sections[tmpSourceIndices[0]];
+				let tmpMOps = this._ParentFormEditor._ManifestOpsProvider;
 				let tmpTargetSection = tmpManifest.Sections[tmpTargetIndices[0]];
-				if (!tmpSourceSection || !Array.isArray(tmpSourceSection.Groups) || !tmpTargetSection || !Array.isArray(tmpTargetSection.Groups))
+				let tmpTargetGroup = tmpTargetSection && tmpTargetSection.Groups ? tmpTargetSection.Groups[tmpTargetIndices[1]] : null;
+				if (!tmpTargetSection || !tmpTargetGroup)
 				{
 					return;
 				}
-				let tmpSourceGroup = tmpSourceSection.Groups[tmpSourceIndices[1]];
-				let tmpTargetGroup = tmpTargetSection.Groups[tmpTargetIndices[1]];
-				if (!tmpSourceGroup || !Array.isArray(tmpSourceGroup.Rows) || !tmpTargetGroup || !Array.isArray(tmpTargetGroup.Rows))
+
+				// Get source address before any changes
+				let tmpSourceRows = tmpMOps.getRowsForGroupByIndex(tmpSourceIndices[0], tmpSourceIndices[1]);
+				let tmpSourceRow = (tmpSourceIndices[2] >= 0 && tmpSourceIndices[2] < tmpSourceRows.length) ? tmpSourceRows[tmpSourceIndices[2]] : null;
+				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs) || tmpSourceIndices[3] < 0 || tmpSourceIndices[3] >= tmpSourceRow.Inputs.length)
 				{
 					return;
 				}
-				let tmpSourceRow = tmpSourceGroup.Rows[tmpSourceIndices[2]];
-				let tmpTargetRow = tmpTargetGroup.Rows[tmpTargetIndices[2]];
-				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs) || !tmpTargetRow)
+				let tmpAddress = tmpSourceRow.Inputs[tmpSourceIndices[3]];
+
+				// Get target row's current inputs before any changes
+				let tmpTargetRows = tmpMOps.getRowsForGroupByIndex(tmpTargetIndices[0], tmpTargetIndices[1]);
+				let tmpTargetRow = (tmpTargetIndices[2] >= 0 && tmpTargetIndices[2] < tmpTargetRows.length) ? tmpTargetRows[tmpTargetIndices[2]] : null;
+				let tmpTargetInputs = (tmpTargetRow && Array.isArray(tmpTargetRow.Inputs)) ? tmpTargetRow.Inputs.slice() : [];
+
+				// Compute insert position
+				let tmpSameRow = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]) && (tmpSourceIndices[2] === tmpTargetIndices[2]);
+				let tmpInsertIdx = this._computeInsertIndex(tmpSameRow ? tmpSourceIndices[3] : -1, tmpTargetIndices[3], tmpSameRow, tmpInsertPosition);
+
+				// Build desired input order for the target row
+				// Remove moved address if it's already in the target list (same-row case)
+				let tmpAddrIdx = tmpTargetInputs.indexOf(tmpAddress);
+				if (tmpAddrIdx >= 0)
 				{
-					return;
+					tmpTargetInputs.splice(tmpAddrIdx, 1);
 				}
-				if (!Array.isArray(tmpTargetRow.Inputs))
-				{
-					tmpTargetRow.Inputs = [];
-				}
+				tmpTargetInputs.splice(tmpInsertIdx, 0, tmpAddress);
 
-				let tmpAddress = tmpSourceRow.Inputs.splice(tmpSourceIndices[3], 1)[0];
-
-				let tmpSameContainer = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]) && (tmpSourceIndices[2] === tmpTargetIndices[2]);
-				let tmpInsertIdx = this._computeInsertIndex(tmpSourceIndices[3], tmpTargetIndices[3], tmpSameContainer, tmpInsertPosition);
-				tmpTargetRow.Inputs.splice(tmpInsertIdx, 0, tmpAddress);
-
-				// Update the Descriptor's PictForm metadata for the new location
+				// Update Descriptor's PictForm metadata
 				if (typeof tmpAddress === 'string' && tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress])
 				{
 					let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
@@ -266,6 +301,16 @@ class FormEditorDragDrop extends libPictProvider
 					tmpDescriptor.PictForm.Section = tmpTargetSection.Hash || '';
 					tmpDescriptor.PictForm.Group = tmpTargetGroup.Hash || '';
 					tmpDescriptor.PictForm.Row = tmpTargetIndices[2] + 1;
+				}
+
+				// Reorder Descriptor keys to achieve desired input order
+				tmpMOps._reorderDescriptorsForRow(tmpTargetInputs);
+
+				// Reindex source group if cross-group move
+				let tmpSameGroup = (tmpSourceIndices[0] === tmpTargetIndices[0]) && (tmpSourceIndices[1] === tmpTargetIndices[1]);
+				if (!tmpSameGroup)
+				{
+					tmpMOps._reindexGroupRows(tmpSourceIndices[0], tmpSourceIndices[1]);
 				}
 				break;
 			}
@@ -540,63 +585,68 @@ class FormEditorDragDrop extends libPictProvider
 			case 'row':
 			{
 				// Container is a group; indices = [sectionIndex, groupIndex]
-				let tmpSourceSection = tmpManifest.Sections[tmpSourceIndices[0]];
+				let tmpMOps = this._ParentFormEditor._ManifestOpsProvider;
 				let tmpTargetSection = tmpManifest.Sections[tmpContainerIndices[0]];
-				if (!tmpSourceSection || !Array.isArray(tmpSourceSection.Groups) || !tmpTargetSection || !Array.isArray(tmpTargetSection.Groups))
+				let tmpTargetGroup = tmpTargetSection && tmpTargetSection.Groups ? tmpTargetSection.Groups[tmpContainerIndices[1]] : null;
+				if (!tmpTargetSection || !tmpTargetGroup)
 				{
 					return;
 				}
-				let tmpSourceGroup = tmpSourceSection.Groups[tmpSourceIndices[1]];
-				let tmpTargetGroup = tmpTargetSection.Groups[tmpContainerIndices[1]];
-				if (!tmpSourceGroup || !Array.isArray(tmpSourceGroup.Rows) || !tmpTargetGroup)
+
+				// Get source row's addresses
+				let tmpSourceRows = tmpMOps.getRowsForGroupByIndex(tmpSourceIndices[0], tmpSourceIndices[1]);
+				let tmpSourceRow = tmpSourceRows[tmpSourceIndices[2]];
+				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs))
 				{
 					return;
 				}
-				if (!Array.isArray(tmpTargetGroup.Rows))
+				let tmpMovedAddresses = tmpSourceRow.Inputs.slice();
+
+				// Update PictForm.Section/Group on moved descriptors
+				for (let i = 0; i < tmpMovedAddresses.length; i++)
 				{
-					tmpTargetGroup.Rows = [];
+					let tmpDescriptor = tmpManifest.Descriptors[tmpMovedAddresses[i]];
+					if (tmpDescriptor && tmpDescriptor.PictForm)
+					{
+						tmpDescriptor.PictForm.Section = tmpTargetSection.Hash || '';
+						tmpDescriptor.PictForm.Group = tmpTargetGroup.Hash || '';
+					}
 				}
 
-				let tmpItem = tmpSourceGroup.Rows.splice(tmpSourceIndices[2], 1)[0];
-				tmpTargetGroup.Rows.push(tmpItem);
+				// Assign row number to place at end of target group
+				let tmpTargetRows = tmpMOps.getRowsForGroupByIndex(tmpContainerIndices[0], tmpContainerIndices[1]);
+				let tmpNextRowNum = tmpTargetRows.length + 1;
+				tmpMOps._setRowNumberForInputs(tmpManifest, tmpMovedAddresses, tmpNextRowNum);
 
-				this._ParentFormEditor._ManifestOpsProvider._syncRowIndices(tmpManifest, tmpSourceGroup);
-				if (tmpSourceGroup !== tmpTargetGroup)
+				// Reindex source group to close the gap
+				let tmpSameGroup = (tmpSourceIndices[0] === tmpContainerIndices[0]) && (tmpSourceIndices[1] === tmpContainerIndices[1]);
+				if (!tmpSameGroup)
 				{
-					this._ParentFormEditor._ManifestOpsProvider._syncRowIndices(tmpManifest, tmpTargetGroup);
+					tmpMOps._reindexGroupRows(tmpSourceIndices[0], tmpSourceIndices[1]);
 				}
 				break;
 			}
 			case 'input':
 			{
 				// Container is a row; indices = [sectionIndex, groupIndex, rowIndex]
-				let tmpSourceSection = tmpManifest.Sections[tmpSourceIndices[0]];
+				let tmpMOps = this._ParentFormEditor._ManifestOpsProvider;
 				let tmpTargetSection = tmpManifest.Sections[tmpContainerIndices[0]];
-				if (!tmpSourceSection || !Array.isArray(tmpSourceSection.Groups) || !tmpTargetSection || !Array.isArray(tmpTargetSection.Groups))
+				let tmpTargetGroup = tmpTargetSection && tmpTargetSection.Groups ? tmpTargetSection.Groups[tmpContainerIndices[1]] : null;
+				if (!tmpTargetSection || !tmpTargetGroup)
 				{
 					return;
-				}
-				let tmpSourceGroup = tmpSourceSection.Groups[tmpSourceIndices[1]];
-				let tmpTargetGroup = tmpTargetSection.Groups[tmpContainerIndices[1]];
-				if (!tmpSourceGroup || !Array.isArray(tmpSourceGroup.Rows) || !tmpTargetGroup || !Array.isArray(tmpTargetGroup.Rows))
-				{
-					return;
-				}
-				let tmpSourceRow = tmpSourceGroup.Rows[tmpSourceIndices[2]];
-				let tmpTargetRow = tmpTargetGroup.Rows[tmpContainerIndices[2]];
-				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs) || !tmpTargetRow)
-				{
-					return;
-				}
-				if (!Array.isArray(tmpTargetRow.Inputs))
-				{
-					tmpTargetRow.Inputs = [];
 				}
 
-				let tmpAddress = tmpSourceRow.Inputs.splice(tmpSourceIndices[3], 1)[0];
-				tmpTargetRow.Inputs.push(tmpAddress);
+				// Get source address
+				let tmpSourceRows = tmpMOps.getRowsForGroupByIndex(tmpSourceIndices[0], tmpSourceIndices[1]);
+				let tmpSourceRow = (tmpSourceIndices[2] >= 0 && tmpSourceIndices[2] < tmpSourceRows.length) ? tmpSourceRows[tmpSourceIndices[2]] : null;
+				if (!tmpSourceRow || !Array.isArray(tmpSourceRow.Inputs) || tmpSourceIndices[3] < 0 || tmpSourceIndices[3] >= tmpSourceRow.Inputs.length)
+				{
+					return;
+				}
+				let tmpAddress = tmpSourceRow.Inputs[tmpSourceIndices[3]];
 
-				// Update Descriptor metadata
+				// Update Descriptor PictForm metadata
 				if (typeof tmpAddress === 'string' && tmpManifest.Descriptors && tmpManifest.Descriptors[tmpAddress])
 				{
 					let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
@@ -607,6 +657,29 @@ class FormEditorDragDrop extends libPictProvider
 					tmpDescriptor.PictForm.Section = tmpTargetSection.Hash || '';
 					tmpDescriptor.PictForm.Group = tmpTargetGroup.Hash || '';
 					tmpDescriptor.PictForm.Row = tmpContainerIndices[2] + 1;
+				}
+
+				// Place at end of target row's input order
+				let tmpTargetRows = tmpMOps.getRowsForGroupByIndex(tmpContainerIndices[0], tmpContainerIndices[1]);
+				let tmpTargetRow = (tmpContainerIndices[2] >= 0 && tmpContainerIndices[2] < tmpTargetRows.length) ? tmpTargetRows[tmpContainerIndices[2]] : null;
+				let tmpTargetInputs = (tmpTargetRow && Array.isArray(tmpTargetRow.Inputs)) ? tmpTargetRow.Inputs.slice() : [];
+
+				// Remove from current position if it's there (same-row case)
+				let tmpAddrIdx = tmpTargetInputs.indexOf(tmpAddress);
+				if (tmpAddrIdx >= 0)
+				{
+					tmpTargetInputs.splice(tmpAddrIdx, 1);
+				}
+				tmpTargetInputs.push(tmpAddress);
+
+				// Reorder Descriptor keys
+				tmpMOps._reorderDescriptorsForRow(tmpTargetInputs);
+
+				// Reindex source group if cross-group
+				let tmpSameGroup = (tmpSourceIndices[0] === tmpContainerIndices[0]) && (tmpSourceIndices[1] === tmpContainerIndices[1]);
+				if (!tmpSameGroup)
+				{
+					tmpMOps._reindexGroupRows(tmpSourceIndices[0], tmpSourceIndices[1]);
 				}
 				break;
 			}

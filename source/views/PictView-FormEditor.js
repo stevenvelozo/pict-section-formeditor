@@ -332,6 +332,7 @@ class PictViewFormEditor extends libPictView
 			try
 			{
 				let tmpParsed = JSON.parse(pCode);
+				tmpSelf._ManifestOpsProvider.stripRowsFromManifest(tmpParsed);
 				tmpSelf._setManifestData(tmpParsed);
 			}
 			catch (e)
@@ -574,13 +575,48 @@ class PictViewFormEditor extends libPictView
 		// Build the full tab bar and content panels programmatically
 		this._RenderingProvider._renderTabShell();
 
-		this.renderVisualEditor();
+		// Re-render the content for the currently active tab (not just visual)
+		this._renderActiveTabContent();
 		this._syncTabState();
 	}
 
 	renderVisualEditor()
 	{
 		return this._RenderingProvider.renderVisualEditor();
+	}
+
+	/**
+	 * Re-render the content for the currently active tab.
+	 * Called from onAfterRender to restore whichever tab the user was on.
+	 */
+	_renderActiveTabContent()
+	{
+		// Default to visual when no active tab is set (initial render)
+		let tmpActiveTab = this._ActiveTab || 'visual';
+
+		if (tmpActiveTab === 'solvereditor')
+		{
+			// Render the visual editor content in the background (hidden),
+			// then restore the solver editor panel so the user is not disrupted.
+			this.renderVisualEditor();
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderSolverEditorTabPanel();
+			}
+		}
+		else if (tmpActiveTab === 'solvers')
+		{
+			this.renderVisualEditor();
+			if (this._PropertiesPanelView)
+			{
+				this._PropertiesPanelView.renderSolversTabPanel();
+			}
+		}
+		else
+		{
+			// For all other tabs, re-run switchTab which handles each tab's rendering
+			this.switchTab(tmpActiveTab);
+		}
 	}
 
 	/* -------------------------------------------------------------------------- */
@@ -938,6 +974,7 @@ class PictViewFormEditor extends libPictView
 		// up automatically.
 		let tmpFirstKey = tmpManifestKeys[0];
 		let tmpFirstManifest = pManifests[tmpFirstKey];
+		this._ManifestOpsProvider.stripRowsFromManifest(tmpFirstManifest);
 		this._setManifestData(tmpFirstManifest);
 
 		// Emit event with all manifests for the host application to handle
@@ -989,7 +1026,7 @@ class PictViewFormEditor extends libPictView
 	 */
 	exportJSON()
 	{
-		let tmpManifest = this._resolveManifestData();
+		let tmpManifest = this._ManifestOpsProvider.getCleanManifestForExport();
 		if (!tmpManifest)
 		{
 			this._showToast('error', 'No manifest data to export.');
@@ -1243,9 +1280,8 @@ class PictViewFormEditor extends libPictView
 			return;
 		}
 
-		let tmpSection = tmpManifest.Sections[pSectionIndex];
-		let tmpGroup = (tmpSection && tmpSection.Groups) ? tmpSection.Groups[pGroupIndex] : null;
-		let tmpRow = (tmpGroup && tmpGroup.Rows) ? tmpGroup.Rows[pRowIndex] : null;
+		let tmpRows = this._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+		let tmpRow = (pRowIndex >= 0 && pRowIndex < tmpRows.length) ? tmpRows[pRowIndex] : null;
 		let tmpDescriptor = null;
 		let tmpInputType = '';
 
@@ -1429,9 +1465,8 @@ class PictViewFormEditor extends libPictView
 		}
 
 		let tmpCtx = this._ContentEditorContext;
-		let tmpSection = tmpManifest.Sections[tmpCtx.SectionIndex];
-		let tmpGroup = (tmpSection && tmpSection.Groups) ? tmpSection.Groups[tmpCtx.GroupIndex] : null;
-		let tmpRow = (tmpGroup && tmpGroup.Rows) ? tmpGroup.Rows[tmpCtx.RowIndex] : null;
+		let tmpRows = this._ManifestOpsProvider.getRowsForGroupByIndex(tmpCtx.SectionIndex, tmpCtx.GroupIndex);
+		let tmpRow = (tmpCtx.RowIndex >= 0 && tmpCtx.RowIndex < tmpRows.length) ? tmpRows[tmpCtx.RowIndex] : null;
 
 		if (tmpRow && Array.isArray(tmpRow.Inputs))
 		{

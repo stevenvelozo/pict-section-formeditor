@@ -200,12 +200,18 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		}
 
 		let tmpGroup = tmpSection.Groups[this._SelectedInput.GroupIndex];
-		if (!tmpGroup || !Array.isArray(tmpGroup.Rows))
+		if (!tmpGroup)
 		{
 			return null;
 		}
 
-		let tmpRow = tmpGroup.Rows[this._SelectedInput.RowIndex];
+		let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(this._SelectedInput.SectionIndex, this._SelectedInput.GroupIndex);
+		if (this._SelectedInput.RowIndex < 0 || this._SelectedInput.RowIndex >= tmpRows.length)
+		{
+			return null;
+		}
+
+		let tmpRow = tmpRows[this._SelectedInput.RowIndex];
 		if (!tmpRow || !Array.isArray(tmpRow.Inputs))
 		{
 			return null;
@@ -5146,6 +5152,11 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		let tmpManifest = this._ParentFormEditor._resolveManifestData();
 		let tmpHTML = '';
 
+		// Add Solver helper at the top of the list
+		let tmpHash = this._ParentFormEditor.Hash;
+		tmpHTML += this._renderAddSolverHelper(`FormEditor-SolverEditorList-AddSolver-${tmpHash}`);
+		tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+
 		tmpHTML += '<div class="pict-fe-solver-editor-list-heading">Select a solver expression to edit</div>';
 
 		if (!tmpManifest || !Array.isArray(tmpManifest.Sections))
@@ -5271,10 +5282,6 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				tmpHTML += '</div>';
 			}
 		}
-
-		// Add Solver helper
-		let tmpHash = this._ParentFormEditor.Hash;
-		tmpHTML += this._renderAddSolverHelper(`FormEditor-SolverEditorList-AddSolver-${tmpHash}`);
 
 		return tmpHTML;
 	}
@@ -5438,6 +5445,12 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		let tmpHealthReport = this._buildSolverHealthReport();
 		let tmpHTML = '';
 
+		// Add Solver helper at the top
+		let tmpHash = this._ParentFormEditor.Hash;
+		tmpHTML += this._renderAddSolverHelper(`FormEditor-SolversTab-AddSolver-${tmpHash}`);
+
+		tmpHTML += '<div class="pict-fe-data-section-divider"></div>';
+
 		// Section 1: Health Summary
 		tmpHTML += this._renderSolverHealthSummary(tmpPanelViewRef, tmpHealthReport);
 
@@ -5450,10 +5463,6 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 
 		// Section 3: Data Flow
 		tmpHTML += this._renderSolverDataFlow(tmpPanelViewRef, tmpHealthReport);
-
-		// Add Solver helper
-		let tmpHash = this._ParentFormEditor.Hash;
-		tmpHTML += this._renderAddSolverHelper(`FormEditor-SolversTab-AddSolver-${tmpHash}`);
 
 		return tmpHTML;
 	}
@@ -5575,30 +5584,65 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 		tmpReport.AllExpressions.sort(function (a, b) { return a.Ordinal - b.Ordinal; });
 
 		// ---- Build known hash set from Descriptors ----
+		// Include both Descriptor hashes and addresses (keys), stored lowercase for case-insensitive matching
 		let tmpKnownHashes = {};
 		if (tmpManifest.Descriptors && typeof tmpManifest.Descriptors === 'object')
 		{
 			let tmpAddresses = Object.keys(tmpManifest.Descriptors);
 			for (let a = 0; a < tmpAddresses.length; a++)
 			{
+				// The address itself (Descriptor key) is a valid token in solver expressions
+				tmpKnownHashes[tmpAddresses[a].toLowerCase()] = true;
 				let tmpDescriptor = tmpManifest.Descriptors[tmpAddresses[a]];
 				if (tmpDescriptor && tmpDescriptor.Hash)
 				{
-					tmpKnownHashes[tmpDescriptor.Hash] = true;
+					tmpKnownHashes[tmpDescriptor.Hash.toLowerCase()] = true;
 				}
 			}
 		}
 
-		// Known solver function names and keywords to exclude from unresolved detection
+		// Also include Section and Group hashes since solver functions reference them by hash
+		for (let s = 0; s < tmpManifest.Sections.length; s++)
+		{
+			let tmpSection = tmpManifest.Sections[s];
+			if (tmpSection.Hash)
+			{
+				tmpKnownHashes[tmpSection.Hash.toLowerCase()] = true;
+			}
+			if (Array.isArray(tmpSection.Groups))
+			{
+				for (let g = 0; g < tmpSection.Groups.length; g++)
+				{
+					if (tmpSection.Groups[g].Hash)
+					{
+						tmpKnownHashes[tmpSection.Groups[g].Hash.toLowerCase()] = true;
+					}
+				}
+			}
+		}
+
+		// ---- Collect left-side assignment targets as known hashes ----
+		// Solver expressions can assign to intermediate variables (e.g. TmpTotal = SUM(...))
+		// These should not be flagged as unresolved when referenced in other expressions
+		for (let e = 0; e < tmpReport.AllExpressions.length; e++)
+		{
+			let tmpExpr = tmpReport.AllExpressions[e].Expression;
+			let tmpEqIdx = tmpExpr.indexOf('=');
+			if (tmpEqIdx >= 0)
+			{
+				let tmpLeft = tmpExpr.substring(0, tmpEqIdx).trim();
+				if (tmpLeft.length > 0)
+				{
+					tmpKnownHashes[tmpLeft.toLowerCase()] = true;
+				}
+			}
+		}
+
+		// Known solver keywords to exclude from unresolved detection
 		let tmpKnownFunctions =
 		{
-			'SUM': true, 'MEAN': true, 'MEDIAN': true, 'COUNT': true, 'MIN': true, 'MAX': true,
-			'ABS': true, 'ROUND': true, 'CEIL': true, 'FLOOR': true, 'SQRT': true, 'POW': true,
-			'CONCAT': true, 'MAP': true, 'VAR': true, 'FROM': true, 'IF': true, 'THEN': true, 'ELSE': true,
-			'AND': true, 'OR': true, 'NOT': true, 'TRUE': true, 'FALSE': true,
-			'FILTER': true, 'REDUCE': true, 'COALESCE': true, 'LENGTH': true,
-			'TOSTRING': true, 'TONUMBER': true, 'TOFLOAT': true, 'TOINT': true,
-			'NOW': true, 'TODAY': true, 'DATEFORMAT': true, 'DATEDIFF': true
+			'IF': true, 'THEN': true, 'ELSE': true, 'AND': true, 'OR': true, 'NOT': true,
+			'TRUE': true, 'FALSE': true, 'VAR': true, 'FROM': true, 'MAP': true
 		};
 
 		// ---- Analyze expressions for issues ----
@@ -5637,8 +5681,18 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 			// (e.g. URLs, spaces, punctuation) are not treated as hash tokens.
 			let tmpStrippedRight = tmpRightSide.replace(/"[^"]*"|'[^']*'/g, '');
 
+			// Detect function calls (any identifier immediately followed by a parenthesis)
+			// so they are excluded from unresolved token detection without needing a hardcoded list.
+			let tmpFunctionCalls = {};
+			let tmpFuncRegex = /([A-Za-z_]\w*)\s*\(/g;
+			let tmpFuncMatch;
+			while ((tmpFuncMatch = tmpFuncRegex.exec(tmpStrippedRight)) !== null)
+			{
+				tmpFunctionCalls[tmpFuncMatch[1].toUpperCase()] = true;
+			}
+
 			// Tokenize the stripped right side to find hash references
-			let tmpTokens = tmpStrippedRight.split(/[=+\-*\/(),\s]+/).filter(function (t) { return t.length > 0; });
+			let tmpTokens = tmpStrippedRight.split(/[=+\-*\/(),\s^%]+/).filter(function (t) { return t.length > 0; });
 			let tmpFoundHashes = [];
 			let tmpUnresolvedTokens = [];
 
@@ -5652,14 +5706,14 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 					continue;
 				}
 
-				// Skip known functions (case-insensitive)
-				if (tmpKnownFunctions[tmpToken.toUpperCase()])
+				// Skip known keywords and detected function calls (case-insensitive)
+				if (tmpKnownFunctions[tmpToken.toUpperCase()] || tmpFunctionCalls[tmpToken.toUpperCase()])
 				{
 					continue;
 				}
 
-				// Check if it is a known descriptor hash
-				if (tmpKnownHashes[tmpToken])
+				// Check if it is a known descriptor hash or address (case-insensitive)
+				if (tmpKnownHashes[tmpToken.toLowerCase()])
 				{
 					tmpFoundHashes.push(tmpToken);
 				}
@@ -5669,8 +5723,8 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 				}
 			}
 
-			// Check left side for known hash too
-			if (tmpLeftHash && tmpKnownHashes[tmpLeftHash])
+			// Check left side for known hash too (case-insensitive)
+			if (tmpLeftHash && tmpKnownHashes[tmpLeftHash.toLowerCase()])
 			{
 				// Build solver map entry
 				if (!tmpSolverMap[tmpLeftHash])
@@ -5682,7 +5736,7 @@ class PictViewFormEditorPropertiesPanel extends libPictView
 					tmpSolverMap[tmpLeftHash].assignment = tmpExprObj;
 				}
 			}
-			else if (tmpLeftHash && !tmpKnownFunctions[tmpLeftHash.toUpperCase()])
+			else if (tmpLeftHash && !tmpKnownFunctions[tmpLeftHash.toUpperCase()] && !tmpFunctionCalls[tmpLeftHash.toUpperCase()])
 			{
 				// Left-side hash not in Descriptors and not a function — still track as unresolved
 				tmpUnresolvedTokens.push(tmpLeftHash);

@@ -597,17 +597,20 @@ suite
 						tmpView.initialize();
 						tmpView._ManifestOpsProvider.addSection();
 
-						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						Expect(tmpGroup.Rows).to.be.undefined;
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows.length).to.equal(0);
 
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						Expect(tmpGroup.Rows).to.be.an('array');
-						Expect(tmpGroup.Rows.length).to.equal(1);
-						Expect(tmpGroup.Rows[0].Inputs).to.be.an('array');
-						Expect(tmpGroup.Rows[0].Inputs.length).to.equal(0);
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows).to.be.an('array');
+						Expect(tmpRows.length).to.equal(1);
+						// addRow auto-creates the first input
+						Expect(tmpRows[0].Inputs).to.be.an('array');
+						Expect(tmpRows[0].Inputs.length).to.equal(1);
 
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						Expect(tmpGroup.Rows.length).to.equal(2);
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows.length).to.equal(2);
 					}
 				);
 				test
@@ -630,11 +633,12 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 
-						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						Expect(tmpGroup.Rows.length).to.equal(3);
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows.length).to.equal(3);
 
 						tmpView._ManifestOpsProvider.removeRow(0, 0, 1);
-						Expect(tmpGroup.Rows.length).to.equal(2);
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows.length).to.equal(2);
 					}
 				);
 				test
@@ -657,20 +661,21 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 
-						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-
-						// Tag each row so we can track reordering
-						tmpGroup.Rows[0]._tag = 'A';
-						tmpGroup.Rows[1]._tag = 'B';
-						tmpGroup.Rows[2]._tag = 'C';
+						// Track rows by the auto-created input addresses
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpAddrA = tmpRows[0].Inputs[0];
+						let tmpAddrB = tmpRows[1].Inputs[0];
+						let tmpAddrC = tmpRows[2].Inputs[0];
 
 						tmpView._ManifestOpsProvider.moveRowUp(0, 0, 2);
-						Expect(tmpGroup.Rows[1]._tag).to.equal('C');
-						Expect(tmpGroup.Rows[2]._tag).to.equal('B');
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows[1].Inputs[0]).to.equal(tmpAddrC);
+						Expect(tmpRows[2].Inputs[0]).to.equal(tmpAddrB);
 
 						tmpView._ManifestOpsProvider.moveRowDown(0, 0, 0);
-						Expect(tmpGroup.Rows[0]._tag).to.equal('C');
-						Expect(tmpGroup.Rows[1]._tag).to.equal('A');
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows[0].Inputs[0]).to.equal(tmpAddrC);
+						Expect(tmpRows[1].Inputs[0]).to.equal(tmpAddrA);
 					}
 				);
 			}
@@ -699,31 +704,30 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpRow = tmpManifest.Sections[0].Groups[0].Rows[0];
-						Expect(tmpRow.Inputs.length).to.equal(0);
-
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						Expect(tmpRow.Inputs.length).to.equal(1);
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						// addRow auto-creates the first input
+						Expect(tmpRows[0].Inputs.length).to.equal(1);
 
 						// Inputs are now address strings referencing Descriptors
-						let tmpAddress1 = tmpRow.Inputs[0];
-						Expect(typeof tmpAddress1).to.equal('string');
-						Expect(tmpManifest.Descriptors).to.have.property(tmpAddress1);
+						let tmpAddress0 = tmpRows[0].Inputs[0];
+						Expect(typeof tmpAddress0).to.equal('string');
+						Expect(tmpManifest.Descriptors).to.have.property(tmpAddress0);
 
-						let tmpDescriptor1 = tmpManifest.Descriptors[tmpAddress1];
-						Expect(tmpDescriptor1.DataType).to.equal('String');
-						Expect(tmpDescriptor1.Name).to.be.a('string');
-						Expect(tmpDescriptor1.Hash).to.be.a('string');
-						Expect(tmpDescriptor1.PictForm).to.be.an('object');
-						Expect(tmpDescriptor1.PictForm.Section).to.equal('S1');
-						Expect(tmpDescriptor1.PictForm.Group).to.equal('S1_G1');
-						Expect(tmpDescriptor1.PictForm.Row).to.equal(1);
+						let tmpDescriptor0 = tmpManifest.Descriptors[tmpAddress0];
+						Expect(tmpDescriptor0.DataType).to.equal('String');
+						Expect(tmpDescriptor0.Name).to.be.a('string');
+						Expect(tmpDescriptor0.Hash).to.be.a('string');
+						Expect(tmpDescriptor0.PictForm).to.be.an('object');
+						Expect(tmpDescriptor0.PictForm.Section).to.equal('S1');
+						Expect(tmpDescriptor0.PictForm.Group).to.equal('S1_G1');
+						Expect(tmpDescriptor0.PictForm.Row).to.equal(1);
 
 						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						Expect(tmpRow.Inputs.length).to.equal(2);
-						let tmpAddress2 = tmpRow.Inputs[1];
-						Expect(tmpManifest.Descriptors).to.have.property(tmpAddress2);
-						Expect(tmpAddress1).to.not.equal(tmpAddress2);
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows[0].Inputs.length).to.equal(2);
+						let tmpAddress1 = tmpRows[0].Inputs[1];
+						Expect(tmpManifest.Descriptors).to.have.property(tmpAddress1);
+						Expect(tmpAddress0).to.not.equal(tmpAddress1);
 					}
 				);
 				test
@@ -745,21 +749,22 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpRow = tmpManifest.Sections[0].Groups[0].Rows[0];
-						Expect(tmpRow.Inputs.length).to.equal(3);
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						// addRow auto-created 1, addInput x2 added 2 more = 3
+						Expect(tmpRows[0].Inputs.length).to.equal(3);
 
-						let tmpAddress1 = tmpRow.Inputs[0];
-						let tmpAddress2 = tmpRow.Inputs[1];
-						let tmpAddress3 = tmpRow.Inputs[2];
+						let tmpAddress1 = tmpRows[0].Inputs[0];
+						let tmpAddress2 = tmpRows[0].Inputs[1];
+						let tmpAddress3 = tmpRows[0].Inputs[2];
 
 						// Remove the middle input
 						tmpView._ManifestOpsProvider.removeInput(0, 0, 0, 1);
-						Expect(tmpRow.Inputs.length).to.equal(2);
-						Expect(tmpRow.Inputs[0]).to.equal(tmpAddress1);
-						Expect(tmpRow.Inputs[1]).to.equal(tmpAddress3);
+						tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows[0].Inputs.length).to.equal(2);
+						Expect(tmpRows[0].Inputs[0]).to.equal(tmpAddress1);
+						Expect(tmpRows[0].Inputs[1]).to.equal(tmpAddress3);
 
 						// The removed Descriptor should be gone
 						Expect(tmpManifest.Descriptors).to.not.have.property(tmpAddress2);
@@ -787,14 +792,12 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 1);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpGroup = tmpManifest.Sections[0].Groups[0];
-						let tmpRow1Address1 = tmpGroup.Rows[0].Inputs[0];
-						let tmpRow1Address2 = tmpGroup.Rows[0].Inputs[1];
-						let tmpRow2Address1 = tmpGroup.Rows[1].Inputs[0];
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpRow1Address1 = tmpRows[0].Inputs[0];
+						let tmpRow1Address2 = tmpRows[0].Inputs[1];
+						let tmpRow2Address1 = tmpRows[1].Inputs[0];
 
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(3);
 
@@ -827,13 +830,13 @@ suite
 						tmpView._ManifestOpsProvider.addSection();
 						tmpView._ManifestOpsProvider.addGroup(0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 1);
-						tmpView._ManifestOpsProvider.addInput(0, 1, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpGroup0Address = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
-						let tmpGroup1Address = tmpManifest.Sections[0].Groups[1].Rows[0].Inputs[0];
+						let tmpRows0 = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpRows1 = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 1);
+						let tmpGroup0Address = tmpRows0[0].Inputs[0];
+						let tmpGroup1Address = tmpRows1[0].Inputs[0];
 
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(2);
 
@@ -862,13 +865,13 @@ suite
 						tmpView._ManifestOpsProvider.addSection();
 						tmpView._ManifestOpsProvider.addSection();
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						tmpView._ManifestOpsProvider.addRow(1, 0);
-						tmpView._ManifestOpsProvider.addInput(1, 0, 0);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpSection0Address = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
-						let tmpSection1Address = tmpManifest.Sections[1].Groups[0].Rows[0].Inputs[0];
+						let tmpRows0 = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpRows1 = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(1, 0);
+						let tmpSection0Address = tmpRows0[0].Inputs[0];
+						let tmpSection1Address = tmpRows1[0].Inputs[0];
 
 						Expect(Object.keys(tmpManifest.Descriptors).length).to.equal(2);
 
@@ -898,15 +901,12 @@ suite
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 1);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 2);
 
 						let tmpManifest = tmpPict.AppData.FormConfig;
-						let tmpGroup = tmpManifest.Sections[0].Groups[0];
-						let tmpAddr0 = tmpGroup.Rows[0].Inputs[0];
-						let tmpAddr1 = tmpGroup.Rows[1].Inputs[0];
-						let tmpAddr2 = tmpGroup.Rows[2].Inputs[0];
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpAddr0 = tmpRows[0].Inputs[0];
+						let tmpAddr1 = tmpRows[1].Inputs[0];
+						let tmpAddr2 = tmpRows[2].Inputs[0];
 
 						// Verify initial row assignments
 						Expect(tmpManifest.Descriptors[tmpAddr0].PictForm.Row).to.equal(1);
@@ -1179,22 +1179,22 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
-						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						Expect(tmpGroup.Rows).to.be.an('array');
-						Expect(tmpGroup.Rows.length).to.equal(2);
+						// Rows are now computed from Descriptors, not stored on Groups
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroup('Area', 'AreaDefault', true);
+						Expect(tmpRows).to.be.an('array');
+						Expect(tmpRows.length).to.equal(2);
 
 						// Row 1 should have one input: 'Name'
-						Expect(tmpGroup.Rows[0].Inputs).to.be.an('array');
-						Expect(tmpGroup.Rows[0].Inputs.length).to.equal(1);
-						Expect(tmpGroup.Rows[0].Inputs[0]).to.equal('Name');
+						Expect(tmpRows[0].Inputs).to.be.an('array');
+						Expect(tmpRows[0].Inputs.length).to.equal(1);
+						Expect(tmpRows[0].Inputs[0]).to.equal('Name');
 
 						// Row 2 should have two inputs: 'Width' and 'Height'
-						Expect(tmpGroup.Rows[1].Inputs).to.be.an('array');
-						Expect(tmpGroup.Rows[1].Inputs.length).to.equal(2);
-						Expect(tmpGroup.Rows[1].Inputs).to.include('Width');
-						Expect(tmpGroup.Rows[1].Inputs).to.include('Height');
+						Expect(tmpRows[1].Inputs).to.be.an('array');
+						Expect(tmpRows[1].Inputs.length).to.equal(2);
+						Expect(tmpRows[1].Inputs).to.include('Width');
+						Expect(tmpRows[1].Inputs).to.include('Height');
 					}
 				);
 				test
@@ -1238,12 +1238,11 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
-						// Should land in the first group (Main)
-						let tmpMainGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						Expect(tmpMainGroup.Rows).to.be.an('array');
-						Expect(tmpMainGroup.Rows[0].Inputs).to.include('FirstName');
+						// Should land in the first group (Main) since PictForm.Group is omitted
+						let tmpMainRows = tmpView._ManifestOpsProvider.getRowsForGroup('Info', 'Main', true);
+						Expect(tmpMainRows).to.be.an('array');
+						Expect(tmpMainRows[0].Inputs).to.include('FirstName');
 					}
 				);
 				test
@@ -1287,14 +1286,13 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
 
 						// Should be in the Help group, not Default
-						let tmpDefaultGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						let tmpHelpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[1];
-						Expect(tmpDefaultGroup.Rows).to.be.undefined;
-						Expect(tmpHelpGroup.Rows).to.be.an('array');
-						Expect(tmpHelpGroup.Rows[0].Inputs).to.include('Help.Content');
+						let tmpDefaultRows = tmpView._ManifestOpsProvider.getRowsForGroup('Area', 'Default');
+						let tmpHelpRows = tmpView._ManifestOpsProvider.getRowsForGroup('Area', 'Help');
+						Expect(tmpDefaultRows.length).to.equal(0);
+						Expect(tmpHelpRows).to.be.an('array');
+						Expect(tmpHelpRows[0].Inputs).to.include('Help.Content');
 					}
 				);
 				test
@@ -1333,17 +1331,18 @@ suite
 						}, libPictSectionFormEditor);
 
 						tmpView.initialize();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
+						tmpView._ManifestOpsProvider._ensureSectionGroups();
 
 						let tmpSection = tmpPict.AppData.FormConfig.Sections[0];
 						Expect(tmpSection.Groups).to.be.an('array');
 						Expect(tmpSection.Groups.length).to.equal(1);
-						Expect(tmpSection.Groups[0].Rows[0].Inputs).to.include('SectionA.Amount');
+						let tmpRows = tmpView._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						Expect(tmpRows[0].Inputs).to.include('SectionA.Amount');
 					}
 				);
 				test
 				(
-					'Should not duplicate inputs on repeated reconciliation calls',
+					'Should not duplicate inputs on repeated computation calls',
 					function ()
 					{
 						let tmpPict = new libPict({ Product: 'TestFormEditor' });
@@ -1382,14 +1381,15 @@ suite
 
 						tmpView.initialize();
 
-						// Call reconcile multiple times
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
-						tmpView._ManifestOpsProvider._reconcileManifestStructure();
+						// Compute rows multiple times — should always return the same result
+						let tmpRows1 = tmpView._ManifestOpsProvider.getRowsForGroup('Sec', 'Grp', true);
+						let tmpRows2 = tmpView._ManifestOpsProvider.getRowsForGroup('Sec', 'Grp', true);
+						let tmpRows3 = tmpView._ManifestOpsProvider.getRowsForGroup('Sec', 'Grp', true);
 
-						let tmpGroup = tmpPict.AppData.FormConfig.Sections[0].Groups[0];
-						Expect(tmpGroup.Rows[0].Inputs.length).to.equal(1);
-						Expect(tmpGroup.Rows[0].Inputs[0]).to.equal('Field1');
+						Expect(tmpRows1[0].Inputs.length).to.equal(1);
+						Expect(tmpRows2[0].Inputs.length).to.equal(1);
+						Expect(tmpRows3[0].Inputs.length).to.equal(1);
+						Expect(tmpRows1[0].Inputs[0]).to.equal('Field1');
 					}
 				);
 			}
@@ -2039,19 +2039,10 @@ suite
 									Groups:
 									[
 										{
-											Name: 'Group A1', Hash: 'GroupA1',
-											Rows:
-											[
-												{ Inputs: ['addrA'] },
-												{ Inputs: ['addrB'] }
-											]
+											Name: 'Group A1', Hash: 'GroupA1'
 										},
 										{
-											Name: 'Group A2', Hash: 'GroupA2',
-											Rows:
-											[
-												{ Inputs: ['addrC'] }
-											]
+											Name: 'Group A2', Hash: 'GroupA2'
 										}
 									]
 								}
@@ -2093,12 +2084,14 @@ suite
 
 						var tmpManifest = tmpPict.AppData.FormConfig;
 						// Group A1 should have 1 row
-						Expect(tmpManifest.Sections[0].Groups[0].Rows.length).to.equal(1);
-						Expect(tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0]).to.equal('addrA');
+						let tmpRowsA1 = tmpView._ManifestOpsProvider.getRowsForGroup('SectionA', 'GroupA1');
+						Expect(tmpRowsA1.length).to.equal(1);
+						Expect(tmpRowsA1[0].Inputs[0]).to.equal('addrA');
 						// Group A2 should have 2 rows (addrB row inserted before addrC row)
-						Expect(tmpManifest.Sections[0].Groups[1].Rows.length).to.equal(2);
-						Expect(tmpManifest.Sections[0].Groups[1].Rows[0].Inputs[0]).to.equal('addrB');
-						Expect(tmpManifest.Sections[0].Groups[1].Rows[1].Inputs[0]).to.equal('addrC');
+						let tmpRowsA2 = tmpView._ManifestOpsProvider.getRowsForGroup('SectionA', 'GroupA2');
+						Expect(tmpRowsA2.length).to.equal(2);
+						Expect(tmpRowsA2[0].Inputs[0]).to.equal('addrB');
+						Expect(tmpRowsA2[1].Inputs[0]).to.equal('addrC');
 
 						fDone();
 					}
@@ -2119,11 +2112,7 @@ suite
 									Groups:
 									[
 										{
-											Name: 'Group A1', Hash: 'GroupA1',
-											Rows:
-											[
-												{ Inputs: ['addrX', 'addrY'] }
-											]
+											Name: 'Group A1', Hash: 'GroupA1'
 										}
 									]
 								},
@@ -2132,11 +2121,7 @@ suite
 									Groups:
 									[
 										{
-											Name: 'Group B1', Hash: 'GroupB1',
-											Rows:
-											[
-												{ Inputs: ['addrZ'] }
-											]
+											Name: 'Group B1', Hash: 'GroupB1'
 										}
 									]
 								}
@@ -2178,12 +2163,14 @@ suite
 
 						var tmpManifest = tmpPict.AppData.FormConfig;
 						// Source row should have 1 input
-						Expect(tmpManifest.Sections[0].Groups[0].Rows[0].Inputs.length).to.equal(1);
-						Expect(tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0]).to.equal('addrX');
+						let tmpRowsA1 = tmpView._ManifestOpsProvider.getRowsForGroup('SectionA', 'GroupA1');
+						Expect(tmpRowsA1[0].Inputs.length).to.equal(1);
+						Expect(tmpRowsA1[0].Inputs[0]).to.equal('addrX');
 						// Target row should have 2 inputs (addrY inserted before addrZ)
-						Expect(tmpManifest.Sections[1].Groups[0].Rows[0].Inputs.length).to.equal(2);
-						Expect(tmpManifest.Sections[1].Groups[0].Rows[0].Inputs[0]).to.equal('addrY');
-						Expect(tmpManifest.Sections[1].Groups[0].Rows[0].Inputs[1]).to.equal('addrZ');
+						let tmpRowsB1 = tmpView._ManifestOpsProvider.getRowsForGroup('SectionB', 'GroupB1');
+						Expect(tmpRowsB1[0].Inputs.length).to.equal(2);
+						Expect(tmpRowsB1[0].Inputs[0]).to.equal('addrY');
+						Expect(tmpRowsB1[0].Inputs[1]).to.equal('addrZ');
 
 						// Verify PictForm metadata was updated
 						Expect(tmpManifest.Descriptors.addrY.PictForm.Section).to.equal('SectionB');
@@ -2908,10 +2895,8 @@ suite
 						tmpView._ManifestOpsProvider.addGroup(0);
 						tmpView._ManifestOpsProvider.addGroup(1);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
+						tmpView._ManifestOpsProvider.addRow(0, 0);
 						tmpView._ManifestOpsProvider.addRow(1, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
-						tmpView._ManifestOpsProvider.addInput(1, 0, 0);
 
 						tmpStats = tmpView._UtilitiesProvider.getFormStats();
 						Expect(tmpStats.Sections).to.equal(2);
@@ -2966,7 +2951,6 @@ suite
 						tmpView._ManifestOpsProvider.addSection();
 						tmpView._ManifestOpsProvider.addGroup(0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
 						tmpEntries = tmpView._UtilitiesProvider.getAllInputEntries();
@@ -3230,7 +3214,8 @@ suite
 						// Test String property
 						tmpView.commitPictFormChange('Template', 'Hello {~D:Name~}', 'String');
 						let tmpManifest = tmpFormEditor._resolveManifestData();
-						let tmpAddress = tmpManifest.Sections[0].Groups[0].Rows[0].Inputs[0];
+						let tmpRows = tmpFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(0, 0);
+						let tmpAddress = tmpRows[0].Inputs[0];
 						let tmpDescriptor = tmpManifest.Descriptors[tmpAddress];
 						Expect(tmpDescriptor.PictForm.Template).to.equal('Hello {~D:Name~}');
 
@@ -4044,11 +4029,10 @@ suite
 
 						tmpView.initialize();
 
-						// Add a Record group with one input
+						// Add a Record group with one input (addRow auto-creates first input)
 						tmpView._ManifestOpsProvider.addSection();
 						tmpView._ManifestOpsProvider.addGroup(0);
 						tmpView._ManifestOpsProvider.addRow(0, 0);
-						tmpView._ManifestOpsProvider.addInput(0, 0, 0);
 
 						// Add a Tabular group with columns
 						tmpView._ManifestOpsProvider.addGroup(0);

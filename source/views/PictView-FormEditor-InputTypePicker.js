@@ -33,9 +33,8 @@ class PictViewFormEditorInputTypePicker extends libPictView
 		let tmpCurrentValue = '';
 		if (tmpManifest && tmpManifest.Sections)
 		{
-			let tmpSection = tmpManifest.Sections[pSectionIndex];
-			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[pGroupIndex] : null;
-			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[pRowIndex] : null;
+			let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(pSectionIndex, pGroupIndex);
+			let tmpRow = (pRowIndex >= 0 && pRowIndex < tmpRows.length) ? tmpRows[pRowIndex] : null;
 			if (tmpRow && Array.isArray(tmpRow.Inputs))
 			{
 				let tmpAddress = tmpRow.Inputs[pInputIndex];
@@ -386,9 +385,8 @@ class PictViewFormEditorInputTypePicker extends libPictView
 		else
 		{
 			// Regular input — resolve descriptor from main Descriptors
-			let tmpSection = tmpManifest.Sections[tmpContext.SectionIndex];
-			let tmpGroup = tmpSection && tmpSection.Groups ? tmpSection.Groups[tmpContext.GroupIndex] : null;
-			let tmpRow = tmpGroup && tmpGroup.Rows ? tmpGroup.Rows[tmpContext.RowIndex] : null;
+			let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(tmpContext.SectionIndex, tmpContext.GroupIndex);
+			let tmpRow = (tmpContext.RowIndex >= 0 && tmpContext.RowIndex < tmpRows.length) ? tmpRows[tmpContext.RowIndex] : null;
 			if (tmpRow && Array.isArray(tmpRow.Inputs))
 			{
 				let tmpAddress = tmpRow.Inputs[tmpContext.InputIndex];

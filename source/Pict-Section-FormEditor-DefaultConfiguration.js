@@ -3291,6 +3291,7 @@ module.exports = (
 .pict-fe-add-solver-helper select
 {
 	flex: 1;
+	min-width: 0;
 	padding: 5px 8px;
 	border: 1px solid #D4CFC6;
 	border-radius: 4px;
@@ -3298,6 +3299,10 @@ module.exports = (
 	color: #3D3229;
 	font-size: 12px;
 	font-family: inherit;
+}
+.pict-fe-add-solver-helper .pict-fe-solver-add-btn
+{
+	flex-shrink: 0;
 }
 .pict-fe-add-solver-helper select:focus
 {

@@ -657,15 +657,13 @@ class FormEditorUtilities extends libPictProvider
 					for (let j = 0; j < tmpSection.Groups.length; j++)
 					{
 						let tmpGroup = tmpSection.Groups[j];
-						if (Array.isArray(tmpGroup.Rows))
+						let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(i, j);
+						for (let k = 0; k < tmpRows.length; k++)
 						{
-							for (let k = 0; k < tmpGroup.Rows.length; k++)
+							let tmpRow = tmpRows[k];
+							if (Array.isArray(tmpRow.Inputs))
 							{
-								let tmpRow = tmpGroup.Rows[k];
-								if (Array.isArray(tmpRow.Inputs))
-								{
-									tmpStats.Inputs += tmpRow.Inputs.length;
-								}
+								tmpStats.Inputs += tmpRow.Inputs.length;
 							}
 						}
 					}
@@ -741,11 +739,12 @@ class FormEditorUtilities extends libPictProvider
 				let tmpGroupLayout = tmpGroup.Layout || 'Record';
 
 				// Record layout: enumerate rows and inputs
-				if (tmpGroupLayout === 'Record' && Array.isArray(tmpGroup.Rows))
+				if (tmpGroupLayout === 'Record')
 				{
-					for (let r = 0; r < tmpGroup.Rows.length; r++)
+					let tmpRows = this._ParentFormEditor._ManifestOpsProvider.getRowsForGroupByIndex(s, g);
+					for (let r = 0; r < tmpRows.length; r++)
 					{
-						let tmpRow = tmpGroup.Rows[r];
+						let tmpRow = tmpRows[r];
 						if (!Array.isArray(tmpRow.Inputs))
 						{
 							continue;
@@ -852,7 +851,7 @@ class FormEditorUtilities extends libPictProvider
 
 	_updateCodeEditor()
 	{
-		let tmpManifest = this._ParentFormEditor._resolveManifestData();
+		let tmpManifest = this._ParentFormEditor._ManifestOpsProvider.getCleanManifestForExport();
 		let tmpJSON = JSON.stringify(tmpManifest, null, '\t');
 
 		if (this._ParentFormEditor._CodeEditorView)
