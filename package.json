@@ -25,15 +25,15 @@
     "homepage": "https://github.com/stevenvelozo/pict-section-formeditor#readme",
     "dependencies": {
         "pict-section-code": "^1.0.3",
-        "pict-section-content": "^0.0.7",
-        "pict-section-form": "^1.0.193",
-        "pict-section-markdowneditor": "^1.0.1",
+        "pict-section-content": "^0.0.9",
+        "pict-section-form": "^1.0.194",
+        "pict-section-markdowneditor": "^1.0.6",
         "pict-section-objecteditor": "^1.0.1",
         "pict-view": "^1.0.67"
     },
     "devDependencies": {
-        "pict": "^1.0.355",
-        "quackage": "^1.0.59"
+        "pict": "^1.0.357",
+        "quackage": "^1.0.63"
     },
     "mocha": {
         "diff": true,
